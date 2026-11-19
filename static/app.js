@@ -1,5 +1,19 @@
 const state={jobId:null,mode:'viral',source:null,logoFile:null,logoPath:null,logoServerPath:null,es:null,model:null,modelsAvailable:false,font:'Montserrat Extra Bold',outputs:[],currentOutputIndex:0,drag:null,reviewFile:null,editorLogoFile:null,editorLogoPath:null,youtubePoll:null,sourcePreviewUrl:null};
 const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
+
+async function safeJson(response, fallbackMsg = 'Server response error') {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    let msg = fallbackMsg;
+    try {
+      const doc = new DOMParser().parseFromString(text, 'text/html');
+      msg = doc.querySelector('title, h1, p')?.textContent?.trim() || fallbackMsg;
+    } catch (_) {}
+    throw new Error(msg);
+  }
+}
 const editorDownloads=()=>['#reviewDownload','#reviewDownloadMain'].map($).filter(Boolean);
 const editorApplyButtons=()=>['#applyEditorBranding','#applyEditorBrandingMain'].map($).filter(Boolean);
 const reviewPlayer=window.ClipifyReviewPlayer?.attach($('#reviewVideo'),$('#reviewVideoStatus'),$('#reviewVideoSpinner'),$('#reviewVideoStatusText'));
@@ -64,7 +78,7 @@ scanModelsBtn?.addEventListener('click', async () => {
   }
   try {
     const res = await fetch('/api/models/scan', { method: 'POST' });
-    const data = await res.json();
+    const data = await safeJson(res, 'PC scan failed.');
     if (data.ok && data.models && data.models.length) {
       await loadOptions();
       if (scanModelsBtn) scanModelsBtn.style.display = 'none';
@@ -170,7 +184,7 @@ async function importYouTube(){
       body:JSON.stringify({url})
     });
 
-    const d=await r.json();
+    const d=await safeJson(r, 'Could not start YouTube import.');
 
     if(!r.ok)throw Error(d.error||'Could not start YouTube import.');
 
@@ -208,7 +222,7 @@ async function waitForYouTubeDownload(jobId){
     try{
 
       const r=await fetch(`/api/status/${jobId}`,{cache:'no-store'});
-      const d=await r.json();
+      const d=await safeJson(r, 'Could not read YouTube download status.');
 
       if(!r.ok)throw Error(d.error||'Could not read YouTube download status.');
 
@@ -1180,7 +1194,7 @@ async function start(){
         const uploadForm=new FormData();
         uploadForm.append('video',state.source);
         const uploadResponse=await fetch('/api/upload',{method:'POST',body:uploadForm});
-        const uploadData=await uploadResponse.json();
+        const uploadData=await safeJson(uploadResponse, 'Could not upload the video.');
         if(!uploadResponse.ok) throw Error(uploadData.error||'Could not upload the video.');
         state.jobId=uploadData.job_id;
         addLog(`[Upload] Video ready as project ${state.jobId}`);
@@ -1193,7 +1207,7 @@ async function start(){
       const logoForm=new FormData();
       logoForm.append('logo',state.logoFile);
       const logoResponse=await fetch(`/api/upload-logo/${state.jobId}`,{method:'POST',body:logoForm});
-      const logoData=await logoResponse.json();
+      const logoData=await safeJson(logoResponse, 'Could not upload the logo.');
       if(!logoResponse.ok) throw Error(logoData.error||'Could not upload the logo.');
       state.logoServerPath=logoData.path;
     }
@@ -1278,7 +1292,7 @@ async function start(){
       }
     );
 
-    const d=await r.json();
+    const d=await safeJson(r, 'Could not start the job.');
 
     if(!r.ok)
       throw Error(

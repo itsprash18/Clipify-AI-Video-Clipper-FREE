@@ -164,7 +164,28 @@ MODES = {
 }
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024 * 1024  # 16 GB max upload
+
+
+@app.errorhandler(400)
+@app.errorhandler(404)
+@app.errorhandler(405)
+@app.errorhandler(413)
+@app.errorhandler(500)
+def handle_http_error(e):
+    if request.path.startswith("/api/"):
+        desc = getattr(e, "description", str(e))
+        code = getattr(e, "code", 500)
+        return jsonify({"error": desc, "status": "error"}), code
+    return e
+
+
+@app.errorhandler(Exception)
+def handle_unhandled_exception(e):
+    if request.path.startswith("/api/"):
+        logger.exception("Unhandled API error on %s: %s", request.path, e)
+        return jsonify({"error": f"Internal server error: {str(e)}", "status": "error"}), 500
+    raise e
 
 
 @app.before_request
