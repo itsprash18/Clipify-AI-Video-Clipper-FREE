@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Clipify AI Universal Design Tokens (Colors) -->
+    <color name="clipify_bg">#09090B</color>
+    <color name="clipify_bg_secondary">#121215</color>
+    <color name="clipify_panel">#18181B</color>
+    <color name="clipify_panel_elevated">#222226</color>
+    <color name="clipify_line">#27272A</color>
+    <color name="clipify_line_strong">#3F3F46</color>
+
+    <color name="clipify_text">#FAFAFA</color>
+    <color name="clipify_muted">#A1A1AA</color>
+    <color name="clipify_muted_dark">#71717A</color>
+    <color name="clipify_text_inverted">#09090B</color>
+
+    <color name="clipify_brand">#6366F1</color>
+    <color name="clipify_brand_hover">#4F46E5</color>
+    <color name="clipify_cyan">#06B6D4</color>
+    <color name="clipify_purple">#A855F7</color>
+
+    <color name="clipify_success">#10B981</color>
+    <color name="clipify_warning">#F59E0B</color>
+    <color name="clipify_error">#EF4444</color>
+
+    <color name="caption_yellow">#EAB308</color>
+    <color name="caption_coral">#F43F5E</color>
+    <color name="caption_cyan">#06B6D4</color>
+</resources>

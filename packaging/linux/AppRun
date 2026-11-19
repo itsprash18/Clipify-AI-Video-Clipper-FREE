@@ -1,0 +1,12 @@
+#!/bin/sh
+# ==============================================================================
+# Clipify AI — AppRun Entrypoint for AppImage
+# ==============================================================================
+
+HERE="$(dirname "$(readlink -f "${0}")")"
+export CLIPIFY_HOME="${HERE}"
+export PATH="${HERE}/usr/bin:${HERE}/bin:${PATH}"
+export LD_LIBRARY_PATH="${HERE}/usr/lib:${HERE}/lib:${LD_LIBRARY_PATH}"
+export PYTHONPATH="${HERE}/opt/clipify-ai:${PYTHONPATH}"
+
+exec "${HERE}/opt/clipify-ai/bin/clipify-ai" "$@"

@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Clipify AI — Linux Native Application Launcher
+# Compatible with Ubuntu, Debian, Fedora, Linux Mint, Arch Linux, Pop!_OS
+# ==============================================================================
+
+set -e
+
+APP_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+export CLIPIFY_HOME="${APP_DIR}"
+export PYTHONUNBUFFERED=1
+
+echo "=========================================="
+echo " Starting Clipify AI on Linux (64-bit)"
+echo "=========================================="
+
+# 1. Check Python 3.11+ Runtime
+PYTHON_BIN=""
+if [ -x "${APP_DIR}/runtime/bin/python3" ]; then
+    PYTHON_BIN="${APP_DIR}/runtime/bin/python3"
+elif [ -x "${APP_DIR}/.venv/bin/python3" ]; then
+    PYTHON_BIN="${APP_DIR}/.venv/bin/python3"
+elif command -v python3.11 >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python3.11)"
+elif command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python3)"
+else
+    echo "[ERROR] Python 3.11+ runtime not found."
+    echo "Please install Python 3.11: sudo apt install python3 (or sudo dnf install python3)"
+    exit 1
+fi
+
+# 2. Check FFmpeg
+if ! command -v ffmpeg >/dev/null 2>&1 && [ ! -x "${APP_DIR}/tools/ffmpeg" ]; then
+    echo "[WARNING] FFmpeg is not installed or not in PATH."
+    echo "Installing FFmpeg is required for video slicing and caption burn-in:"
+    echo "  Ubuntu/Debian: sudo apt update && sudo apt install -y ffmpeg"
+    echo "  Fedora:        sudo dnf install -y ffmpeg"
+    echo "  Arch Linux:    sudo pacman -S ffmpeg"
+fi
+
+# 3. Check Ollama Local AI Service
+if ! curl -s --connect-timeout 1 http://127.0.0.1:11434/api/version >/dev/null 2>&1; then
+    echo "[INFO] Ollama service is not currently active on http://127.0.0.1:11434"
+    if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files | grep -q "ollama.service"; then
+        echo "Starting Ollama systemd service..."
+        sudo systemctl start ollama || true
+    fi
+fi
+
+# 4. Check if Server is already running
+PORT=5000
+if curl -s --connect-timeout 1 "http://127.0.0.1:${PORT}/api/health" | grep -q "ok"; then
+    echo "[INFO] Clipify AI server is already running on port ${PORT}."
+else
+    echo "[INFO] Launching Clipify AI server daemon..."
+    nohup "${PYTHON_BIN}" "${APP_DIR}/app.py" > "${APP_DIR}/clipify_linux.log" 2>&1 &
+    SERVER_PID=$!
+    echo "[INFO] Server started with PID: ${SERVER_PID}"
+
+    # Wait up to 15 seconds for healthcheck
+    ATTEMPTS=0
+    HEALTHY=false
+    while [ $ATTEMPTS -lt 15 ]; do
+        if curl -s --connect-timeout 1 "http://127.0.0.1:${PORT}/api/health" | grep -q "ok"; then
+            HEALTHY=true
+            break
+        fi
+        sleep 1
+        ATTEMPTS=$((ATTEMPTS+1))
+    done
+
+    if [ "$HEALTHY" = true ]; then
+        echo "[SUCCESS] Clipify AI server is ready at http://127.0.0.1:${PORT}"
+    else
+        echo "[WARNING] Healthcheck timed out, but proceeding with launcher..."
+    fi
+fi
+
+# 5. Determine target view
+TARGET_URL="http://127.0.0.1:${PORT}/"
+for arg in "$@"; do
+    case "$arg" in
+        --view=live) TARGET_URL="http://127.0.0.1:${PORT}/live" ;;
+        --view=narrate) TARGET_URL="http://127.0.0.1:${PORT}/narrate" ;;
+    esac
+done
+
+# 6. Launch Application Window (Chromium App Mode or xdg-open)
+echo "[INFO] Opening Clipify AI window: ${TARGET_URL}"
+if command -v google-chrome >/dev/null 2>&1; then
+    exec google-chrome --app="${TARGET_URL}" --user-data-dir="${HOME}/.config/clipify-ai/browser-profile" "$@"
+elif command -v chromium >/dev/null 2>&1; then
+    exec chromium --app="${TARGET_URL}" --user-data-dir="${HOME}/.config/clipify-ai/browser-profile" "$@"
+elif command -v chromium-browser >/dev/null 2>&1; then
+    exec chromium-browser --app="${TARGET_URL}" --user-data-dir="${HOME}/.config/clipify-ai/browser-profile" "$@"
+elif command -v brave-browser >/dev/null 2>&1; then
+    exec brave-browser --app="${TARGET_URL}" --user-data-dir="${HOME}/.config/clipify-ai/browser-profile" "$@"
+elif command -v microsoft-edge >/dev/null 2>&1; then
+    exec microsoft-edge --app="${TARGET_URL}" --user-data-dir="${HOME}/.config/clipify-ai/browser-profile" "$@"
+elif command -v xdg-open >/dev/null 2>&1; then
+    exec xdg-open "${TARGET_URL}"
+else
+    echo "Clipify AI is running at: ${TARGET_URL}"
+fi

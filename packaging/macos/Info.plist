@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>Clipify AI</string>
+    <key>CFBundleIdentifier</key>
+    <string>dev.sherlock.clipifyai</string>
+    <key>CFBundleName</key>
+    <string>Clipify AI</string>
+    <key>CFBundleDisplayName</key>
+    <string>Clipify AI</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>3.7.0</string>
+    <key>CFBundleVersion</key>
+    <string>3.7.0</string>
+    <key>CFBundleIconFile</key>
+    <string>icon.icns</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>12.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+    <key>NSRequiresAquaSystemAppearance</key>
+    <false/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Clipify AI requires microphone access to capture voice narration and live stream commentary.</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Clipify AI requires screen recording permissions to capture live stream video feeds and desktop windows.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Clipify AI requires system event permissions to launch the studio interface window.</string>
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>Clipify AI accesses your media folders to import footage and save exported 9:16 Shorts.</string>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>Clipify AI saves project timelines and exported video clips in your documents folder.</string>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>Clipify AI accesses downloaded videos for automated clipping and editing.</string>
+</dict>
+</plist>

@@ -1,0 +1,23 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base Application Theme: Dark Creator Studio -->
+    <style name="Theme.ClipifyAI" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:statusBarColor">@color/clipify_bg</item>
+        <item name="android:navigationBarColor">@color/clipify_bg_secondary</item>
+        <item name="android:windowBackground">@color/clipify_bg</item>
+
+        <item name="colorPrimary">@color/clipify_brand</item>
+        <item name="colorPrimaryDark">@color/clipify_brand_hover</item>
+        <item name="colorSecondary">@color/clipify_cyan</item>
+        <item name="colorSurface">@color/clipify_panel</item>
+        <item name="colorOnSurface">@color/clipify_text</item>
+
+        <!-- Typography -->
+        <item name="android:textColor">@color/clipify_text</item>
+        <item name="android:textColorSecondary">@color/clipify_muted</item>
+    </style>
+
+    <style name="Theme.ClipifyAI.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+</resources>

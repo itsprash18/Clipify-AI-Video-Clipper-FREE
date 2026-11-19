@@ -1,0 +1,22 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Clipify AI
+GenericName=AI Video Clipper & Live Stream Studio
+Comment=Turn long videos & livestreams into viral 9:16 Shorts with AI highlights and animated captions
+Exec=/opt/clipify-ai/bin/clipify-ai %U
+Icon=clipify-ai
+Terminal=false
+Categories=AudioVideo;Video;AudioVideoEditing;Recorder;
+Keywords=video;clipper;ai;shorts;tiktok;reels;livestream;transcription;whisper;
+StartupWMClass=clipify-ai
+MimeType=video/mp4;video/quicktime;video/x-matroska;video/webm;
+Actions=LiveStudio;Narrate;
+
+[Desktop Action LiveStudio]
+Name=Open Live Studio
+Exec=/opt/clipify-ai/bin/clipify-ai --view=live
+
+[Desktop Action Narrate]
+Name=Open Narrate Studio
+Exec=/opt/clipify-ai/bin/clipify-ai --view=narrate

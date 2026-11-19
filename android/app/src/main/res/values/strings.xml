@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">Clipify AI</string>
+    <string name="app_tagline">AI Video Clipper &amp; Shorts Studio</string>
+
+    <!-- Navigation -->
+    <string name="nav_create">Create</string>
+    <string name="nav_narrate">Narrate</string>
+    <string name="nav_live">Live</string>
+    <string name="nav_projects">Projects</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">Welcome to Clipify AI</string>
+    <string name="onboarding_welcome_desc">Turn your videos and livestreams into viral vertical 9:16 Shorts with AI highlights and animated subtitles.</string>
+    <string name="onboarding_get_started">Get Started</string>
+
+    <string name="onboarding_compat_title">Device Compatibility</string>
+    <string name="onboarding_compat_desc">Scanning hardware capabilities, RAM, storage, and video decoders...</string>
+
+    <string name="onboarding_perm_title">Permissions Setup</string>
+    <string name="onboarding_perm_desc">Clipify AI requires access to your video library to import footage and save exported Shorts.</string>
+
+    <string name="onboarding_ai_title">AI Engine Configuration</string>
+    <string name="onboarding_ai_desc">Choose how you want AI highlight scoring and speech transcription to run:</string>
+    <string name="ai_option_lan">Option A: Connect to Clipify AI Desktop (Recommended)</string>
+    <string name="ai_option_lan_desc">Auto-discovers and syncs with your PC over local Wi-Fi for full GPU acceleration.</string>
+    <string name="ai_option_remote">Option B: Remote Private Server</string>
+    <string name="ai_option_remote_desc">Connect to a secure self-hosted Clipify AI server endpoint.</string>
+    <string name="ai_option_local">Option C: On-Device Mobile AI</string>
+    <string name="ai_option_local_desc">Runs lightweight mobile AI models directly on your device.</string>
+
+    <string name="onboarding_video_title">Video Processing Setup</string>
+    <string name="onboarding_video_desc">Checking hardware video encoder (MediaCodec H.264/HEVC) for 9:16 vertical rendering...</string>
+
+    <string name="onboarding_storage_title">Storage Configuration</string>
+    <string name="onboarding_storage_desc">Set up local project storage and temporary cache location.</string>
+
+    <string name="onboarding_done_title">You Are Ready!</string>
+    <string name="onboarding_done_desc">Clipify AI mobile studio is configured and ready to create viral shorts.</string>
+    <string name="btn_open_studio">Open Clipify AI Studio</string>
+</resources>
