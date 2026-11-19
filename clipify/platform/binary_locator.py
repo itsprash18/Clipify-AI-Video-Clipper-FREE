@@ -148,3 +148,15 @@ def get_binary_locator() -> BinaryLocator:
         _locator_instance = BinaryLocator()
     return _locator_instance
 
+def get_ffmpeg_path() -> Optional[str]:
+    return get_binary_locator().find_ffmpeg()
+
+def get_ffprobe_path() -> Optional[str]:
+    return get_binary_locator().find_ffprobe()
+
+def get_ollama_path() -> Optional[str]:
+    return get_binary_locator().find_ollama()
+
+def get_ytdlp_path() -> Optional[str]:
+    return get_binary_locator().find_ytdlp()
+

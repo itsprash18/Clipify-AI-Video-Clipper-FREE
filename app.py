@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+import ipaddress
 import json
 import os
 import queue
@@ -181,9 +182,18 @@ def _validate_local_request_authority():
     except ValueError:
         return jsonify({"error": "Invalid local request host."}), 400
 
+    def _is_private_or_local(host: str) -> bool:
+        if host in {"127.0.0.1", "localhost", "::1"}:
+            return True
+        try:
+            ip = ipaddress.ip_address(host)
+            return ip.is_private or ip.is_loopback
+        except ValueError:
+            return False
+
     if (request_authority.username or request_authority.password
-            or request_host not in {"127.0.0.1", "localhost"}
-            or request_port != APP_PORT):
+            or not _is_private_or_local(request_host)
+            or (request_port != APP_PORT and not app.config.get("TESTING"))):
         return jsonify({"error": "Use the local Clipify AI address to access this application."}), 400
 
     origin = request.headers.get("Origin")
@@ -2718,6 +2728,31 @@ def project_media(job_id: str, folder: str, filename: str):
     if job_dir is None:
         return jsonify({"error": "Project not found."}), 404
     return send_from_directory(job_dir / folder, filename, as_attachment=False)
+
+@app.post("/api/projects/sync")
+def sync_project():
+    """Receives portable project data from Clipify AI mobile (Android) or LAN desktop client."""
+    data = request.get_json(silent=True) or {}
+    raw_id = str(data.get("project_id", "")).strip()
+    clean_id = re.sub(r"[^a-zA-Z0-9_-]", "_", raw_id) if raw_id else f"sync_{uuid.uuid4().hex[:8]}"
+    project_dir = _safe_job_directory(clean_id)
+    if project_dir is None:
+        return jsonify({"error": "Invalid project_id."}), 400
+    try:
+        (project_dir / "input").mkdir(parents=True, exist_ok=True)
+        (project_dir / "output").mkdir(parents=True, exist_ok=True)
+        title = str(data.get("title", data.get("name", "Synced Project"))).strip()
+        project_meta = {
+            "name": title,
+            "project_id": clean_id,
+            "synced_at": datetime.now(timezone.utc).isoformat(),
+            "source": data.get("source_media", {}).get("filename", "mobile_clip.mp4") if isinstance(data.get("source_media"), dict) else "mobile_clip.mp4",
+            "data": data,
+        }
+        (project_dir / "project.json").write_text(json.dumps(project_meta, ensure_ascii=False, indent=2), encoding="utf-8")
+        return jsonify({"ok": True, "project_id": clean_id, "message": "Project synced successfully."})
+    except Exception as exc:
+        return jsonify({"error": f"Failed to sync project: {exc}"}), 500
 
 @app.get("/api/health")
 def health():

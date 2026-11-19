@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .tts import create_tts, sanitize_narration_text, strip_script_metadata
+from clipify.platform.binary_locator import get_ffmpeg_path, get_ffprobe_path
 
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v"}
 
@@ -42,8 +43,10 @@ class NarratePipeline:
         self.root = Path(root).resolve()
         self.data_dir = Path(data_dir).resolve() if data_dir else self.root
         # ffmpeg still ships beside the executable, so those paths stay put.
-        self.ffmpeg = self.root / "tools" / "ffmpeg" / "ffmpeg-9.0.1-essentials_build" / "bin" / "ffmpeg.exe"
-        self.ffprobe = self.root / "tools" / "ffmpeg" / "ffmpeg-9.0.1-essentials_build" / "bin" / "ffprobe.exe"
+        discovered_ffmpeg = get_ffmpeg_path()
+        discovered_ffprobe = get_ffprobe_path()
+        self.ffmpeg = Path(discovered_ffmpeg) if discovered_ffmpeg else (self.root / "tools" / "ffmpeg" / "ffmpeg-9.0.1-essentials_build" / "bin" / "ffmpeg.exe")
+        self.ffprobe = Path(discovered_ffprobe) if discovered_ffprobe else (self.root / "tools" / "ffmpeg" / "ffmpeg-9.0.1-essentials_build" / "bin" / "ffprobe.exe")
         self._probe_cache: dict[tuple[str, int, float], dict[str, Any]] = {}
 
     # ------------------------------------------------------------- library
