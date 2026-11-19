@@ -15,3 +15,4 @@ __all__ = [
     "get_hardware_accelerator",
     "get_ollama_adapter",
 ]
+

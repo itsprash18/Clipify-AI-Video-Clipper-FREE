@@ -10,3 +10,4 @@ export LD_LIBRARY_PATH="${HERE}/usr/lib:${HERE}/lib:${LD_LIBRARY_PATH}"
 export PYTHONPATH="${HERE}/opt/clipify-ai:${PYTHONPATH}"
 
 exec "${HERE}/opt/clipify-ai/bin/clipify-ai" "$@"
+

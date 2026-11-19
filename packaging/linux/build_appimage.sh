@@ -48,3 +48,4 @@ fi
 # 4. Generate AppImage
 ARCH=x86_64 ${TOOL} "${APP_DIR}" "out_appimage/${APP_NAME}-${VERSION}-x86_64.AppImage"
 echo "[SUCCESS] Generated out_appimage/${APP_NAME}-${VERSION}-x86_64.AppImage"
+

@@ -49,3 +49,4 @@ else
 fi
 
 echo "Uninstallation complete!"
+

@@ -65,3 +65,4 @@ if command -v hdiutil >/dev/null 2>&1; then
 else
     echo "[INFO] hdiutil not available in this environment. .app bundle created in ${BUNDLE_DIR}"
 fi
+

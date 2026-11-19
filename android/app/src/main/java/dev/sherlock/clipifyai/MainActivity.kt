@@ -8,6 +8,8 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import dev.sherlock.clipifyai.databinding.ActivityMainBinding
+import dev.sherlock.clipifyai.media.ProjectManager
+import dev.sherlock.clipifyai.network.DesktopSyncClient
 import dev.sherlock.clipifyai.onboarding.OnboardingActivity
 import dev.sherlock.clipifyai.service.RenderForegroundService
 
@@ -15,6 +17,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var prefs: SharedPreferences
+    private lateinit var projectManager: ProjectManager
+    private lateinit var syncClient: DesktopSyncClient
 
     private val selectVideoLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -36,27 +40,33 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        projectManager = ProjectManager(this)
+        val desktopHost = prefs.getString("desktop_ip", "http://192.168.1.100:5000") ?: "http://192.168.1.100:5000"
+        syncClient = DesktopSyncClient(desktopHost)
+
         setupNavigation()
         setupListeners()
+        checkEngineStatus()
     }
 
     private fun setupNavigation() {
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_create -> {
-                    // Switch to Create / Shorts Studio view
+                    Toast.makeText(this, "Shorts Studio: Ready to import", Toast.LENGTH_SHORT).show()
                     true
                 }
                 R.id.nav_live -> {
-                    // Switch to Live Studio view
+                    Toast.makeText(this, "Live Studio: Monitor active live streams", Toast.LENGTH_SHORT).show()
                     true
                 }
                 R.id.nav_narrate -> {
-                    // Switch to Narrate Studio view
+                    Toast.makeText(this, "Narrate AI: Text-to-Speech voice generator", Toast.LENGTH_SHORT).show()
                     true
                 }
                 R.id.nav_projects -> {
-                    // Switch to Projects Library view
+                    val count = projectManager.listProjects().size
+                    Toast.makeText(this, "Projects Library: $count projects saved", Toast.LENGTH_SHORT).show()
                     true
                 }
                 else -> false
@@ -65,18 +75,34 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        binding.btnImportVideo?.setOnClickListener {
+        binding.btnImportVideo.setOnClickListener {
             selectVideoLauncher.launch("video/*")
         }
     }
 
+    private fun checkEngineStatus() {
+        syncClient.testConnection { connected, msg ->
+            runOnUiThread {
+                if (connected) {
+                    binding.tvEngineStatus.text = "● Connected to Desktop GPU Engine (WhisperX + Ollama)"
+                    binding.tvEngineStatus.setTextColor(getColor(R.color.clipify_success))
+                } else {
+                    binding.tvEngineStatus.text = "● Ready (On-Device Mobile Engine)"
+                    binding.tvEngineStatus.setTextColor(getColor(R.color.clipify_cyan))
+                }
+            }
+        }
+    }
+
     private fun handleSelectedVideo(videoUri: Uri) {
-        Toast.makeText(this, "Imported video for 9:16 processing", Toast.LENGTH_SHORT).show()
+        val projId = projectManager.createProject("Mobile Clip " + System.currentTimeMillis(), videoUri.toString())
+        Toast.makeText(this, "Imported! Created project $projId", Toast.LENGTH_SHORT).show()
         
         // Start Background Render Service
         val serviceIntent = Intent(this, RenderForegroundService::class.java).apply {
             action = RenderForegroundService.ACTION_START_RENDER
             putExtra("video_uri", videoUri.toString())
+            putExtra("project_id", projId)
         }
         startForegroundService(serviceIntent)
     }

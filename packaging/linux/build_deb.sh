@@ -95,3 +95,4 @@ echo "Packaging .deb archive..."
 dpkg-deb --build --root-owner-group "${BUILD_ROOT}" "${DIST_DIR}/${PACKAGE_NAME}_${VERSION}_${ARCH}.deb"
 
 echo "[SUCCESS] Generated ${DIST_DIR}/${PACKAGE_NAME}_${VERSION}_${ARCH}.deb"
+

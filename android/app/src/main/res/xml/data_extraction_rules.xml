@@ -8,3 +8,4 @@
         <include domain="root" path="projects/" />
     </device-transfer>
 </data-extraction-rules>
+

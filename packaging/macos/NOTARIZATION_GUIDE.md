@@ -71,3 +71,4 @@ For local testing on development Macs without an Apple Developer certificate, us
 xattr -cr "/Applications/Clipify AI.app"
 ```
 Or right-click the app in Finder and choose **Open** → **Open Anyway**.
+

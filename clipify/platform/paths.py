@@ -90,3 +90,4 @@ def get_platform_paths() -> PlatformPaths:
     if _paths_instance is None:
         _paths_instance = PlatformPaths()
     return _paths_instance
+

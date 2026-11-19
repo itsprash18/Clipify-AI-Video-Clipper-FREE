@@ -17,3 +17,4 @@
         android:icon="@drawable/ic_clipify_logo"
         android:title="@string/nav_projects" />
 </menu>
+

@@ -53,3 +53,4 @@ sudo bash /opt/clipify-ai/packaging/linux/uninstall.sh
 sudo apt remove clipify-ai
 ```
 User projects in `~/.local/share/clipify-ai` are preserved by default.
+

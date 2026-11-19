@@ -103,3 +103,4 @@ elif command -v xdg-open >/dev/null 2>&1; then
 else
     echo "Clipify AI is running at: ${TARGET_URL}"
 fi
+

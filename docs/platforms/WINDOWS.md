@@ -35,3 +35,4 @@
 ## 4. Updates & Uninstallation
 * **Updating**: Download the latest setup executable from GitHub Releases. Running it upgrades the core files in-place while keeping all your projects and timeline data untouched.
 * **Uninstallation**: Open **Windows Settings** → **Apps** → **Installed Apps** → search **Clipify AI** → click **Uninstall**. Project directories in `%LOCALAPPDATA%\ClipifyAI\projects` remain safe unless manually cleared.
+

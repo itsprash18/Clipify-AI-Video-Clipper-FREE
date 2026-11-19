@@ -96,3 +96,4 @@ elif [ -d "/Applications/Microsoft Edge.app" ]; then
 else
     open "${TARGET_URL}"
 fi
+

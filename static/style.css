@@ -1,21 +1,23 @@
 
+@import url("design_system/tokens.css");
+
 :root {
-  --bg: #09090b;
-  --bg-2: #121215;
-  --panel: rgba(18, 18, 21, 0.94);
-  --panel-strong: rgba(24, 24, 27, 0.98);
-  --line: #27272a;
-  --line-strong: #3f3f46;
-  --text: #fafafa;
-  --muted: #a1a1aa;
-  --muted-2: #71717a;
-  --warm: #ffffff;
-  --warm-2: #e4e4e7;
-  --accent: #ffffff;
-  --success: #10b981;
-  --error: #ef4444;
-  --warning: #f59e0b;
-  --shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  --bg: var(--clipify-bg, #09090b);
+  --bg-2: var(--clipify-bg-2, #121215);
+  --panel: var(--clipify-panel, rgba(18, 18, 21, 0.94));
+  --panel-strong: var(--clipify-panel-strong, rgba(24, 24, 27, 0.98));
+  --line: var(--clipify-line, #27272a);
+  --line-strong: var(--clipify-line-strong, #3f3f46);
+  --text: var(--clipify-text, #fafafa);
+  --muted: var(--clipify-muted, #a1a1aa);
+  --muted-2: var(--clipify-muted-2, #71717a);
+  --warm: var(--clipify-warm, #ffffff);
+  --warm-2: var(--clipify-warm-2, #e4e4e7);
+  --accent: var(--clipify-accent, #ffffff);
+  --success: var(--clipify-success, #10b981);
+  --error: var(--clipify-error, #ef4444);
+  --warning: var(--clipify-warning, #f59e0b);
+  --shadow: var(--clipify-shadow-xl, 0 20px 60px rgba(0, 0, 0, 0.6));
 }
 
 * { box-sizing: border-box; }

@@ -3,3 +3,4 @@
     <include domain="file" path="projects/" />
     <exclude domain="root" path="cache/" />
 </full-backup-content>
+

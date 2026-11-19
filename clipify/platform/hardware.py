@@ -81,3 +81,4 @@ def get_hardware_accelerator() -> HardwareAccelerator:
     if _accel_instance is None:
         _accel_instance = HardwareAccelerator()
     return _accel_instance
+

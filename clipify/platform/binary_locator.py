@@ -147,3 +147,4 @@ def get_binary_locator() -> BinaryLocator:
     if _locator_instance is None:
         _locator_instance = BinaryLocator()
     return _locator_instance
+

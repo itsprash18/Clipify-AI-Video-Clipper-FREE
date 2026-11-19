@@ -87,3 +87,4 @@ Ensure USB Debugging or "Install from unknown sources" is enabled on the device:
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 Or transfer `app-release.apk` directly to the phone via USB or local network download.
+

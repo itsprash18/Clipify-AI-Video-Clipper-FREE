@@ -69,3 +69,4 @@ def get_ollama_adapter() -> OllamaAdapter:
     if _ollama_instance is None:
         _ollama_instance = OllamaAdapter()
     return _ollama_instance
+

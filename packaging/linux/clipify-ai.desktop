@@ -20,3 +20,4 @@ Exec=/opt/clipify-ai/bin/clipify-ai --view=live
 [Desktop Action Narrate]
 Name=Open Narrate Studio
 Exec=/opt/clipify-ai/bin/clipify-ai --view=narrate
+

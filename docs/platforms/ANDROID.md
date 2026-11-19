@@ -33,3 +33,4 @@ Clipify AI uses Android `WorkManager` and foreground notifications for video ren
 
 ## 4. Uninstallation
 Long-press the **Clipify AI** app icon on your home screen or app drawer and tap **Uninstall**.
+

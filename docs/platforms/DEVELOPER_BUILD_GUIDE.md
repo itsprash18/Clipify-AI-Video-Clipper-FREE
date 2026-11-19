@@ -77,3 +77,4 @@ cd android
 
 For signing key setup, see:
 `android/SIGNING_SETUP_GUIDE.md`
+

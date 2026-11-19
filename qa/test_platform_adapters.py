@@ -38,3 +38,4 @@ def test_ollama_adapter():
     assert "service_running" in status
     assert "binary_installed" in status
     assert "platform" in status
+

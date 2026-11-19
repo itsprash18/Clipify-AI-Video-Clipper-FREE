@@ -47,3 +47,4 @@ Run the uninstaller script or delete the application:
 rm -rf "/Applications/Clipify AI.app"
 ```
 Your saved projects in `~/Movies/ClipifyAI` remain intact.
+

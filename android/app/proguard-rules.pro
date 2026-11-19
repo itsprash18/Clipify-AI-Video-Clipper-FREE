@@ -4,3 +4,4 @@
 -keep class dev.sherlock.clipifyai.service.** { *; }
 -keepattributes *Annotation*
 -dontwarn okhttp3.**
+

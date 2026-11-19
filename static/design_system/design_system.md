@@ -60,3 +60,4 @@ Before releasing or merging any platform code, verify against the Windows baseli
 - [x] Active video previews render with zero letterboxing distortion.
 - [x] Status dots pulse cleanly with CSS keyframes.
 - [x] Sideways shelves scroll smoothly without breaking layout.
+

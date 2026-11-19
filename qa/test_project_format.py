@@ -34,3 +34,4 @@ def test_project_save_and_load():
         assert loaded.project_id == "save_load_test"
         assert loaded.title == "My Saved Short"
         assert loaded.transcription["segments"][0]["text"] == "Hello world"
+
