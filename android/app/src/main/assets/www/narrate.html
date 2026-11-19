@@ -1,15 +1,79 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Clipify AI · Narrate</title><link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png', v='20261018-3') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='narrate.css', v='20260921-3') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='narrate-polish.css', v='20260922-1') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='brand.css', v='20261018-3') }}">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Clipify AI · Narrate</title><link rel="icon" type="image/png" href="static/icon.png">
+<link rel="stylesheet" href="static/narrate.css">
+<link rel="stylesheet" href="static/narrate-polish.css">
+<link rel="stylesheet" href="static/brand.css">
+
+<style id="mobile-responsive-styles">
+/* Mobile ergonomics & touch optimizations */
+:root {
+  --mobile-pad: 14px;
+}
+html, body {
+  background: #09090b !important;
+  color: #fafafa !important;
+  font-size: 15px !important;
+  overflow-x: hidden !important;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+/* Ensure the sidebar on mobile does not block content since BottomNavigationView handles tabs */
+@media (max-width: 900px) {
+  .sidebar {
+    display: none !important;
+  }
+  .main, .app, .workspace {
+    margin-left: 0 !important;
+    padding: 12px 14px 80px 14px !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+  .top-bar, .top-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    margin-bottom: 14px !important;
+  }
+  .hero-panel, .card, .panel, .upload-card, .preview-container {
+    border-radius: 14px !important;
+    padding: 16px !important;
+    margin-bottom: 14px !important;
+    box-sizing: border-box !important;
+  }
+  .grid-container, .workflow, .control-grid, .two, .mode-grid, .brand-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+  .mode-card, .btn, button, select, input {
+    min-height: 48px !important;
+    font-size: 15px !important;
+  }
+  .btn-primary, .primary, .hero-btn {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  /* Horizontal shelves for Live Studio */
+  .clips-shelf, .horizontal-shelf {
+    display: flex !important;
+    overflow-x: auto !important;
+    gap: 12px !important;
+    padding-bottom: 12px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <aside class="narrate-sidebar">
-<div class="narrate-brand"><img class="narrate-brand-mark" src="{{ url_for('static', filename='icon.png', v='20261018-3') }}" alt="" aria-hidden="true"><div><b>Clipify AI</b><small>SHORT STUDIO</small></div></div>
+<div class="narrate-brand"><img class="narrate-brand-mark" src="static/icon.png" alt="" aria-hidden="true"><div><b>Clipify AI</b><small>SHORT STUDIO</small></div></div>
 <a class="sidebar-github" href="https://github.com/sherlock-dev-ai" target="_blank" rel="noopener noreferrer"><span>↗</span> GitHub</a>
 <nav><a href="/">◇ <span>Create</span></a><a class="active" href="/narrate">♩ <span>Narrate</span></a><a href="/live">⚲ <span>Live Studio</span> <span class="nav-beta-tag">BETA</span></a><a href="/#projects">▣ <span>Projects</span></a><a href="/#editor">› <span>Editor</span></a><a href="/#assets">▣ <span>Assets</span></a></nav>
 <div class="narrate-side-status"><i></i><div><b>Local AI</b><small>Voice studio ready</small></div></div>
@@ -81,23 +145,23 @@
     </form>
   </div>
 </div>
-<script src="{{ url_for('static', filename='narrate.js', v='20261113-1') }}"></script>
+<script src="static/narrate.js"></script>
 
 <script>
 window.isAndroidApp = true;
 window.addEventListener('DOMContentLoaded', () => {
   console.log('[ClipifyAI Android] Web shell initialized.');
-  // Override file input to use Android native file picker
-  const fileInput = document.getElementById('videoInput');
-  if (fileInput) {
-    fileInput.addEventListener('click', (e) => {
+  // Connect file picker to Android native gallery picker
+  const fileInputs = document.querySelectorAll('input[type="file"], .drop-area, #videoInput, [data-picker="video"]');
+  fileInputs.forEach(el => {
+    el.addEventListener('click', (e) => {
       if (window.AndroidBridge && window.AndroidBridge.pickVideo) {
         e.preventDefault();
         window.AndroidBridge.pickVideo();
       }
     });
-  }
-  // Connect GitHub star & follow buttons
+  });
+  // Connect external links
   document.querySelectorAll('a[href*="github.com"]').forEach(a => {
     a.addEventListener('click', (e) => {
       if (window.AndroidBridge && window.AndroidBridge.openBrowser) {

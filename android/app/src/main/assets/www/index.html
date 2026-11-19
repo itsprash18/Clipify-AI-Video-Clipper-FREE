@@ -1,14 +1,78 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Clipify AI</title><link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png', v='20261018-3') }}"><link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='20261118-4') }}"><link rel="stylesheet" href="{{ url_for('static', filename='studio.css', v='20260922-3') }}"><link rel="stylesheet" href="{{ url_for('static', filename='tour.css', v='20261113-1') }}">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Clipify AI</title><link rel="icon" type="image/png" href="static/icon.png"><link rel="stylesheet" href="static/style.css"><link rel="stylesheet" href="static/studio.css"><link rel="stylesheet" href="static/tour.css">
+
+<style id="mobile-responsive-styles">
+/* Mobile ergonomics & touch optimizations */
+:root {
+  --mobile-pad: 14px;
+}
+html, body {
+  background: #09090b !important;
+  color: #fafafa !important;
+  font-size: 15px !important;
+  overflow-x: hidden !important;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+/* Ensure the sidebar on mobile does not block content since BottomNavigationView handles tabs */
+@media (max-width: 900px) {
+  .sidebar {
+    display: none !important;
+  }
+  .main, .app, .workspace {
+    margin-left: 0 !important;
+    padding: 12px 14px 80px 14px !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+  .top-bar, .top-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    margin-bottom: 14px !important;
+  }
+  .hero-panel, .card, .panel, .upload-card, .preview-container {
+    border-radius: 14px !important;
+    padding: 16px !important;
+    margin-bottom: 14px !important;
+    box-sizing: border-box !important;
+  }
+  .grid-container, .workflow, .control-grid, .two, .mode-grid, .brand-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+  .mode-card, .btn, button, select, input {
+    min-height: 48px !important;
+    font-size: 15px !important;
+  }
+  .btn-primary, .primary, .hero-btn {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  /* Horizontal shelves for Live Studio */
+  .clips-shelf, .horizontal-shelf {
+    display: flex !important;
+    overflow-x: auto !important;
+    gap: 12px !important;
+    padding-bottom: 12px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div class="aurora aurora-one"></div><div class="aurora aurora-two"></div><div class="aurora aurora-three"></div><div class="noise"></div>
 <aside class="sidebar">
   <div class="brand">
-    <img class="brand-mark" src="{{ url_for('static', filename='icon.png', v='20261018-3') }}" alt="" aria-hidden="true">
+    <img class="brand-mark" src="static/icon.png" alt="" aria-hidden="true">
     <div class="brand-copy"><b>Clipify AI</b><span>SHORT STUDIO</span></div>
   </div>
   <a class="sidebar-github" href="https://github.com/sherlock-dev-ai" target="_blank" rel="noopener noreferrer"><span>↗</span> GitHub</a>
@@ -69,7 +133,7 @@
   </section>
   <div class="editing-mode-strip">
     <div class="mode-strip-head"><div><span class="kicker">EDITING INTELLIGENCE</span><h2>Choose the way your Short should feel</h2></div><span class="mode-strip-note">AI adapts the edit to your content</span></div>
-    <div class="mode-grid top-mode-grid">{% for key, mode in modes.items() %}<button class="mode-card {% if key == 'viral' %}selected{% endif %}" data-mode="{{ key }}"><span class="mode-icon">{{ mode.icon }}</span><span class="mode-name">{{ mode.name }}</span><span class="mode-desc">{{ mode.description }}</span></button>{% endfor %}</div>
+    <div class="mode-grid top-mode-grid"><button class="mode-card " data-mode="gaming"><span class="mode-icon">🎮</span><span class="mode-name">Gaming</span><span class="mode-desc">Gameplay + facecam reactions with stable smart framing</span></button><button class="mode-card selected" data-mode="viral"><span class="mode-icon">✦</span><span class="mode-name">Viral</span><span class="mode-desc">Hooks, curiosity, surprise & payoff</span></button><button class="mode-card " data-mode="funny"><span class="mode-icon">😂</span><span class="mode-name">Funny</span><span class="mode-desc">Punchlines, reactions & comedic timing</span></button><button class="mode-card " data-mode="dramatic"><span class="mode-icon">⚡</span><span class="mode-name">Dramatic</span><span class="mode-desc">Tension, reveals & emotional moments</span></button><button class="mode-card " data-mode="educational"><span class="mode-icon">◈</span><span class="mode-name">Educational</span><span class="mode-desc">Facts, explanations & takeaways</span></button><button class="mode-card " data-mode="story"><span class="mode-icon">◉</span><span class="mode-name">Story</span><span class="mode-desc">Setup → escalation → payoff</span></button><button class="mode-card " data-mode="meme"><span class="mode-icon">💀</span><span class="mode-name">Meme</span><span class="mode-desc">Chaotic, absurd & reaction-heavy</span></button></div>
   </div>
   <div class="workspace-grid">
     <div class="left-column">
@@ -100,7 +164,7 @@
             <label class="toggle-row"><input type="checkbox" id="logoEnabled"><span class="switch"></span><b>Enable Logo / Watermark</b></label>
             <div class="logo-upload-row"><label class="upload-logo-button"><input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp" hidden><span>＋ Upload logo</span></label><button class="ghost" type="button" id="clearLogo">Remove</button></div>
             <label>Logo image / folder<input id="logoPath" value="" placeholder="Uploaded logo or local folder path"></label>
-            <div class="two"><label>Position<select id="logoPosition">{% for p in ['top-left','top-center','top-right','center-left','center','center-right','bottom-left','bottom-center','bottom-right'] %}<option value="{{p}}">{{p|replace('-',' ')|title}}</option>{% endfor %}<option value="custom">Custom / Drag in Preview</option></select></label><label>Margin<input id="logoMargin" type="number" min="5" max="200" value="40"></label></div>
+            <div class="two"><label>Position<select id="logoPosition"><option value="top-left">Top Left</option><option value="top-center">Top Center</option><option value="top-right">Top Right</option><option value="center-left">Center Left</option><option value="center">Center</option><option value="center-right">Center Right</option><option value="bottom-left">Bottom Left</option><option value="bottom-center">Bottom Center</option><option value="bottom-right">Bottom Right</option><option value="custom">Custom / Drag in Preview</option></select></label><label>Margin<input id="logoMargin" type="number" min="5" max="200" value="40"></label></div>
             <div class="slider-row"><label>Logo size <output id="logoSizeOut">8%</output></label><input id="logoSize" type="range" min="3" max="20" value="8"></div>
             <div class="slider-row"><label>Opacity <output id="logoOpacityOut">80%</output></label><input id="logoOpacity" type="range" min="10" max="100" value="80"></div>
             <label class="toggle-row compact"><input type="checkbox" id="logoBgRemove"><span class="switch"></span><b>Remove solid logo background</b></label>
@@ -115,7 +179,7 @@
         <label class="toggle-row"><input type="checkbox" id="textEnabled"><span class="switch"></span><b>Enable Text Overlay</b></label>
         <div class="text-grid">
           <label>Text<textarea id="overlayText" maxlength="100" placeholder="e.g. THAT'S CRAZY!"></textarea></label>
-          <div class="text-controls"><label>Position<select id="textPosition">{% for p in ['top-left','top-center','top-right','center-left','center','center-right','bottom-left','bottom-center','bottom-right'] %}<option value="{{p}}">{{p|replace('-',' ')|title}}</option>{% endfor %}<option value="custom">Custom / Drag in Preview</option></select></label><label>Size<input id="textSize" type="number" min="3" max="12" value="6"> %</label><label>Margin<input id="textMargin" type="number" min="20" max="500" value="110"> px</label></div>
+          <div class="text-controls"><label>Position<select id="textPosition"><option value="top-left">Top Left</option><option value="top-center">Top Center</option><option value="top-right">Top Right</option><option value="center-left">Center Left</option><option value="center">Center</option><option value="center-right">Center Right</option><option value="bottom-left">Bottom Left</option><option value="bottom-center">Bottom Center</option><option value="bottom-right">Bottom Right</option><option value="custom">Custom / Drag in Preview</option></select></label><label>Size<input id="textSize" type="number" min="3" max="12" value="6"> %</label><label>Margin<input id="textMargin" type="number" min="20" max="500" value="110"> px</label></div>
         </div>
         <div class="text-style-row"><label>Text color<input id="textColor" type="color" value="#FFFFFF"></label><label class="toggle-row compact"><input type="checkbox" id="textBgEnabled" checked><span class="switch"></span><b>Background</b></label><label>BG color<input id="textBgColor" type="color" value="#000000"></label><div class="slider-row"><label>BG opacity <output id="textBgOpacityOut">65%</output></label><input id="textBgOpacity" type="range" min="0" max="100" value="65"></div></div>
       </section>
@@ -204,23 +268,23 @@
 
 <footer>Clipify AI · local AI editing workspace · WhisperX + ClipsAI + Ollama + FFmpeg</footer>
 </main>
-  <script src="{{ url_for('static', filename='pipeline_status.js', v='20261113-1') }}"></script><script src="{{ url_for('static', filename='review_player.js', v='20261113-1') }}"></script><script src="{{ url_for('static', filename='app.js', v='20261113-1') }}"></script><script src="{{ url_for('static', filename='tour.js', v='20261113-1') }}"></script>
+  <script src="static/pipeline_status.js"></script><script src="static/review_player.js"></script><script src="static/app.js"></script><script src="static/tour.js"></script>
 
 <script>
 window.isAndroidApp = true;
 window.addEventListener('DOMContentLoaded', () => {
   console.log('[ClipifyAI Android] Web shell initialized.');
-  // Override file input to use Android native file picker
-  const fileInput = document.getElementById('videoInput');
-  if (fileInput) {
-    fileInput.addEventListener('click', (e) => {
+  // Connect file picker to Android native gallery picker
+  const fileInputs = document.querySelectorAll('input[type="file"], .drop-area, #videoInput, [data-picker="video"]');
+  fileInputs.forEach(el => {
+    el.addEventListener('click', (e) => {
       if (window.AndroidBridge && window.AndroidBridge.pickVideo) {
         e.preventDefault();
         window.AndroidBridge.pickVideo();
       }
     });
-  }
-  // Connect GitHub star & follow buttons
+  });
+  // Connect external links
   document.querySelectorAll('a[href*="github.com"]').forEach(a => {
     a.addEventListener('click', (e) => {
       if (window.AndroidBridge && window.AndroidBridge.openBrowser) {

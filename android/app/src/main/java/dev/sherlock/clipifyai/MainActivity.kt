@@ -64,13 +64,16 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView() {
+        binding.webView.setBackgroundColor(android.graphics.Color.parseColor("#09090b"))
         binding.webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
             allowFileAccess = true
             allowContentAccess = true
-            useWideViewPort = true
-            loadWithOverviewMode = true
+            useWideViewPort = false
+            loadWithOverviewMode = false
+            setSupportZoom(false)
+            displayZoomControls = false
         }
 
         binding.webView.webChromeClient = object : WebChromeClient() {
