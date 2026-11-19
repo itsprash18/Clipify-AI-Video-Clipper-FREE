@@ -234,28 +234,34 @@ class ContentAnalyzer:
 
         for d in frame_detections:
             for f in d:
-                # Facecam faces typically occupy 6% to 32% of frame width
-                if 0.05 <= f.w <= 0.35:
-                    # Check distance to nearest corner
-                    dist_to_corner = min(
-                        (f.cx ** 2 + f.cy ** 2) ** 0.5,                    # top-left
-                        ((1.0 - f.cx) ** 2 + f.cy ** 2) ** 0.5,            # top-right
-                        (f.cx ** 2 + (1.0 - f.cy) ** 2) ** 0.5,            # bottom-left
-                        ((1.0 - f.cx) ** 2 + (1.0 - f.cy) ** 2) ** 0.5,    # bottom-right
-                    )
-                    if dist_to_corner <= 0.40:
+                # Streamer facecams typically occupy 1.8% to 30% of frame width
+                # and sit along the outer edges/corners of the gaming footage
+                if 0.018 <= f.w <= 0.30:
+                    is_edge = (f.cx <= 0.35 or f.cx >= 0.65 or f.cy <= 0.35 or f.cy >= 0.65)
+                    if is_edge:
                         corner_hits.append(f)
 
         if len(corner_hits) < 2:
             return None
 
-        # Group by corner
-        groups: dict[str, list[FaceBox]] = {"tl": [], "tr": [], "bl": [], "br": []}
+        # Cluster persistent detections by spatial proximity
+        clusters: list[list[FaceBox]] = []
         for f in corner_hits:
-            key = ("t" if f.cy < 0.5 else "b") + ("l" if f.cx < 0.5 else "r")
-            groups[key].append(f)
+            matched = False
+            for cl in clusters:
+                ref = cl[0]
+                if abs(f.cx - ref.cx) < 0.10 and abs(f.cy - ref.cy) < 0.15:
+                    cl.append(f)
+                    matched = True
+                    break
+            if not matched:
+                clusters.append([f])
 
-        best_corner, hits = max(groups.items(), key=lambda kv: len(kv[1]))
+        if not clusters:
+            return None
+
+        # Choose the most frequent/persistent cluster
+        hits = max(clusters, key=len)
         if len(hits) < 2:
             return None
 
@@ -264,22 +270,20 @@ class ContentAnalyzer:
         avg_w = sum(h.w for h in hits) / len(hits)
         avg_h = sum(h.h for h in hits) / len(hits)
 
-        # Add comfortable margin around the detected face
-        box_w = max(0.18, min(0.40, avg_w * 2.8))
-        box_h = max(0.14, min(0.35, avg_h * 2.5))
+        # Tight crop directly around the streamer's person/webcam (zero gameplay bleed)
+        # Facecam overlays in 16:9 streams are ~18-22% wide and ~20-25% high
+        box_w = max(0.16, min(0.22, avg_w * 4.0))
+        box_h = max(0.20, min(0.26, avg_h * 2.8))
         left = max(0.0, min(1.0 - box_w, avg_cx - box_w / 2.0))
-        top = max(0.0, min(1.0 - box_h, avg_cy - box_h / 2.0))
+        top = max(0.0, min(1.0 - box_h, avg_cy - box_h * 0.45))
 
-        if best_corner.endswith("r"):
-            left = max(0.0, 1.0 - box_w)
-        if best_corner.startswith("b"):
-            top = max(0.0, 1.0 - box_h)
+        corner_key = ("t" if avg_cy < 0.5 else "b") + ("l" if avg_cx < 0.5 else "r")
 
         return {
             "x": round(left, 3),
             "y": round(top, 3),
             "w": round(box_w, 3),
             "h": round(box_h, 3),
-            "corner": best_corner,
+            "corner": corner_key,
             "confidence": min(0.95, 0.60 + len(hits) * 0.08),
         }

@@ -4515,32 +4515,29 @@ def _detect_gaming_facecam(input_path: str) -> dict | None:
                 gray=cv2.cvtColor(sample,cv2.COLOR_BGR2GRAY)
                 for x,y,w,h in haar.detectMultiScale(gray,1.1,4,minSize=(30,30)):
                     faces.append((x/sample.shape[1],y/sample.shape[0],(x+w)/sample.shape[1],(y+h)/sample.shape[0],.65))
-            # Facecam candidates are faces close to one of the four corners.
+            # Facecam candidates are faces along any outer edge/corner of the video
             for f in faces:
                 cx=(f[0]+f[2])/2; cy=(f[1]+f[3])/2
-                corner=min((cx,cy),(1-cx,cy),(cx,1-cy),(1-cx,1-cy),key=lambda p:p[0]**2+p[1]**2)
-                corner_dist=(corner[0]**2+corner[1]**2)**0.5
-                if corner_dist <= 0.42:
+                if cx <= 0.35 or cx >= 0.65 or cy <= 0.35 or cy >= 0.65:
                     detections.append(f)
-        if len(detections) < 3:
+        if len(detections) < 2:
             return None
-        # Cluster roughly by corner and choose the most persistent region.
+        # Cluster roughly by corner/edge and choose the most persistent region.
         groups={"tl":[],"tr":[],"bl":[],"br":[]}
         for f in detections:
             cx=(f[0]+f[2])/2; cy=(f[1]+f[3])/2
             key=('t' if cy<0.5 else 'b')+('l' if cx<0.5 else 'r')
             groups[key].append(f)
         key, vals=max(groups.items(),key=lambda kv:len(kv[1]))
-        if len(vals) < 3:
+        if len(vals) < 2:
             return None
         cx=sum((v[0]+v[2])/2 for v in vals)/len(vals)
         cy=sum((v[1]+v[3])/2 for v in vals)/len(vals)
-        fw=max(0.10,min(0.38,sum(v[2]-v[0] for v in vals)/len(vals)*4.2))
-        fh=max(0.10,min(0.38,sum(v[3]-v[1] for v in vals)/len(vals)*4.2))
-        # Expand around the face so the camera frame feels natural rather than a face crop.
-        left=max(0.0,min(1.0,cx-fw/2)); top=max(0.0,min(1.0,cy-fh/2))
-        if key.endswith('r'): left=max(0.0,1.0-fw)
-        if key.startswith('b'): top=max(0.0,1.0-fh)
+        fw=max(0.15,min(0.22,sum(v[2]-v[0] for v in vals)/len(vals)*3.5))
+        fh=max(0.18,min(0.26,sum(v[3]-v[1] for v in vals)/len(vals)*2.8))
+        # Keep tightly centered around the person's face (zero gameplay bleed)
+        left=max(0.0,min(1.0-fw,cx-fw/2))
+        top=max(0.0,min(1.0-fh,cy-fh*0.45))
         return {"x":left,"y":top,"w":fw,"h":fh,"corner":key,"confidence":min(1.0,len(vals)/6.0)}
     except Exception as exc:
         cap.release()
@@ -4578,7 +4575,7 @@ def resize_gaming_adaptive(input_path: str, output_path: str, target_w: int = 10
     filter_complex=(
         f"[0:v]scale={target_w}:{target_h}:force_original_aspect_ratio=increase,crop={target_w}:{target_h},boxblur=18:2[bg];"
         f"[0:v]scale={target_w}:{game_h}:force_original_aspect_ratio=increase,crop={target_w}:{game_h}[game];"
-        f"[0:v]crop={crop_w}:{crop_h}:{fx}:{fy},scale={target_w}:{face_h}:force_original_aspect_ratio=decrease,pad={target_w}:{face_h}:(ow-iw)/2:(oh-ih)/2[face];"
+        f"[0:v]crop={crop_w}:{crop_h}:{fx}:{fy},scale={target_w}:{face_h}:force_original_aspect_ratio=increase,crop={target_w}:{face_h}[face];"
         f"[bg][game]overlay=0:{top_y}[g1];"
         f"[g1][face]overlay=0:{face_y}[v]"
     )

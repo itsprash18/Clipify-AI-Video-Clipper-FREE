@@ -384,17 +384,23 @@ class SmartEditor:
             if not box:
                 if profile.primary_face_x is not None:
                     fx = profile.primary_face_x
-                    cw, ch = 0.35, 0.44
+                    cw, ch = 0.20, 0.32
                     cx = max(0.0, min(1.0 - cw, fx - cw / 2.0))
-                    cy = 0.52
+                    cy = max(0.0, min(1.0 - ch, 0.54 - ch * 0.45))
                     box = {"x": cx, "y": cy, "w": cw, "h": ch}
                 else:
-                    box = {"x": 0.02, "y": 0.50, "w": 0.38, "h": 0.46}
+                    box = {"x": 0.01, "y": 0.45, "w": 0.20, "h": 0.32}
 
             if isinstance(box, dict):
                 cx, cy, cw, ch = float(box["x"]), float(box["y"]), float(box["w"]), float(box["h"])
             else:
                 cx, cy, cw, ch = [float(v) for v in box]
+
+            # Ensure tight webcam crop strictly focused on the streamer's person (zero gameplay bleed)
+            cw = max(0.15, min(0.22, cw))
+            ch = max(0.18, min(0.26, ch))
+            cx = max(0.0, min(1.0 - cw, cx))
+            cy = max(0.0, min(1.0 - ch, cy))
 
             cam_crop = (
                 f"crop=w='trunc(iw*{cw:.4f}/2)*2':h='trunc(ih*{ch:.4f}/2)*2':"
@@ -402,12 +408,14 @@ class SmartEditor:
             )
             zoom_expr = ",crop=w='trunc(iw/1.05/2)*2':h='trunc(ih/1.05/2)*2',scale=1080:1080" if energy_zoom else ""
 
+            # Top: Pure gameplay (center square crop cleanly excludes the corner facecam)
+            # Bottom: Streamer's camera only, scaled to fill 1080x800 without gameplay borders
             filters = (
                 f"{bg_stream};"
-                f"[0:v]scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:(ow-iw)/2:(oh-ih)/2{zoom_expr}[gameplay];"
-                f"[0:v]{cam_crop},scale=1080:780:force_original_aspect_ratio=increase,crop=1080:780,pad=1080:780:(ow-iw)/2:(oh-ih)/2[facecam];"
+                f"[0:v]crop=w='min(iw,ih)':h='min(iw,ih)':x='(iw-min(iw,ih))/2':y='(ih-min(iw,ih))/2',scale=1080:1080{zoom_expr}[gameplay];"
+                f"[0:v]{cam_crop},scale=1080:800:force_original_aspect_ratio=increase,crop=1080:800[facecam];"
                 "[bg][gameplay]overlay=0:20[tmp1];"
-                f"[tmp1][facecam]overlay=0:1140[vcomp];"
+                f"[tmp1][facecam]overlay=0:1120[vcomp];"
                 f"[vcomp]null{ass_filter}[vout]"
             )
             return filters
