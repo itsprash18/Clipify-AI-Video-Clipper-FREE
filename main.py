@@ -426,13 +426,14 @@ def _default_transcription_model() -> str:
     env_m = os.getenv("TRANSCRIPTION_MODEL")
     if env_m:
         return env_m
+    fast_env = os.getenv("CLIPPEDAI_FAST_WHISPER", "1").strip().lower() in {"1", "true", "yes", "on"}
     try:
         import torch
         if torch.cuda.is_available():
-            return "medium"
+            return "tiny" if fast_env else "medium"
     except Exception:
         pass
-    return "tiny"
+    return "tiny" if fast_env else "base"
 
 # --- Transcription ---
 TRANSCRIPTION_MODEL = _default_transcription_model()
@@ -1056,8 +1057,9 @@ def transcribe_with_progress(audio_file_path, transcriber):
 
         whisperx.align = safe_align
         try:
+            fast_env = os.getenv("CLIPPEDAI_FAST_WHISPER", "1").strip().lower() in {"1", "true", "yes", "on"}
             is_cpu_device = getattr(transcriber, "_device", "cpu") == "cpu"
-            t_batch_size = 8 if is_cpu_device else 16
+            t_batch_size = (8 if is_cpu_device else 16) if fast_env else (4 if is_cpu_device else 16)
 
             # Hook transcriber._model.transcribe for live progress updates and fast language inference
             if hasattr(transcriber, "_model") and hasattr(transcriber._model, "transcribe"):
@@ -1073,8 +1075,11 @@ def transcribe_with_progress(audio_file_path, transcriber):
 
                     t_kwargs["progress_callback"] = _on_whisper_progress
                     t_kwargs["print_progress"] = False
-                    if not t_kwargs.get("language"):
-                        t_kwargs["language"] = os.getenv("WHISPERX_LANGUAGE", "en")
+                    user_lang = os.getenv("WHISPERX_LANGUAGE")
+                    if user_lang is None and fast_env:
+                        user_lang = "en"
+                    if user_lang and not t_kwargs.get("language"):
+                        t_kwargs["language"] = user_lang
                     return orig_model_transcribe(audio_in, *t_args, **t_kwargs)
 
                 transcriber._model.transcribe = live_progress_transcribe
@@ -1288,11 +1293,15 @@ def create_transcriber(model_size: str) -> "Transcriber":
         # Apply hardware-aware compute settings; env vars can still override.
         kwargs["device"] = os.getenv("WHISPERX_DEVICE", compute_params["device"])
         kwargs["compute_type"] = os.getenv("WHISPERX_COMPUTE_TYPE", compute_params["compute_type"])
+        fast_env = os.getenv("CLIPPEDAI_FAST_WHISPER", "1").strip().lower() in {"1", "true", "yes", "on"}
         if kwargs["device"] == "cpu":
             cpu_count = os.cpu_count() or 4
-            kwargs["threads"] = int(os.getenv("WHISPERX_THREADS", str(max(4, cpu_count))))
-        if "language" not in kwargs or kwargs["language"] is None:
-            kwargs["language"] = os.getenv("WHISPERX_LANGUAGE", "en")
+            kwargs["threads"] = int(os.getenv("WHISPERX_THREADS", str(max(4, cpu_count) if fast_env else 4)))
+        user_lang = os.getenv("WHISPERX_LANGUAGE")
+        if user_lang is None and fast_env:
+            user_lang = "en"
+        if user_lang and ("language" not in kwargs or kwargs["language"] is None):
+            kwargs["language"] = user_lang
 
         # Check local HuggingFace cache to prevent ProtocolError/ConnectionResetError (10054)
         hf_cache = Path.home() / ".cache" / "huggingface" / "hub"

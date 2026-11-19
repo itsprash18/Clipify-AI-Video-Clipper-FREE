@@ -958,7 +958,7 @@ def _pipeline_command(input_dir: Path) -> list[str]:
 
 
 def run_job(
-job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, max_duration: int, branding: dict[str, Any], split_screen: bool = False) -> None:
+job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, max_duration: int, branding: dict[str, Any], split_screen: bool = False, fast_whisper: bool = True) -> None:
     with jobs_lock:
         job = jobs[job_id]
         job["status"] = "running"
@@ -1009,19 +1009,20 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
         "CLIPPEDAI_TEXT_X": str(branding.get("text_x", 50)),
         "CLIPPEDAI_TEXT_Y": str(branding.get("text_y", 75)),
         "CLIPPEDAI_SPLIT_SCREEN": "1" if split_screen else "0",
-        "TRANSCRIPTION_MODEL": os.getenv("TRANSCRIPTION_MODEL", "medium" if _is_cuda_available() else "tiny"),
+        "CLIPPEDAI_FAST_WHISPER": "1" if fast_whisper else "0",
+        "TRANSCRIPTION_MODEL": os.getenv("TRANSCRIPTION_MODEL", "tiny" if fast_whisper else ("medium" if _is_cuda_available() else "base")),
         "CLIPPEDAI_ALLOW_FALLBACK": "1",
         "HF_HUB_OFFLINE": os.getenv("HF_HUB_OFFLINE", "0"),
         "KMP_DUPLICATE_LIB_OK": "TRUE",
         "OMP_STACKSIZE": "64M",
         "KMP_STACKSIZE": "64M",
-        "WHISPERX_THREADS": os.getenv("WHISPERX_THREADS", str(max(4, os.cpu_count() or 4))),
-        "WHISPERX_LANGUAGE": os.getenv("WHISPERX_LANGUAGE", "en"),
-        "OMP_NUM_THREADS": str(max(4, os.cpu_count() or 4)),
-        "MKL_NUM_THREADS": str(max(4, os.cpu_count() or 4)),
-        "OPENBLAS_NUM_THREADS": str(max(4, os.cpu_count() or 4)),
-        "VECLIB_MAXIMUM_THREADS": str(max(4, os.cpu_count() or 4)),
-        "NUMEXPR_NUM_THREADS": str(max(4, os.cpu_count() or 4)),
+        "WHISPERX_THREADS": os.getenv("WHISPERX_THREADS", str(max(4, os.cpu_count() or 4)) if fast_whisper else "4"),
+        "WHISPERX_LANGUAGE": os.getenv("WHISPERX_LANGUAGE", "en" if fast_whisper else ""),
+        "OMP_NUM_THREADS": str(max(4, os.cpu_count() or 4)) if fast_whisper else "4",
+        "MKL_NUM_THREADS": str(max(4, os.cpu_count() or 4)) if fast_whisper else "4",
+        "OPENBLAS_NUM_THREADS": str(max(4, os.cpu_count() or 4)) if fast_whisper else "4",
+        "VECLIB_MAXIMUM_THREADS": str(max(4, os.cpu_count() or 4)) if fast_whisper else "4",
+        "NUMEXPR_NUM_THREADS": str(max(4, os.cpu_count() or 4)) if fast_whisper else "4",
         "PYTHONWARNINGS": "ignore::UserWarning:pyannote.audio.core.io,ignore:.*torchcodec.*",
     })
     diagnostic_log = job_dir / "diagnostics" / "qwen-decisions.jsonl"
@@ -2220,6 +2221,7 @@ def start():
             payload["branding"] = {}
     data = payload or {}
     split_screen = str(data.get("split_screen", data.get("splitScreen", "0"))).strip().lower() in {"1", "true", "yes", "on"}
+    fast_whisper = str(data.get("fast_whisper", data.get("fastWhisper", "1"))).strip().lower() in {"1", "true", "yes", "on"}
     job_id = str(data.get("job_id", ""))
     mode = str(data.get("mode", "viral")).lower()
     model = str(data.get("model", "")).strip()
@@ -2348,8 +2350,9 @@ def start():
     with jobs_lock:
         jobs[job_id]["branding"] = branding
         jobs[job_id]["split_screen"] = split_screen
-    threading.Thread(target=run_job, args=(job_id, mode, clips, model, font, min_duration, max_duration, branding, split_screen), daemon=True).start()
-    return jsonify({"ok": True, "job_id": job_id, "model": model, "font": font, "min_duration": min_duration, "max_duration": max_duration, "branding": branding, "split_screen": split_screen})
+        jobs[job_id]["fast_whisper"] = fast_whisper
+    threading.Thread(target=run_job, args=(job_id, mode, clips, model, font, min_duration, max_duration, branding, split_screen, fast_whisper), daemon=True).start()
+    return jsonify({"ok": True, "job_id": job_id, "model": model, "font": font, "min_duration": min_duration, "max_duration": max_duration, "branding": branding, "split_screen": split_screen, "fast_whisper": fast_whisper})
 
 
 

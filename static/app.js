@@ -1258,6 +1258,11 @@ async function start(){
   );
 
   form.append(
+    'fast_whisper',
+    $('#fastWhisperToggle')?.checked ? '1' : '0'
+  );
+
+  form.append(
     'branding',
     JSON.stringify(selectedBranding())
   );
