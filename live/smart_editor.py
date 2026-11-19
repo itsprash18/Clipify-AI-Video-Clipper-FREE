@@ -54,17 +54,24 @@ class SmartEditor:
 
     _shared_direct_whisper = None
 
-    def _transcribe_direct(self, raw_video_path: Path) -> list[dict[str, Any]]:
+    def _transcribe_direct(self, raw_video_path: Path, language: str = "en") -> list[dict[str, Any]]:
         """Run fast local speech recognition directly on the extracted raw clip."""
         if not raw_video_path.exists() or raw_video_path.stat().st_size < 1000:
             return []
+        
+        lang_arg = None if language in ("auto", "", None) else language
+
+        # 1. Try in-process faster-whisper if available
         try:
-            logger.info("Running fast direct clip transcription for %s...", raw_video_path.name)
+            logger.info("Running fast direct clip transcription for %s (lang=%s)...", raw_video_path.name, lang_arg or "auto")
             from faster_whisper import WhisperModel
             if SmartEditor._shared_direct_whisper is None:
                 SmartEditor._shared_direct_whisper = WhisperModel("tiny", device="cpu", compute_type="int8")
             model = SmartEditor._shared_direct_whisper
-            segments, _ = model.transcribe(str(raw_video_path), word_timestamps=True, beam_size=1)
+            kwargs = {"word_timestamps": True, "beam_size": 1}
+            if lang_arg:
+                kwargs["language"] = lang_arg
+            segments, _ = model.transcribe(str(raw_video_path), **kwargs)
             results = []
             for seg in segments:
                 words = []
@@ -85,11 +92,59 @@ class SmartEditor:
                         "text": txt,
                         "words": words,
                     })
-            logger.info("Direct clip transcription completed: %d segment(s)", len(results))
-            return results
+            if results:
+                logger.info("In-process direct clip transcription completed: %d segment(s)", len(results))
+                return results
         except Exception as e:
-            logger.warning("Direct clip transcription fallback failed: %s", e)
-            return []
+            logger.debug("In-process direct whisper unavailable: %s. Trying subprocess python_bin...", e)
+
+        # 2. Subprocess fallback using self.python_bin (where faster_whisper / whisperx is installed)
+        try:
+            py_bin = self.python_bin
+            if not py_bin or not Path(py_bin).exists():
+                test_py = Path(r"L:\tester\runtime\Scripts\python.exe")
+                if test_py.is_file():
+                    py_bin = str(test_py)
+                else:
+                    py_bin = sys.executable
+
+            code = (
+                "import sys, json\n"
+                "try:\n"
+                "    from faster_whisper import WhisperModel\n"
+                "    m = WhisperModel('tiny', device='cpu', compute_type='int8')\n"
+                f"    lang = {repr(lang_arg)}\n"
+                "    kwargs = {'word_timestamps': True, 'beam_size': 1}\n"
+                "    if lang: kwargs['language'] = lang\n"
+                "    segs, _ = m.transcribe(sys.argv[1], **kwargs)\n"
+                "    out = []\n"
+                "    for s in segs:\n"
+                "        words = [{'word': w.word.strip(), 'start': round(w.start, 2), 'end': round(w.end, 2)} for w in (s.words or []) if w.word.strip()]\n"
+                "        if s.text.strip():\n"
+                "            out.append({'start': round(s.start, 2), 'end': round(s.end, 2), 'text': s.text.strip(), 'words': words})\n"
+                "    print(json.dumps(out))\n"
+                "except Exception as ex:\n"
+                "    print(json.dumps([]))\n"
+            )
+
+            res = subprocess.run(
+                [py_bin, "-c", code, str(raw_video_path)],
+                capture_output=True,
+                text=True,
+                timeout=45,
+                creationflags=_hidden_flags()
+            )
+            if res.returncode == 0 and res.stdout.strip():
+                lines = [l.strip() for l in res.stdout.strip().splitlines() if l.strip().startswith("[")]
+                if lines:
+                    parsed = json.loads(lines[-1])
+                    if isinstance(parsed, list) and parsed:
+                        logger.info("Subprocess direct clip transcription completed: %d segment(s)", len(parsed))
+                        return parsed
+        except Exception as ex:
+            logger.warning("Subprocess direct clip transcription failed: %s", ex)
+
+        return []
 
     def edit(
         self,
@@ -109,6 +164,7 @@ class SmartEditor:
         auto_captions_enabled = bool(prefs.get("auto_captions", True))
         caption_style = str(prefs.get("caption_style", "highlight"))
         caption_font = str(prefs.get("caption_font", "Montserrat Extra Bold"))
+        caption_language = str(prefs.get("caption_language", "en")).strip().lower()
         background_style = str(prefs.get("background_style", "soft_blur"))
         background_color = str(prefs.get("background_color", "#000000"))
         custom_text = str(prefs.get("custom_text", "")).strip()
@@ -173,11 +229,35 @@ class SmartEditor:
             )
             # If no speech words detected from stream intervals, run direct on-the-fly transcription
             if not words:
-                direct_segs = self._transcribe_direct(raw_video_path)
+                direct_segs = self._transcribe_direct(raw_video_path, language=caption_language)
                 if direct_segs:
                     effective_transcripts = direct_segs
                     effective_start = 0.0
                     effective_duration = clip_duration
+                    words = self.caption_styler._extract_clip_words(
+                        effective_transcripts, 0.0, effective_duration, uppercase=False
+                    )
+
+            # If audio was silent or non-verbal, generate high-energy viral captions so they are never missing
+            if not words:
+                fallback_phrase = custom_text or (transcript_snippet.strip() if transcript_snippet else "") or "INSANE MOMENT 🔥"
+                words_list = fallback_phrase.split()[:8]
+                if not words_list:
+                    words_list = ["INSANE", "HIGHLIGHT", "MOMENT", "🔥"]
+                step = effective_duration / max(1, len(words_list))
+                words = []
+                for i, w in enumerate(words_list):
+                    words.append({
+                        "word": w,
+                        "start": round(effective_start + i * step, 2),
+                        "end": round(effective_start + (i + 1) * step, 2),
+                    })
+                effective_transcripts = [{
+                    "start": round(effective_start, 2),
+                    "end": round(effective_start + effective_duration, 2),
+                    "text": " ".join(words_list),
+                    "words": words,
+                }]
 
         if should_render_captions or has_custom_text:
             temp_ass = output_vertical.parent / "subtitles.ass"
@@ -325,9 +405,9 @@ class SmartEditor:
             filters = (
                 f"{bg_stream};"
                 f"[0:v]scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:(ow-iw)/2:(oh-ih)/2{zoom_expr}[gameplay];"
-                f"[0:v]{cam_crop},scale=1080:760:force_original_aspect_ratio=decrease,pad=1080:760:(ow-iw)/2:(oh-ih)/2[facecam];"
-                "[bg][gameplay]overlay=0:24[tmp1];"
-                f"[tmp1][facecam]overlay=0:1136[vcomp];"
+                f"[0:v]{cam_crop},scale=1080:780:force_original_aspect_ratio=increase,crop=1080:780,pad=1080:780:(ow-iw)/2:(oh-ih)/2[facecam];"
+                "[bg][gameplay]overlay=0:20[tmp1];"
+                f"[tmp1][facecam]overlay=0:1140[vcomp];"
                 f"[vcomp]null{ass_filter}[vout]"
             )
             return filters

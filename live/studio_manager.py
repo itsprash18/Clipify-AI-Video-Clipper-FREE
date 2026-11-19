@@ -47,7 +47,7 @@ class LiveStudioManager:
 
         self.source_type = "youtube"
         self.source_url = ""
-        self.auto_clip_enabled = True
+        self.auto_clip_enabled = False
         self.sensitivity = 5
         self.buffer_minutes = 10
         self.stream_metadata: dict[str, Any] = {}
@@ -80,6 +80,7 @@ class LiveStudioManager:
             "auto_clip_target": 10,
             "caption_style": "highlight",
             "caption_font": "Montserrat Extra Bold",
+            "caption_language": "en",
             "background_style": "soft_blur",
             "background_color": "#000000",
             "custom_text": "",
@@ -149,7 +150,7 @@ class LiveStudioManager:
                 if k in prefs:
                     self.editing_prefs[k] = bool(prefs[k])
             for k in (
-                "caption_style", "caption_font", "background_style", "background_color",
+                "caption_style", "caption_font", "caption_language", "background_style", "background_color",
                 "custom_text", "custom_text_pos", "custom_text_color",
             ):
                 if k in prefs:
@@ -172,7 +173,7 @@ class LiveStudioManager:
         self,
         source_type: str,
         source_url: str,
-        auto_clip: bool = True,
+        auto_clip: bool = False,
         sensitivity: int = 5,
         buffer_minutes: int = 10,
         model_name: str = "qwen2.5:3b",
@@ -193,7 +194,7 @@ class LiveStudioManager:
                     if k in editing_prefs:
                         self.editing_prefs[k] = bool(editing_prefs[k])
                 for k in (
-                    "caption_style", "caption_font", "background_style", "background_color",
+                    "caption_style", "caption_font", "caption_language", "background_style", "background_color",
                     "custom_text", "custom_text_pos", "custom_text_color",
                 ):
                     if k in editing_prefs:
@@ -486,8 +487,18 @@ class LiveStudioManager:
         """User manual trigger: capture the last N seconds into a Short."""
         with self._lock:
             if not self.session_active or not self.buffer or not self.generator:
-                self.log_activity("Instant Clip failed: no active live recording session.", "error")
+                self.log_activity("Clip Highlight failed: no active live recording session.", "error")
                 return None
+
+            # Automatically activate background auto-clipping if not already active
+            if not self.auto_clip_enabled:
+                self.auto_clip_enabled = True
+                self.last_auto_clip_time = time.time()
+                if not self._auto_clip_thread or not self._auto_clip_thread.is_alive():
+                    self._auto_clip_stop_event.clear()
+                    self._auto_clip_thread = threading.Thread(target=self._auto_clip_timer_loop, daemon=True)
+                    self._auto_clip_thread.start()
+                self.log_activity("Clip Highlight triggered: auto-clipping enabled automatically.", "success")
 
             duration_sec = max(10, min(90, duration_sec))
             buf_duration = self.buffer.get_window_duration()

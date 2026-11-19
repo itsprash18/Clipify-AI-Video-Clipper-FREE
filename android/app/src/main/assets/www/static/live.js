@@ -121,10 +121,14 @@
   const clipPreviewModal = document.getElementById('clipPreviewModal');
   const modalClipTitle = document.getElementById('modalClipTitle');
   const modalVideoPlayer = document.getElementById('modalVideoPlayer');
+  const modalClipDesc = document.getElementById('modalClipDesc');
+  const modalClipTags = document.getElementById('modalClipTags');
+  const btnCopyClipMeta = document.getElementById('btnCopyClipMeta');
   const modalDownloadBtn = document.getElementById('modalDownloadBtn');
   const modalDownloadOrigBtn = document.getElementById('modalDownloadOrigBtn');
   const modalPreviewEditBtn = document.getElementById('modalPreviewEditBtn');
   const closeClipModal = document.getElementById('closeClipModal');
+  const captionLanguageSelect = document.getElementById('captionLanguageSelect');
 
   // Clip Quick Edit Modal elements
   const clipEditModal = document.getElementById('clipEditModal');
@@ -349,6 +353,7 @@
         model_name: liveModelSelect ? liveModelSelect.value : 'qwen2.5:3b',
         caption_style: captionStyleSelect ? captionStyleSelect.value : 'highlight',
         caption_font: captionFontSelect ? captionFontSelect.value : 'Montserrat Extra Bold',
+        caption_language: captionLanguageSelect ? captionLanguageSelect.value : 'en',
         background_style: bgStyleSelect ? bgStyleSelect.value : 'soft_blur',
         background_color: bgColorHex ? bgColorHex.value : '#000000',
         custom_text: (toggleCustomText && toggleCustomText.checked && customTextInput) ? customTextInput.value.trim() : '',
@@ -403,6 +408,13 @@
 
     if (customTextInput) {
       customTextInput.addEventListener('input', () => {
+        sendLivePrefs();
+      });
+    }
+
+    if (captionLanguageSelect) {
+      captionLanguageSelect.addEventListener('change', () => {
+        appendConsoleLog(`Caption language set to: ${captionLanguageSelect.options[captionLanguageSelect.selectedIndex].text}`, 'info');
         sendLivePrefs();
       });
     }
@@ -495,6 +507,12 @@
     // Dedicated Live Clip Button (Under Monitor)
     if (btnLiveClipNow) {
       btnLiveClipNow.addEventListener('click', async () => {
+        if (toggleAutoClip && !toggleAutoClip.checked) {
+          toggleAutoClip.checked = true;
+          if (chipAutoClip) chipAutoClip.textContent = 'Auto-Clip: ON';
+          sendLivePrefs();
+          appendConsoleLog('[AUTO-CLIP] Highlight triggered: auto-clipping enabled automatically.', 'success');
+        }
         triggerInstantClip(currentSelectedDuration, btnLiveClipNow);
       });
     }
@@ -642,7 +660,8 @@
         body: JSON.stringify({
           source_type: sourceType,
           source_url: sourceUrl,
-          auto_clip: toggleAutoClip ? toggleAutoClip.checked : true,
+          auto_clip: toggleAutoClip ? toggleAutoClip.checked : false,
+          caption_language: captionLanguageSelect ? captionLanguageSelect.value : 'en',
           auto_clip_interval: autoClipIntervalSelect ? parseInt(autoClipIntervalSelect.value, 10) : 5,
           auto_clip_target: autoClipTargetInput ? parseInt(autoClipTargetInput.value, 10) : 10,
           sensitivity: sensitivitySlider ? parseInt(sensitivitySlider.value, 10) : 5,
@@ -1525,6 +1544,13 @@
     modalDownloadBtn.href = clip.vertical_video;
     modalDownloadBtn.download = `${clip.title}_9_16.mp4`;
 
+    if (modalClipDesc) {
+      modalClipDesc.textContent = clip.description || `🎮 ${clip.title}\n\nViral stream highlight captured with Clipify AI Live Studio. Features gaming split-screen and smart subtitles.`;
+    }
+    if (modalClipTags) {
+      modalClipTags.textContent = clip.tags_str || (clip.tags ? clip.tags.join(' ') : '#Shorts #Gaming #LiveStream #ViralShorts #ClipifyAI');
+    }
+
     if (clip.original_video) {
       modalDownloadOrigBtn.href = clip.original_video;
       modalDownloadOrigBtn.download = `${clip.title}_16_9.mp4`;
@@ -1535,6 +1561,20 @@
 
     clipPreviewModal.style.display = 'flex';
     modalVideoPlayer.play().catch(() => {});
+  }
+
+  if (btnCopyClipMeta) {
+    btnCopyClipMeta.addEventListener('click', () => {
+      if (!activePreviewClip) return;
+      const textToCopy = `${activePreviewClip.title || ''}\n\n${modalClipDesc ? modalClipDesc.textContent : ''}\n\n${modalClipTags ? modalClipTags.textContent : ''}`;
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        btnCopyClipMeta.textContent = 'Copied! ✓';
+        setTimeout(() => { btnCopyClipMeta.textContent = '📋 Copy All'; }, 2000);
+      }).catch(() => {
+        btnCopyClipMeta.textContent = 'Copied! ✓';
+        setTimeout(() => { btnCopyClipMeta.textContent = '📋 Copy All'; }, 2000);
+      });
+    });
   }
 
   function openEditModal(clip) {

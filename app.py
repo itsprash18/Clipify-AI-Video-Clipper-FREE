@@ -1142,7 +1142,7 @@ def live_connect():
     data = request.get_json(silent=True) or {}
     source_type = data.get("source_type", "youtube")
     source_url = data.get("source_url", "")
-    auto_clip = bool(data.get("auto_clip", True))
+    auto_clip = bool(data.get("auto_clip", False))
     sensitivity = int(data.get("sensitivity", 5))
     buffer_minutes = int(data.get("buffer_minutes", 10))
     model_name = str(data.get("model_name", "qwen2.5:3b"))
@@ -1154,6 +1154,7 @@ def live_connect():
         "auto_clip_interval": int(data.get("auto_clip_interval", 5)),
         "caption_style": str(data.get("caption_style", "highlight")),
         "caption_font": str(data.get("caption_font", "Montserrat Extra Bold")),
+        "caption_language": str(data.get("caption_language", "en")),
         "background_style": str(data.get("background_style", "soft_blur")),
         "background_color": str(data.get("background_color", "#000000")),
         "custom_text": str(data.get("custom_text", "")),

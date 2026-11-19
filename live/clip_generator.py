@@ -115,10 +115,48 @@ class LiveClipGenerator:
         except Exception:
             pass
 
+        # Generate viral packaging (Title, Description, Hashtags & Tags)
+        clean_title = title.strip() if title else f"Live Highlight #{clip_id[:4]}"
+        if transcripts:
+            all_words = []
+            for t in transcripts:
+                w_list = t.get("words")
+                if w_list:
+                    all_words.extend([w.get("word", "") for w in w_list])
+                elif t.get("text"):
+                    all_words.extend(t.get("text").split())
+            if all_words:
+                cand_title = " ".join(all_words[:6]).strip()
+                if len(cand_title) >= 5 and "Live Highlight" in clean_title:
+                    clean_title = cand_title.capitalize() + " 🔥"
+
+        description = (
+            f"🎮 {clean_title}\n\n"
+            f"Epic stream moment captured with Clipify AI Live Studio. "
+            f"Features dynamic gaming split-screen, high-contrast animated subtitles, and AI highlight detection.\n\n"
+            f"⏱️ Timestamp: {round(start_sec, 1)}s - {round(end_sec, 1)}s ({round(duration, 1)}s)\n"
+            f"🎯 Layout: {decision.layout.replace('_', ' ').title()}\n\n"
+            f"Subscribe and drop a like for more viral stream highlights!"
+        )
+
+        base_tags = ["#Shorts", "#Gaming", "#LiveStream", "#ViralShorts", "#ClipifyAI", "#Highlights", "#TwitchClips", "#YouTubeShorts", "#Gamer"]
+        low_t = (clean_title + " " + " ".join(t.get("text", "") for t in (transcripts or []))).lower()
+        if any(w in low_t for w in ["gta", "car", "drift", "speed", "drive"]):
+            base_tags.extend(["#GTA5", "#GTAV", "#Drift", "#Clutch"])
+        elif any(w in low_t for w in ["minecraft", "craft", "parkour"]):
+            base_tags.extend(["#Minecraft", "#MinecraftShorts"])
+        elif any(w in low_t for w in ["mad", "rage", "fail", "omg", "lol"]):
+            base_tags.extend(["#StreamerRage", "#FunnyClips", "#InstantRegret"])
+
+        tags_str = " ".join(base_tags)
+
         clip_record: dict[str, Any] = {
             "id": clip_id,
-            "title": title,
+            "title": clean_title,
             "category": category,
+            "description": description,
+            "tags": base_tags,
+            "tags_str": tags_str,
             "start_sec": round(start_sec, 2),
             "end_sec": round(end_sec, 2),
             "duration": round(duration, 1),

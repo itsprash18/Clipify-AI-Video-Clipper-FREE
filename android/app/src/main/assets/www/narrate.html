@@ -9,8 +9,8 @@
 
 <style id="mobile-responsive-styles">
 /* ===================================================
-   CLIPIFY AI — PROFESSIONAL MOBILE DESIGN SYSTEM
-   Full scrolling, dark obsidian theme, touch targets
+   CLIPIFY AI — PIXEL-PERFECT MOBILE DESIGN SYSTEM
+   Zero horizontal overflow, 100% fluid mobile layout
    =================================================== */
 
 :root {
@@ -28,13 +28,16 @@
   --mobile-radius: 14px;
 }
 
-* {
+/* UNIVERSAL BOX SIZING & OVERFLOW SHIELD */
+*, *::before, *::after {
   box-sizing: border-box !important;
+  max-width: 100% !important;
   -webkit-tap-highlight-color: transparent !important;
 }
 
-/* CRITICAL: GUARANTEE VERTICAL SCROLLING ON MOBILE */
 html {
+  width: 100% !important;
+  max-width: 100vw !important;
   height: 100% !important;
   overflow-y: scroll !important;
   overflow-x: hidden !important;
@@ -46,10 +49,10 @@ body {
   background-color: var(--mobile-bg) !important;
   color: var(--mobile-text) !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-  font-size: 15px !important;
+  font-size: 14px !important;
   line-height: 1.45 !important;
   margin: 0 !important;
-  padding: 0 0 96px 0 !important; /* Bottom padding ensures content clears the bottom navigation */
+  padding: 0 0 100px 0 !important;
   width: 100% !important;
   max-width: 100vw !important;
   min-height: 100% !important;
@@ -58,12 +61,11 @@ body {
   overflow-x: hidden !important;
   position: relative !important;
   -webkit-font-smoothing: antialiased !important;
-  -webkit-overflow-scrolling: touch !important;
   overscroll-behavior-y: auto !important;
 }
 
-/* Disable GPU-heavy infinite transforms and loops */
-.aurora, .aurora-one, .aurora-two, .aurora-three, .noise, canvas#forest-world {
+/* REMOVE HEAVY DEKSTOP BACKGROUND DECORATIONS */
+.aurora, .aurora-one, .aurora-two, .aurora-three, .noise, canvas#forest-world, .hero-orbit, body:before {
   display: none !important;
 }
 
@@ -79,50 +81,129 @@ body {
   display: none !important;
 }
 
-/* Container wrappers fill width and expand vertically */
+/* FLUID WORKSPACE WRAPPERS (ZERO NESTED PADDING) */
 .main, 
 .app, 
 .workspace, 
 .narrate-shell, 
-.live-shell, 
-.narrate-grid, 
-.page-section, 
-.live-main {
+.live-shell {
   display: block !important;
   width: 100% !important;
   max-width: 100vw !important;
+  min-width: 0 !important;
   margin: 0 !important;
-  padding: 12px 14px 24px 14px !important;
+  padding: 8px 10px 100px 10px !important;
   height: auto !important;
   overflow-y: visible !important;
   overflow-x: hidden !important;
   box-sizing: border-box !important;
 }
 
+.page-section, 
+.workspace-grid, 
+.left-column, 
+.preview-column, 
+.narrate-grid, 
+.live-main,
+.live-grid,
+.live-left,
+.live-right {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: auto !important;
+  box-sizing: border-box !important;
+  gap: 12px !important;
+}
+
+/* TOPBAR & TITLES */
 .topbar, .narrate-top, .live-top-bar {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
   margin: 0 0 14px 0 !important;
   padding: 0 !important;
   border: none !important;
+  width: 100% !important;
+}
+
+.topbar-actions, .top-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+}
+
+.topbar-actions > *, .top-actions > * {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.status-pill {
+  width: 100% !important;
+  justify-content: center !important;
+  white-space: normal !important;
+  text-align: center !important;
+}
+
+.typewriter-headline {
+  font-size: 1.15rem !important;
+  word-break: break-word !important;
+  white-space: normal !important;
+  line-height: 1.3 !important;
 }
 
 .living-title, .narrate-top h1, .live-top-bar h1 {
-  font-size: 1.5rem !important;
+  font-size: 1.45rem !important;
   font-weight: 800 !important;
   letter-spacing: -0.02em !important;
   color: #ffffff !important;
   line-height: 1.15 !important;
-  margin: 4px 0 8px 0 !important;
+  margin: 2px 0 6px 0 !important;
 }
 
 .eyebrow, .kicker {
-  font-size: 0.72rem !important;
+  font-size: 0.7rem !important;
   font-weight: 700 !important;
-  letter-spacing: 0.08em !important;
+  letter-spacing: 0.06em !important;
   color: #34d399 !important;
   text-transform: uppercase !important;
+  white-space: normal !important;
+  word-break: break-word !important;
 }
 
-/* CARD SYSTEM */
+/* WORKFLOW 4-STEP STRIP (01 Source, 02 Edit, 03 Generate, 04 Review) */
+.workflow {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 8px !important;
+  padding: 8px !important;
+  margin-bottom: 14px !important;
+  width: 100% !important;
+}
+
+.workflow-step {
+  min-width: 0 !important;
+  padding: 8px !important;
+  min-height: 48px !important;
+}
+
+.workflow-step b {
+  font-size: 0.85rem !important;
+}
+
+.workflow-step small {
+  font-size: 0.7rem !important;
+}
+
+/* CARDS & PANELS */
 .panel, 
 .card, 
 .hero-panel, 
@@ -133,68 +214,184 @@ body {
 .clip-panel, 
 .style-panel, 
 .progress-panel,
-.history-panel {
+.history-panel,
+.editing-mode-strip {
   background: var(--mobile-surface) !important;
   border: 1px solid var(--mobile-border) !important;
   border-radius: var(--mobile-radius) !important;
-  padding: 16px !important;
-  margin-bottom: 14px !important;
+  padding: 12px 10px !important;
+  margin: 0 0 12px 0 !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
   width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   box-sizing: border-box !important;
 }
 
-.panel-head, .card-head {
+.panel-head, .card-head, .section-head, .mode-strip-head {
   display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 4px !important;
   margin-bottom: 12px !important;
+  width: 100% !important;
 }
 
-.panel-head h2, .card-head h2 {
+.panel-head h2, .card-head h2, .section-head h2, .mode-strip-head h2 {
   font-size: 1.15rem !important;
   font-weight: 700 !important;
   color: #ffffff !important;
   margin: 0 !important;
 }
 
-/* FORM CONTROLS */
-button, .btn, input, select, textarea {
-  font-family: inherit !important;
-  font-size: 15px !important;
+/* 2-COLUMN TOUCH GRID FOR MODES */
+.mode-grid, .top-mode-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin-bottom: 14px !important;
+  width: 100% !important;
+}
+
+.mode-card {
+  min-width: 0 !important;
+  width: 100% !important;
+  background: #0e1712 !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.09) !important;
+  border-radius: 12px !important;
+  padding: 10px 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 3px !important;
+  cursor: pointer !important;
+  text-align: left !important;
+}
+
+.mode-card.selected, .mode-card.active {
+  border-color: var(--mobile-primary) !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+}
+
+.mode-card .mode-icon, .mode-card .icon {
+  font-size: 1.3rem !important;
+}
+
+.mode-card .mode-name, .mode-card .name {
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+}
+
+.mode-card .mode-desc, .mode-card .desc {
+  font-size: 0.7rem !important;
+  color: var(--mobile-text-muted) !important;
+  line-height: 1.25 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
+/* VIDEO SOURCE SECTION (Dropzone & YouTube stacked) */
+.source-options, .two {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+
+.dropzone {
+  width: 100% !important;
+  background: rgba(16, 185, 129, 0.04) !important;
+  border: 2px dashed rgba(16, 185, 129, 0.35) !important;
+  border-radius: 14px !important;
+  padding: 20px 14px !important;
+  text-align: center !important;
+  cursor: pointer !important;
+}
+
+.youtube-import {
+  width: 100% !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 14px !important;
+  padding: 14px !important;
+  background: #0d1611 !important;
+}
+
+.youtube-input-row {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
+  width: 100% !important;
+}
+
+.youtube-input-row input {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.youtube-input-row button, #youtubeImport {
+  width: 100% !important;
+  min-height: 46px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+/* ALL FORM CONTROLS STACKED VERTICALLY */
+.control-grid, .control-grid.three, .duration-row, .brand-grid, .text-grid, .text-style-row {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+
+.control-grid > *, .duration-row > *, .brand-grid > *, .two > * {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.model-picker {
+  display: flex !important;
+  gap: 6px !important;
+  width: 100% !important;
+}
+
+.model-picker select {
+  flex: 1 !important;
+  min-width: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.mini-refresh, .mini-search {
+  flex-shrink: 0 !important;
+  min-height: 44px !important;
+  padding: 0 12px !important;
+}
+
+input[type="text"], input[type="url"], input[type="search"], select, textarea {
+  width: 100% !important;
+  min-width: 0 !important;
+  background: #0d1611 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  padding: 10px 12px !important;
   border-radius: 10px !important;
   box-sizing: border-box !important;
 }
 
-input[type="text"], input[type="search"], select, textarea {
-  width: 100% !important;
-  background: #0d1611 !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  color: #ffffff !important;
-  padding: 12px 14px !important;
-  margin-bottom: 10px !important;
-}
-
-input:focus, select:focus, textarea:focus {
-  border-color: var(--mobile-border-active) !important;
-  outline: none !important;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
-}
-
-textarea {
-  min-height: 110px !important;
-  resize: vertical !important;
-}
-
-/* PRIMARY CTA BUTTONS */
+/* BUTTONS */
 .btn-primary, 
 .primary, 
 .hero-btn, 
 .generate-button, 
 #generateNarrate, 
-#btnStartClip,
-#importYoutube,
-#btnPublish {
+#createBtn,
+#btnStartClip {
   width: 100% !important;
   min-height: 50px !important;
   background: var(--mobile-primary-gradient) !important;
@@ -212,14 +409,15 @@ textarea {
   margin-top: 10px !important;
 }
 
-.btn-primary:active, 
-.generate-button:active {
-  transform: scale(0.98) !important;
+.btn-primary:disabled, #createBtn:disabled, #generateNarrate:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
 }
 
-.quiet, .secondary, .accent-outline, .clip-source-btn {
+.ghost, .quiet, .secondary, .accent-outline, .clip-source-btn {
   min-height: 42px !important;
-  padding: 8px 14px !important;
+  padding: 8px 12px !important;
   background: rgba(255, 255, 255, 0.06) !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
   color: #e5e7eb !important;
@@ -227,113 +425,89 @@ textarea {
   border-radius: 10px !important;
 }
 
+/* SCRIPT ACTIONS IN NARRATE */
 .script-actions {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 8px !important;
-  margin-top: 10px !important;
-}
-
-.script-actions button {
-  flex: 1 1 calc(50% - 6px) !important;
-  min-height: 44px !important;
-}
-
-/* MODE SELECTION GRID (Gaming, Viral, Meme, etc.) */
-.modes, .mode-grid, .brand-grid {
   display: grid !important;
   grid-template-columns: repeat(2, 1fr) !important;
-  gap: 10px !important;
-  margin-bottom: 14px !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
   width: 100% !important;
 }
 
-.mode-card {
-  background: #0e1712 !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.09) !important;
-  border-radius: 12px !important;
-  padding: 12px 10px !important;
+.script-actions button {
+  width: 100% !important;
+  min-height: 42px !important;
+}
+
+/* VOICE CARDS & FILTERS */
+.voice-filters {
   display: flex !important;
-  flex-direction: column !important;
-  gap: 4px !important;
-  cursor: pointer !important;
-}
-
-.mode-card.active, .mode-card:active {
-  border-color: var(--mobile-primary) !important;
-  background: rgba(16, 185, 129, 0.12) !important;
-}
-
-.mode-card .icon, .mode-card-icon {
-  font-size: 1.4rem !important;
-}
-
-.mode-card .name, .mode-card-title {
-  font-size: 0.92rem !important;
-  font-weight: 700 !important;
-  color: #ffffff !important;
-}
-
-.mode-card .desc, .mode-card-desc {
-  font-size: 0.72rem !important;
-  color: var(--mobile-text-muted) !important;
-  line-height: 1.25 !important;
-}
-
-/* VIDEO DROPZONE */
-.dropzone, .upload-box, .drop-area {
-  background: rgba(16, 185, 129, 0.04) !important;
-  border: 2px dashed rgba(16, 185, 129, 0.35) !important;
-  border-radius: 14px !important;
-  padding: 24px 16px !important;
-  text-align: center !important;
-  cursor: pointer !important;
-  margin-bottom: 14px !important;
-}
-
-/* YOUTUBE URL ROW */
-.url-input-group, .youtube-import-box {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-  margin-top: 10px !important;
-}
-
-/* CAPTION PRESETS */
-.preset-grid {
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 8px !important;
-}
-
-.preset {
-  background: #0d1611 !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-radius: 10px !important;
-  padding: 12px 14px !important;
-  text-align: left !important;
-  color: #ffffff !important;
-  font-weight: 600 !important;
-}
-
-.preset.active {
-  border-color: var(--mobile-primary) !important;
-  background: rgba(16, 185, 129, 0.12) !important;
-}
-
-/* HORIZONTAL SCROLL SHELVES */
-.clip-grid, .clips-shelf, .horizontal-shelf, .history-grid {
-  display: flex !important;
-  flex-direction: row !important;
   overflow-x: auto !important;
-  gap: 12px !important;
-  padding-bottom: 10px !important;
+  gap: 6px !important;
+  padding-bottom: 6px !important;
+  margin-bottom: 10px !important;
   -webkit-overflow-scrolling: touch !important;
 }
 
-.clip-card, .history-card {
-  flex: 0 0 160px !important;
-  max-width: 160px !important;
+.voice-filter {
+  flex-shrink: 0 !important;
+  padding: 6px 12px !important;
+  border-radius: 20px !important;
+  font-size: 0.78rem !important;
+}
+
+.voice-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+.voice-card {
+  min-width: 0 !important;
+  background: #0d1611 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 10px !important;
+  padding: 10px 8px !important;
+  text-align: left !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.voice-card.selected {
+  border-color: var(--mobile-primary) !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+}
+
+.voice-card strong {
+  font-size: 0.85rem !important;
+  color: #ffffff !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.voice-card small {
+  font-size: 0.68rem !important;
+  color: var(--mobile-text-muted) !important;
+}
+
+/* HORIZONTAL SCROLL SHELVES */
+.clip-grid, .clips-shelf, .horizontal-shelf, .history-grid, .live-source-grid {
+  display: flex !important;
+  flex-direction: row !important;
+  overflow-x: auto !important;
+  gap: 10px !important;
+  padding-bottom: 8px !important;
+  width: 100% !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.clip-card, .history-card, .live-source-card {
+  flex: 0 0 150px !important;
+  max-width: 150px !important;
+  min-width: 150px !important;
   background: #0d1611 !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 10px !important;
@@ -346,14 +520,31 @@ textarea {
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.3) !important;
 }
 
-/* Range sliders */
-input[type="range"] {
+/* CAPTION PRESETS */
+.preset-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
   width: 100% !important;
-  height: 28px !important;
-  accent-color: var(--mobile-primary) !important;
 }
 
-/* Responsive video player */
+.preset {
+  width: 100% !important;
+  background: #0d1611 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 10px !important;
+  padding: 10px 12px !important;
+  text-align: left !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.preset.active {
+  border-color: var(--mobile-primary) !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+}
+
+/* RESPONSIVE VIDEO PREVIEW */
 video, .preview-frame {
   width: 100% !important;
   max-width: 100% !important;
@@ -361,18 +552,93 @@ video, .preview-frame {
   background: #000000 !important;
 }
 
-/* Clean Tour & Modals */
-.tour-overlay, .modal-overlay {
+/* MODALS */
+.modal-overlay, .tour-overlay {
   backdrop-filter: none !important;
   background: rgba(0, 0, 0, 0.88) !important;
   z-index: 9999 !important;
 }
 
-.tour-card, .modal-card {
-  width: calc(100vw - 32px) !important;
-  max-width: 420px !important;
+.modal-card, .tour-card {
+  width: calc(100vw - 24px) !important;
+  max-width: 380px !important;
   border-radius: 16px !important;
   margin: 0 auto !important;
+}
+/* LIVE CONTROLS & GALLERY RESPONSIVENESS */
+.live-connected-controls, .controls-left {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  gap: 10px !important;
+}
+
+.big-clip-btn {
+  width: 100% !important;
+  min-height: 52px !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+.clip-duration-pills {
+  display: flex !important;
+  width: 100% !important;
+  gap: 8px !important;
+  justify-content: space-between !important;
+}
+
+.clip-duration-pills .pill-btn {
+  flex: 1 !important;
+  min-height: 38px !important;
+  text-align: center !important;
+}
+
+.clips-gallery-grid, .live-clips-grid, #liveClipsGrid {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  gap: 12px !important;
+}
+
+/* MODALS ERGONOMICS */
+.modal-overlay {
+  display: none;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 12px !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.88) !important;
+  z-index: 99999 !important;
+  overflow-y: auto !important;
+}
+
+.modal-card {
+  width: 100% !important;
+  max-width: 380px !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+  padding: 16px 14px !important;
+  border-radius: 16px !important;
+}
+
+.modal-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  gap: 8px !important;
+}
+
+.modal-actions a, .modal-actions button {
+  width: 100% !important;
+  min-height: 46px !important;
+  text-align: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
 }
 </style>
 
@@ -420,7 +686,7 @@ const originalFetch = window.fetch;
 window.fetch = async function(url, options = {}) {
   const urlStr = String(url);
 
-  // Available models for dropdowns
+  // Available models
   if (urlStr.includes('/api/models')) {
     return new Response(JSON.stringify({
       ok: true,
@@ -435,6 +701,17 @@ window.fetch = async function(url, options = {}) {
   // Narrate Voices
   if (urlStr.includes('/api/narrate/voices')) {
     return new Response(JSON.stringify({ ok: true, voices: window.ANDROID_OFFLINE_VOICES }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // Voice Preview
+  if (urlStr.includes('/api/narrate/preview-voice')) {
+    if (window.AndroidBridge && window.AndroidBridge.speakText) {
+      window.AndroidBridge.speakText("Hello! This is a preview of the Clipify AI voice engine.");
+    }
+    return new Response(JSON.stringify({ ok: true, url: '' }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -477,7 +754,7 @@ window.fetch = async function(url, options = {}) {
 
   // Extra Clips Progress Status
   if (urlStr.includes('/api/narrate/download-extra-status')) {
-    window._extraClipsProgress = (window._extraClipsProgress || 0) + 15;
+    window._extraClipsProgress = (window._extraClipsProgress || 0) + 20;
     if (window._extraClipsProgress >= 100) {
       localStorage.setItem('extra_clips_installed', 'true');
       return new Response(JSON.stringify({
@@ -527,7 +804,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // Wire YouTube import button
-  const ytBtn = document.querySelector('#importYoutube, #btnImportYt, .btn-import-url');
+  const ytBtn = document.querySelector('#youtubeImport, #importYoutube, #btnImportYt, .btn-import-url');
   const ytInput = document.querySelector('#youtubeUrl, #videoUrlInput, input[name="youtube_url"]');
   if (ytBtn && ytInput) {
     ytBtn.addEventListener('click', (e) => {
@@ -544,7 +821,8 @@ window.addEventListener('DOMContentLoaded', () => {
       if (window.AndroidBridge && window.AndroidBridge.startYouTubeClip) {
         window.AndroidBridge.startYouTubeClip(url, 'gaming');
       } else {
-        // Fallback simulation
+        const dropText = document.querySelector('.drop-title, .dropzone strong');
+        if (dropText) dropText.textContent = 'Rendering YouTube Short (9:16)...';
         if (window.AndroidBridge && window.AndroidBridge.showToast) {
           window.AndroidBridge.showToast('Processing YouTube clip: ' + url);
         }
@@ -563,7 +841,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // Ensure modals close when backdrop or dismiss button is clicked
-  document.querySelectorAll('.modal-overlay, #publishModal, #supportModal').forEach(modal => {
+  document.querySelectorAll('.modal-overlay, #publishModal, #supportModal, .shepherd-modal-overlay-container').forEach(modal => {
     modal.addEventListener('click', (e) => {
       if (e.target === modal || e.target.classList.contains('close') || e.target.classList.contains('tour-finish-btn')) {
         modal.style.display = 'none';
@@ -576,7 +854,7 @@ window.addEventListener('DOMContentLoaded', () => {
 // Callback when Android native layer selects a video
 function onAndroidVideoSelected(uri, filename, duration) {
   console.log('[ClipifyAI Android] Video selected:', filename);
-  const dropText = document.querySelector('.drop-title, .dropzone h3, .upload-box h3');
+  const dropText = document.querySelector('.drop-title, .dropzone strong');
   if (dropText) dropText.textContent = 'Selected: ' + filename;
   const badge = document.querySelector('.drop-badge, .badge');
   if (badge) badge.textContent = 'Ready to Clip';
@@ -585,7 +863,6 @@ function onAndroidVideoSelected(uri, filename, duration) {
   }
 }
 </script>
-</body>
 
 </head>
 <body>

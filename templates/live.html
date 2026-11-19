@@ -203,30 +203,13 @@
           <div class="controls-left">
             <button type="button" class="primary big-clip-btn" id="btnLiveClipNow">
               <span class="clip-icon">⚡</span>
-              <span><b>Clip Highlight</b><small>Capture & auto-edit Short</small></span>
+              <span><b>Clip Highlight</b><small>Capture &amp; Start Auto-Clipping</small></span>
             </button>
             <div class="clip-duration-pills">
               <button type="button" class="pill-btn" data-dur="15">15s</button>
               <button type="button" class="pill-btn active" data-dur="30">30s</button>
               <button type="button" class="pill-btn" data-dur="60">60s</button>
             </div>
-          </div>
-
-          <div class="controls-right">
-            <div class="count-selector-box">
-              <label for="liveBatchCountSelect">Target Clips:</label>
-              <select id="liveBatchCountSelect">
-                <option value="1">1 Short</option>
-                <option value="2">2 Shorts</option>
-                <option value="3">3 Shorts</option>
-                <option value="4" selected>4 Shorts (Recommended)</option>
-                <option value="5">5 Shorts</option>
-                <option value="6">6 Shorts</option>
-              </select>
-            </div>
-            <button type="button" class="ghost batch-clip-btn" id="btnBatchClip">
-              <span>🎬 Generate <b id="batchCountNum">4</b> Clips</span>
-            </button>
           </div>
         </div>
 
@@ -259,7 +242,7 @@
             <b>Clipping Preferences</b>
           </div>
           <div class="summary-chips">
-            <span class="status-chip" id="chipAutoClip">Auto-Clip: ON</span>
+            <span class="status-chip" id="chipAutoClip">Auto-Clip: OFF</span>
             <span class="status-chip" id="chipSensitivity">Sensitivity: 5</span>
           </div>
         </summary>
@@ -270,7 +253,7 @@
               <small>Automatically detect highlights and render Shorts in background</small>
             </div>
             <label class="tweak-toggle">
-              <input type="checkbox" id="toggleAutoClip" checked>
+              <input type="checkbox" id="toggleAutoClip">
               <span class="tweak-switch"></span>
             </label>
           </div>
@@ -389,6 +372,22 @@
               </select>
             </div>
             <div>
+              <label for="captionLanguageSelect">Caption Language</label>
+              <select id="captionLanguageSelect">
+                <option value="en" selected>English (Default)</option>
+                <option value="es">Spanish (Español)</option>
+                <option value="fr">French (Français)</option>
+                <option value="de">German (Deutsch)</option>
+                <option value="ja">Japanese (日本語)</option>
+                <option value="pt">Portuguese (Português)</option>
+                <option value="hi">Hindi (हिन्दी)</option>
+                <option value="auto">Auto-Detect Language</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="pref-grid-two">
+            <div>
               <label for="captionFontSelect">Caption & Text Font</label>
               <select id="captionFontSelect">
                 <option value="Montserrat Extra Bold" selected>Montserrat Extra Bold</option>
@@ -403,7 +402,6 @@
                 <option value="Georgia">Georgia (Serif)</option>
               </select>
             </div>
-          </div>
 
           <!-- Canvas Background & Custom Brand Styling -->
           <div class="pref-grid-two">
@@ -626,6 +624,15 @@
     </div>
     <div class="modal-video-container">
       <video id="modalVideoPlayer" controls playsinline></video>
+    </div>
+    <!-- AI Generated Description & Tags Card -->
+    <div class="modal-meta-card" id="modalMetaCard" style="margin: 10px 0; padding: 12px 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; text-align: left;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span style="font-size: 0.78rem; font-weight: 700; color: #34d399; letter-spacing: 0.04em; text-transform: uppercase;">✨ AI Description &amp; Tags</span>
+        <button type="button" id="btnCopyClipMeta" style="background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.35); color: #34d399; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer;">📋 Copy All</button>
+      </div>
+      <p id="modalClipDesc" style="font-size: 0.8rem; color: #d1d5db; line-height: 1.4; margin-bottom: 6px; white-space: pre-wrap; max-height: 80px; overflow-y: auto;"></p>
+      <div id="modalClipTags" style="font-size: 0.76rem; color: #60a5fa; font-weight: 600; word-break: break-word;"></div>
     </div>
     <div class="modal-actions">
       <button type="button" class="secondary" id="modalPreviewEditBtn" style="padding: 10px 18px; font-weight: 600; cursor: pointer; border-radius: 8px;">Edit ✂️</button>
