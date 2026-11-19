@@ -1,6 +1,5 @@
 import subprocess
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -13,134 +12,103 @@ token = get_token()
 repo = "sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE"
 release_id = 450374034  # v3.7.0
 
-assets_to_upload = [
-    {"path": r"L:\ClipifyAI\SHA256SUMS.txt", "name": "SHA256SUMS.txt", "mime": "text/plain"},
-    {"path": r"L:\ClipifyAI\1-Click-Unblock.bat", "name": "1-Click-Unblock.bat", "mime": "application/x-bat"},
-    {"path": r"L:\ClipifyAI\Trust-Clipify.bat", "name": "Trust-Clipify.bat", "mime": "application/x-bat"},
-    {"path": r"L:\ClipifyAI\Clipify_AI_CodeSigning.cer", "name": "Clipify_AI_CodeSigning.cer", "mime": "application/x-x509-ca-cert"},
-    {"path": r"L:\ClipifyAI\Clipify_AI_v3.7.0_Mobile.apk", "name": "Clipify_AI_v3.7.0_Mobile.apk", "mime": "application/vnd.android.package-archive"},
-    {"path": r"L:\ClipifyAI\Clipify.AI.Setup.3.7.0.exe", "name": "Clipify.AI.Setup.3.7.0.exe", "mime": "application/octet-stream"},
-]
+print(f"Connecting to GitHub release {release_id}...")
 
-print(f"Connecting to GitHub API for {repo} release {release_id}...")
-
-# 1. Check existing assets in release
+# 1. Fetch current assets
 chk_cmd = [
     'curl.exe', '-s',
     '-H', f'Authorization: token {token}',
-    '-H', 'User-Agent: ReleaseUploader',
+    '-H', 'User-Agent: SherlockDev',
     f'https://api.github.com/repos/{repo}/releases/{release_id}/assets'
 ]
 res = subprocess.run(chk_cmd, capture_output=True, text=True)
-existing_assets = {}
-try:
-    for a in json.loads(res.stdout):
-        existing_assets[a['name']] = a['id']
-    print(f"Existing assets in release: {list(existing_assets.keys())}")
-except Exception as e:
-    print(f"Error parsing existing assets: {e}")
+assets = json.loads(res.stdout)
 
-# 2. Upload or update each asset
-for item in assets_to_upload:
-    file_path = Path(item["path"])
-    asset_name = item["name"]
-    mime_type = item["mime"]
-
-    if not file_path.exists():
-        print(f"[SKIP] File not found: {file_path}")
-        continue
-
-    size_mb = file_path.stat().st_size / (1024 * 1024)
-    print(f"\nProcessing {asset_name} ({size_mb:.2f} MB)...")
-
-    # If it already exists, delete old asset first
-    if asset_name in existing_assets:
-        aid = existing_assets[asset_name]
-        print(f"  Deleting existing asset {asset_name} (id: {aid})...")
+print(f"Found {len(assets)} assets:")
+for a in assets:
+    name = a['name']
+    aid = a['id']
+    print(f" - {name} (id: {aid})")
+    # Delete everything except Clipify.AI.Setup.3.7.0.exe
+    if name != "Clipify.AI.Setup.3.7.0.exe":
+        print(f"   --> Deleting {name}...")
         del_cmd = [
             'curl.exe', '-s', '-X', 'DELETE',
             '-H', f'Authorization: token {token}',
-            '-H', 'User-Agent: ReleaseUploader',
+            '-H', 'User-Agent: SherlockDev',
             f'https://api.github.com/repos/{repo}/releases/assets/{aid}'
         ]
         subprocess.run(del_cmd, capture_output=True)
-        print("  Deleted.")
+        print(f"   --> Deleted {name}.")
 
-    # Upload using curl HTTP/1.1
-    upload_url = f"https://uploads.github.com/repos/{repo}/releases/{release_id}/assets?name={asset_name}"
-    print(f"  Uploading {asset_name} to {upload_url}...")
+# 2. Re-upload clean Clipify.AI.Setup.3.7.0.exe
+setup_exe = Path(r"L:\ClipifyAI\Clipify.AI.Setup.3.7.0.exe")
+if setup_exe.exists():
+    # Check if Clipify.AI.Setup.3.7.0.exe is already there
+    existing_setup = [a for a in assets if a['name'] == setup_exe.name]
+    if existing_setup:
+        aid = existing_setup[0]['id']
+        print(f"Deleting previous setup asset {setup_exe.name} (id: {aid}) to re-upload clean version...")
+        del_cmd = [
+            'curl.exe', '-s', '-X', 'DELETE',
+            '-H', f'Authorization: token {token}',
+            '-H', 'User-Agent: SherlockDev',
+            f'https://api.github.com/repos/{repo}/releases/assets/{aid}'
+        ]
+        subprocess.run(del_cmd, capture_output=True)
+        print("Deleted old setup asset.")
+
+    upload_url = f"https://uploads.github.com/repos/{repo}/releases/{release_id}/assets?name={setup_exe.name}"
+    print(f"Uploading clean {setup_exe.name} ({setup_exe.stat().st_size / (1024*1024):.1f} MB)...")
     up_cmd = [
         'curl.exe', '--http1.1',
         '-H', f'Authorization: token {token}',
-        '-H', f'Content-Type: {mime_type}',
-        '-H', 'User-Agent: ReleaseUploader',
+        '-H', 'Content-Type: application/octet-stream',
+        '-H', 'User-Agent: SherlockDev',
         '--progress-bar',
-        '-T', str(file_path),
+        '-T', str(setup_exe),
         upload_url
     ]
     up_res = subprocess.run(up_cmd, capture_output=True, text=True)
     try:
         data = json.loads(up_res.stdout)
-        if 'browser_download_url' in data:
-            print(f"  SUCCESS! Download URL: {data['browser_download_url']}")
-        else:
-            print(f"  Upload warning: {up_res.stdout[:250]}")
+        print("Upload result:", data.get("browser_download_url", up_res.stdout[:200]))
     except Exception as e:
-        print(f"  Parse response error: {e}, stdout: {up_res.stdout[:200]}")
+        print("Upload response parse:", e)
 
-# 3. Update release body with false positive instructions & checksums
-new_body = """**AI-powered video clipping and live stream recording for Windows and Android.**
+# 3. Update release body to ONLY show Windows setup file
+clean_body = """**AI-powered video clipping and live stream recording for Windows.**
 
-Clipify AI converts long-form videos and live streams into short-form clips with automated highlight detection, speech-to-text, face tracking, and animated subtitles. 100% free, local, and private.
+Clipify AI converts long-form videos and live streams into short-form clips with automated highlight detection, speech-to-text, face tracking, and animated word subtitles. 100% free, local, and private.
 
 ![Clipify AI Live Studio](https://raw.githubusercontent.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/main/docs/screenshots/live_studio_stream.jpg)
 
 ---
 
-## 📥 Downloads (v3.7.0)
+## 📥 Download (Windows x64)
 
-| Package | Platform | Size | Checksum (SHA-256) |
-| :--- | :---: | :---: | :--- |
-| **`Clipify.AI.Setup.3.7.0.exe`** | Windows 10/11 (x64) | 347.7 MB | `16813525a3b5faaf70c150ed32350c3e7ae00ca199fbfe3960e8c92c0444f69b` |
-| **`Clipify_AI_v3.7.0_Mobile.apk`** | Android (ARM64/x86_64) | 8.44 MB | `90be1d042416d720e1ca6df82ee8829edb9804ea0ce693ade61b5873832cbc4f` |
-| **`SHA256SUMS.txt`** | All Platforms | 260 B | Cryptographic Release Hashes |
-| **`1-Click-Unblock.bat`** | Windows Tool | 500 B | Removes browser download block in 1 click |
-| **`Trust-Clipify.bat`** | Windows Tool | 700 B | Installs publisher certificate to Trusted Store |
+**Clipify AI v3.7.0 Setup**
+
+- **Installer:** `Clipify.AI.Setup.3.7.0.exe` (331.6 MB)
+- **Platform:** Windows 10 / Windows 11 (64-bit)
+- **Architecture:** x64
+
+[**Download Clipify.AI.Setup.3.7.0.exe**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.7.0/Clipify.AI.Setup.3.7.0.exe)
 
 ---
 
-## 🛡️ Windows SmartScreen / Antivirus False Positive Notice
-
-Clipify AI is **100% open-source community software**. Because community releases are not signed by expensive commercial EV certificates ($400+/year), Windows Defender SmartScreen or web browsers may show a standard unrecognized publisher prompt ("Windows protected your PC") on new releases.
-
-**How to bypass in 2 seconds:**
-1. Click **"More info"** on the Windows SmartScreen blue screen.
-2. Click **"Run anyway"**.
-
-**Alternative 1-Click Fix:**
-- Download `1-Click-Unblock.bat` into the same folder as the installer and double-click it.
-- Or right-click `Clipify.AI.Setup.3.7.0.exe` → **Properties** → Check **"Unblock"** → Click **OK**.
-- Or run in PowerShell: `Unblock-File .\\Clipify.AI.Setup.3.7.0.exe`
+### 🛡️ Windows SmartScreen Note
+Clipify AI is free, open-source software. If Windows SmartScreen displays **"Windows protected your PC"**, simply click **"More info"** → **"Run anyway"** to launch the installer.
 """
 
-print("\nUpdating Release v3.7.0 description on GitHub...")
-patch_data = json.dumps({"body": new_body})
+patch_data = json.dumps({"body": clean_body})
 patch_cmd = [
     'curl.exe', '-s', '-X', 'PATCH',
     '-H', f'Authorization: token {token}',
     '-H', 'Content-Type: application/json',
-    '-H', 'User-Agent: ReleaseUploader',
+    '-H', 'User-Agent: SherlockDev',
     f'https://api.github.com/repos/{repo}/releases/{release_id}',
     '-d', patch_data
 ]
-patch_res = subprocess.run(patch_cmd, capture_output=True, text=True)
-try:
-    pdata = json.loads(patch_res.stdout)
-    if 'id' in pdata:
-        print("Release v3.7.0 description updated successfully!")
-    else:
-        print("Update response:", patch_res.stdout[:200])
-except Exception as e:
-    print(f"Failed to parse patch response: {e}")
-
-print("\nAll assets and release notes updated!")
+subprocess.run(patch_cmd, capture_output=True)
+print("Release description updated to show only Windows setup.")

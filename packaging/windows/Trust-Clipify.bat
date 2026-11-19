@@ -24,3 +24,4 @@ echo   SmartScreen and UAC will now recognize the publisher.
 echo ========================================================
 echo.
 pause
+

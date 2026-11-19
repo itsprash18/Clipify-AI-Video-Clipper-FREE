@@ -15,3 +15,4 @@ echo   Done! You can now run the installer normally.
 echo ========================================================
 echo.
 pause
+

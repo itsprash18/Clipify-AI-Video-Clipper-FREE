@@ -1,9 +1,26 @@
 /* Clipify AI - Live Studio Stylesheet (Tweak IDE Inspired Minimal Monochrome) */
 
 .live-main {
-  max-width: 1540px;
-  margin: 0 auto;
+  margin-left: 220px;
+  max-width: calc(100% - 220px);
   padding: 24px 36px 60px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 980px) {
+  .live-main {
+    margin-left: 90px;
+    max-width: calc(100% - 90px);
+    padding: 22px 20px 60px;
+  }
+}
+
+@media (max-width: 640px) {
+  .live-main {
+    margin-left: 0;
+    max-width: 100%;
+    padding: 16px 14px 50px;
+  }
 }
 
 .topbar .living-title,
