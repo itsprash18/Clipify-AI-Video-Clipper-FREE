@@ -151,3 +151,4 @@ test_videos/
 *.sqlite3
 *.db
 wheels/
+*.apk

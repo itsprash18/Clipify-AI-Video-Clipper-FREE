@@ -1258,6 +1258,13 @@ def live_update_clip(clip_id: str):
     return jsonify({"success": ok})
 
 
+@app.post("/api/live/clips/<clip_id>/generate-description")
+def live_generate_clip_description(clip_id: str):
+    mgr = _get_live_studio_mgr()
+    res = mgr.generate_clip_description(clip_id)
+    return jsonify(res)
+
+
 @app.post("/api/live/clips/rank")
 def live_rank_clips():
     data = request.get_json(silent=True) or {}

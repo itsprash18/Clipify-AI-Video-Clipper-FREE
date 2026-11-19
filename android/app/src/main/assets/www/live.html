@@ -1487,7 +1487,10 @@ function onAndroidVideoSelected(uri, filename, duration) {
     <div class="modal-meta-card" id="modalMetaCard" style="margin: 10px 0; padding: 12px 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; text-align: left;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
         <span style="font-size: 0.78rem; font-weight: 700; color: #34d399; letter-spacing: 0.04em; text-transform: uppercase;">✨ AI Description &amp; Tags</span>
-        <button type="button" id="btnCopyClipMeta" style="background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.35); color: #34d399; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer;">📋 Copy All</button>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button type="button" id="btnGenClipDesc" style="background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.45); color: #a5b4fc; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all .15s ease;">🤖 Generate AI Description</button>
+          <button type="button" id="btnCopyClipMeta" style="background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.35); color: #34d399; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all .15s ease;">📋 Copy All</button>
+        </div>
       </div>
       <p id="modalClipDesc" style="font-size: 0.8rem; color: #d1d5db; line-height: 1.4; margin-bottom: 6px; white-space: pre-wrap; max-height: 80px; overflow-y: auto;"></p>
       <div id="modalClipTags" style="font-size: 0.76rem; color: #60a5fa; font-weight: 600; word-break: break-word;"></div>

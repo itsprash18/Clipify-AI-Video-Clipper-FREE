@@ -11,8 +11,8 @@ android {
         applicationId "dev.sherlock.clipifyai"
         minSdk 26
         targetSdk 34
-        versionCode 370
-        versionName "3.7.0"
+        versionCode 377
+        versionName "3.7.7"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -26,10 +26,9 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug // Override via CI/secure keystore
+            minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.debug // Offline release build
         }
         debug {
             applicationIdSuffix ".debug"

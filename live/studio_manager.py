@@ -685,12 +685,12 @@ class LiveStudioManager:
         return deleted_count
 
     def update_clip(self, clip_id: str, updates: dict[str, Any]) -> bool:
-        """Update metadata (title, category, subtitle/text) of a clip in memory and disk."""
+        """Update metadata (title, category, description, tags, subtitle/text) of a clip in memory and disk."""
         with self._lock:
             found = False
             for clip in self.clips:
                 if clip.get("id") == clip_id:
-                    for k in ("title", "category", "subtitle_text", "custom_text", "overlay_text"):
+                    for k in ("title", "category", "description", "tags", "tags_str", "subtitle_text", "custom_text", "overlay_text"):
                         if k in updates and updates[k] is not None:
                             clip[k] = updates[k]
                     found = True
@@ -704,7 +704,7 @@ class LiveStudioManager:
 
             for r_clip in self.ranked_clips:
                 if r_clip.get("id") == clip_id:
-                    for k in ("title", "category", "subtitle_text", "custom_text", "overlay_text"):
+                    for k in ("title", "category", "description", "tags", "tags_str", "subtitle_text", "custom_text", "overlay_text"):
                         if k in updates and updates[k] is not None:
                             r_clip[k] = updates[k]
                     try:
@@ -718,6 +718,90 @@ class LiveStudioManager:
             if found:
                 self.log_activity(f"Updated metadata for clip {clip_id}.", "info")
             return found
+
+    def generate_clip_description(self, clip_id: str) -> dict[str, Any]:
+        """Generate high-engagement viral description, hashtags, and SEO tags for a clip."""
+        with self._lock:
+            target_clip = None
+            for c in self.clips:
+                if c.get("id") == clip_id:
+                    target_clip = c
+                    break
+            if not target_clip:
+                meta_file = self.clips_dir / clip_id / "meta.json"
+                if meta_file.exists():
+                    try:
+                        target_clip = json.loads(meta_file.read_text(encoding="utf-8"))
+                    except Exception:
+                        pass
+
+            if not target_clip:
+                return {"ok": False, "error": f"Clip {clip_id} not found."}
+
+            title = str(target_clip.get("title", "")).strip()
+            duration = float(target_clip.get("duration", 30.0))
+            category = str(target_clip.get("category", "Gaming Highlight"))
+
+            # Build rich engaging description
+            desc_lines = [
+                f"🔥 {title}",
+                "",
+                f"Watch this insane stream moment! Automated highlight captured in 9:16 vertical format with Clipify AI Live Studio.",
+                "",
+                f"⏱️ Clip Length: {duration:.1f}s | Category: {category}",
+                "🚀 Created with 100% Free & Open-Source Clipify AI",
+                "",
+                "👉 Drop a LIKE, leave a COMMENT, and SUBSCRIBE for more daily viral stream clips!"
+            ]
+            description = "\n".join(desc_lines)
+
+            # Build relevant hashtags based on keywords
+            base_tags = ["#Shorts", "#Gaming", "#LiveStream", "#ViralShorts", "#ClipifyAI", "#Highlights", "#Trending"]
+            kw_pool = (title + " " + category).lower()
+            if any(w in kw_pool for w in ["gta", "car", "drift", "speed", "drive", "racing"]):
+                base_tags.extend(["#GTA5", "#GTAV", "#GamingClips", "#Clutch"])
+            elif any(w in kw_pool for w in ["minecraft", "craft", "parkour"]):
+                base_tags.extend(["#Minecraft", "#MinecraftShorts"])
+            elif any(w in kw_pool for w in ["rage", "mad", "funny", "fail", "omg", "lol"]):
+                base_tags.extend(["#StreamerRage", "#FunnyMoments", "#InstantRegret"])
+            elif any(w in kw_pool for w in ["valorant", "apex", "fortnite", "cod", "warzone"]):
+                base_tags.extend(["#FPS", "#ProPlay", "#Headshot"])
+
+            tags_str = " ".join(base_tags)
+
+            # Update clip
+            target_clip["description"] = description
+            target_clip["tags"] = base_tags
+            target_clip["tags_str"] = tags_str
+
+            meta_file = self.clips_dir / clip_id / "meta.json"
+            if meta_file.parent.exists():
+                try:
+                    meta_file.write_text(json.dumps(target_clip, indent=2), encoding="utf-8")
+                except Exception as e:
+                    logger.warning("Failed writing meta.json: %s", e)
+
+            for r_clip in self.ranked_clips:
+                if r_clip.get("id") == clip_id:
+                    r_clip["description"] = description
+                    r_clip["tags"] = base_tags
+                    r_clip["tags_str"] = tags_str
+                    try:
+                        (self.clips_dir / "ranked_clips.json").write_text(
+                            json.dumps(self.ranked_clips, indent=2), encoding="utf-8"
+                        )
+                    except Exception:
+                        pass
+                    break
+
+            return {
+                "ok": True,
+                "clip_id": clip_id,
+                "title": title,
+                "description": description,
+                "tags": base_tags,
+                "tags_str": tags_str,
+            }
 
     def log_ranking(self, message: str, level: str = "info") -> None:
         """Record real-time activity for the AI Ranking console."""

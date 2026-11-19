@@ -187,8 +187,8 @@ class ContentAnalyzer:
         h, w = frame.shape[:2]
         boxes: list[FaceBox] = []
 
-        # Downscale for high-speed inference
-        scale = min(1.0, 540.0 / max(1, w))
+        # Downscale for high-speed inference while preserving small streamer facecams
+        scale = min(1.0, 960.0 / max(1, w))
         small = cv2.resize(frame, (int(w * scale), int(h * scale))) if scale < 1.0 else frame
         sw, sh = small.shape[1], small.shape[0]
 
@@ -199,7 +199,7 @@ class ContentAnalyzer:
                 res_boxes, probs = self._mtcnn.detect(Image.fromarray(rgb), landmarks=False)
                 if res_boxes is not None:
                     for b, p in zip(res_boxes.tolist(), probs.tolist()):
-                        if (p or 0) >= 0.75:
+                        if (p or 0) >= 0.70:
                             boxes.append(FaceBox(
                                 x=max(0.0, b[0] / sw),
                                 y=max(0.0, b[1] / sh),
@@ -207,14 +207,15 @@ class ContentAnalyzer:
                                 h=min(1.0, (b[3] - b[1]) / sh),
                                 confidence=float(p),
                             ))
-                    return boxes
+                    if boxes:
+                        return boxes
             except Exception:
                 pass
 
         if self._haar is not None:
             try:
                 gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
-                haar_faces = self._haar.detectMultiScale(gray, scaleFactor=1.12, minNeighbors=4, minSize=(24, 24))
+                haar_faces = self._haar.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(20, 20))
                 for (x, y, fw, fh) in haar_faces:
                     boxes.append(FaceBox(
                         x=x / sw,

@@ -123,6 +123,7 @@
   const modalVideoPlayer = document.getElementById('modalVideoPlayer');
   const modalClipDesc = document.getElementById('modalClipDesc');
   const modalClipTags = document.getElementById('modalClipTags');
+  const btnGenClipDesc = document.getElementById('btnGenClipDesc');
   const btnCopyClipMeta = document.getElementById('btnCopyClipMeta');
   const modalDownloadBtn = document.getElementById('modalDownloadBtn');
   const modalDownloadOrigBtn = document.getElementById('modalDownloadOrigBtn');
@@ -1551,6 +1552,25 @@
       modalClipTags.textContent = clip.tags_str || (clip.tags ? clip.tags.join(' ') : '#Shorts #Gaming #LiveStream #ViralShorts #ClipifyAI');
     }
 
+    // Auto-generate AI description if empty or default placeholder
+    if (!clip.description || clip.description.includes('Viral stream highlight captured with Clipify AI')) {
+      fetch(`/api/live/clips/${clip.id}/generate-description`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.ok && activePreviewClip && activePreviewClip.id === clip.id) {
+          activePreviewClip.description = data.description;
+          activePreviewClip.tags = data.tags;
+          activePreviewClip.tags_str = data.tags_str;
+          if (modalClipDesc) modalClipDesc.textContent = data.description;
+          if (modalClipTags) modalClipTags.textContent = data.tags_str;
+        }
+      })
+      .catch(() => {});
+    }
+
     if (clip.original_video) {
       modalDownloadOrigBtn.href = clip.original_video;
       modalDownloadOrigBtn.download = `${clip.title}_16_9.mp4`;
@@ -1561,6 +1581,39 @@
 
     clipPreviewModal.style.display = 'flex';
     modalVideoPlayer.play().catch(() => {});
+  }
+
+  if (btnGenClipDesc) {
+    btnGenClipDesc.addEventListener('click', async () => {
+      if (!activePreviewClip) return;
+      const origBtnText = btnGenClipDesc.textContent;
+      btnGenClipDesc.textContent = 'Generating... ⏳';
+      btnGenClipDesc.disabled = true;
+      try {
+        const resp = await fetch(`/api/live/clips/${activePreviewClip.id}/generate-description`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await resp.json();
+        if (data && data.ok) {
+          activePreviewClip.description = data.description;
+          activePreviewClip.tags = data.tags;
+          activePreviewClip.tags_str = data.tags_str;
+          if (modalClipDesc) modalClipDesc.textContent = data.description;
+          if (modalClipTags) modalClipTags.textContent = data.tags_str;
+          btnGenClipDesc.textContent = 'Generated! ✨';
+          setTimeout(() => { btnGenClipDesc.textContent = origBtnText; btnGenClipDesc.disabled = false; }, 2000);
+        } else {
+          alert(data.error || 'Failed to generate AI description.');
+          btnGenClipDesc.textContent = origBtnText;
+          btnGenClipDesc.disabled = false;
+        }
+      } catch (e) {
+        alert('Error generating AI description: ' + e.message);
+        btnGenClipDesc.textContent = origBtnText;
+        btnGenClipDesc.disabled = false;
+      }
+    });
   }
 
   if (btnCopyClipMeta) {

@@ -7,7 +7,7 @@
 **100% Free · Private & Local · No Cloud Subscriptions · No Watermarks**
 
 <p align="center">
-  <a href="https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v3.7.0"><strong>Download v3.7.0 Installer (Windows x64) »</strong></a>
+  <a href="https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v3.7.7"><strong>Download v3.7.7 Release (Windows & Android) »</strong></a>
   <br>
   <a href="https://ai.projectclipzy.workers.dev/">Project Website</a> ·
   <a href="#-key-features">Key Features</a> ·
@@ -17,8 +17,8 @@
   <a href="#-local-ai-engine">Local AI Setup</a>
 </p>
 
-[![Release](https://img.shields.io/badge/release-v3.7.0-438d72?style=for-the-badge&logo=github)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v3.7.0)
-[![Platform](https://img.shields.io/badge/platform-Windows%20x64-243b63?style=for-the-badge&logo=windows)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v3.7.0)
+[![Release](https://img.shields.io/badge/release-v3.7.7-438d72?style=for-the-badge&logo=github)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v3.7.7)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Android-243b63?style=for-the-badge&logo=windows)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v3.7.7)
 [![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-6366f1?style=for-the-badge)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-3776ab?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Ollama](https://img.shields.io/badge/AI%20Engine-Ollama%20%2F%20Qwen-000000?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.ai)
@@ -29,33 +29,37 @@
 
 ## ⚡ What is Clipify AI?
 
-**Clipify AI** is an open-source, full-stack desktop alternative to expensive cloud platforms like OpusClip, Munch, and Submagic. It brings state-of-the-art AI video clipping, real-time livestream monitoring, face-tracking vertical crop, Hormozi-style animated word subtitles, and an AI narration generation studio directly onto your local machine.
+**Clipify AI** is an open-source, full-stack creator suite and desktop alternative to expensive cloud platforms like OpusClip, Munch, and Submagic. It brings state-of-the-art AI video clipping, real-time livestream monitoring, gaming split-screen facecam reframing, Hormozi-style animated word subtitles, and an AI narration generation studio directly onto your local machine and Android devices.
 
 Everything runs on your computer—preserving **100% privacy**, with **zero monthly subscription fees**, **zero API costs**, and **no video length quotas**.
 
 ---
 
-## 📥 Download (v3.7.0)
+## 📥 Download (v3.7.7)
 
 > [!IMPORTANT]
-> **🛡️ Windows SmartScreen / Antivirus False Positive Notice**:
-> Clipify AI is **100% free, local, and open-source software**.
-> Because open-source community releases are not signed by expensive commercial certificates ($400+/year), Windows Defender SmartScreen may display **"Windows protected your PC"** on newly released downloads.
+> **🛡️ Why Windows SmartScreen / Antivirus Flags New Releases (False Positive Explanation)**:
+> Clipify AI is **100% free, local, clean, and open-source software**.
+> Commercial software vendors pay thousands of dollars annually for EV Code Signing Certificates. Because Clipify AI is a community open-source project without expensive corporate certificates, Microsoft Windows Defender SmartScreen has not accumulated worldwide cloud telemetry on newly released binary hashes yet, displaying **"Windows protected your PC (unrecognized app)"**.
 >
-> **How to install in 2 seconds:**
+> **How to run in 2 seconds:**
 > 1. Click **"More info"** on the Windows SmartScreen blue dialog.
 > 2. Click the **"Run anyway"** button.
 >
-> **Alternative Fix:** Right-click `Clipify.AI.Setup.3.7.0.exe` → **Properties** → Check **"Unblock"** → Click **OK**.
+> **Alternative Fix:** Right-click `Clipify.AI.Setup.3.7.7.exe` → **Properties** → Check **"Unblock"** at bottom → Click **OK**.
 
 | Package | Platform | Version | Size | Download |
 | :--- | :---: | :---: | :---: | :--- |
-| **`Clipify.AI.Setup.3.7.0.exe`** | Windows 10/11 (64-bit) | `v3.7.0` | **331.6 MB** | [**Download Windows Installer (x64)**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.7.0/Clipify.AI.Setup.3.7.0.exe) |
+| **`Clipify.AI.Setup.3.7.7.exe`** | Windows 10/11 (64-bit) | `v3.7.7` | **331.6 MB** | [**Download Windows Installer (x64)**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.7.7/Clipify.AI.Setup.3.7.7.exe) |
+| **`Clipify AI (beta).apk`** | Android 8.0+ (ARM64/x86) | `v3.7.7` | **13.8 MB** | [**Download Android APK (beta)**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.7.7/Clipify.AI.%28beta%29.apk) |
 
-#### Verify installer integrity in PowerShell:
+#### Verify SHA-256 integrity:
 ```powershell
-Get-FileHash ".\Clipify.AI.Setup.3.7.0.exe" -Algorithm SHA256
+Get-FileHash ".\Clipify.AI.Setup.3.7.7.exe" -Algorithm SHA256
 # SHA-256: 8c6663c988430e7db7bc045493200c69022fcb0041fc7b1e37dbed86c4331d7e
+
+Get-FileHash ".\Clipify AI (beta).apk" -Algorithm SHA256
+# SHA-256: e1580152557b84b03f9777fcaf5403400414a671e9adcf66bb9c48f0fb9e21bb
 ```
 
 ---
