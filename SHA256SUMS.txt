@@ -1,0 +1,6 @@
+# Clipify AI v3.7.0 Official SHA-256 Release Checksums
+# Verify with PowerShell: Get-FileHash <filename> -Algorithm SHA256
+# Or on Linux/macOS: sha256sum <filename>
+
+16813525a3b5faaf70c150ed32350c3e7ae00ca199fbfe3960e8c92c0444f69b *Clipify.AI.Setup.3.7.0.exe
+90be1d042416d720e1ca6df82ee8829edb9804ea0ce693ade61b5873832cbc4f *Clipify_AI_v3.7.0_Mobile.apk
