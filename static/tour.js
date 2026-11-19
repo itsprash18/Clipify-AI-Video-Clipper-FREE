@@ -67,6 +67,13 @@
     cardEl.id = 'tourCard';
     overlayEl.appendChild(cardEl);
 
+    // Dismiss tour when clicking outside card
+    overlayEl.addEventListener('click', (e) => {
+      if (e.target === overlayEl || e.target === spotlightEl) {
+        endTour();
+      }
+    });
+
     document.body.appendChild(overlayEl);
 
     // Keyboard listener
@@ -86,11 +93,15 @@
   }
 
   function startTour(force = false) {
+    if (window.isAndroidApp && !force) {
+      return;
+    }
     if (!force && localStorage.getItem(TOUR_STORAGE_KEY)) {
       return;
     }
     initTourElements();
     currentStepIndex = 0;
+    overlayEl.style.display = 'block';
     overlayEl.classList.add('active');
     renderCurrentStep();
   }
@@ -98,6 +109,9 @@
   function endTour() {
     if (!overlayEl) return;
     overlayEl.classList.remove('active');
+    overlayEl.style.display = 'none';
+    localStorage.setItem(TOUR_STORAGE_KEY, 'true');
+  }
     localStorage.setItem(TOUR_STORAGE_KEY, 'true');
   }
 
@@ -228,6 +242,18 @@
     `;
 
     cardEl.querySelector('.tour-finish-btn')?.addEventListener('click', endTour);
+    cardEl.querySelector('.tour-star-btn')?.addEventListener('click', (e) => {
+      if (window.AndroidBridge && window.AndroidBridge.openBrowser) {
+        e.preventDefault();
+        window.AndroidBridge.openBrowser(e.currentTarget.href);
+      }
+    });
+    cardEl.querySelector('.tour-follow-btn')?.addEventListener('click', (e) => {
+      if (window.AndroidBridge && window.AndroidBridge.openBrowser) {
+        e.preventDefault();
+        window.AndroidBridge.openBrowser(e.currentTarget.href);
+      }
+    });
 
     // Center the card in viewport
     const cardRect = cardEl.getBoundingClientRect();

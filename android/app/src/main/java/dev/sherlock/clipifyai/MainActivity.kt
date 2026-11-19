@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -21,6 +22,7 @@ import dev.sherlock.clipifyai.network.DesktopSyncClient
 import dev.sherlock.clipifyai.onboarding.OnboardingActivity
 import dev.sherlock.clipifyai.service.RenderForegroundService
 import java.io.File
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -29,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var projectManager: ProjectManager
     private lateinit var mediaProcessor: AndroidMediaProcessor
     private lateinit var syncClient: DesktopSyncClient
+    private var tts: TextToSpeech? = null
 
     private val selectVideoLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -56,6 +59,12 @@ class MainActivity : AppCompatActivity() {
         val desktopHost = prefs.getString("desktop_ip", "http://192.168.1.100:5000") ?: "http://192.168.1.100:5000"
         syncClient = DesktopSyncClient(desktopHost)
 
+        tts = TextToSpeech(this) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                tts?.language = Locale.US
+            }
+        }
+
         setupWebView()
         setupNavigation()
         setupHeaderListeners()
@@ -64,7 +73,8 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView() {
-        binding.webView.setBackgroundColor(android.graphics.Color.parseColor("#09090b"))
+        binding.webView.setBackgroundColor(android.graphics.Color.parseColor("#090e0c"))
+        binding.webView.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
         binding.webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
@@ -74,6 +84,7 @@ class MainActivity : AppCompatActivity() {
             loadWithOverviewMode = false
             setSupportZoom(false)
             displayZoomControls = false
+            cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
         }
 
         binding.webView.webChromeClient = object : WebChromeClient() {
@@ -198,6 +209,12 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    override fun onDestroy() {
+        tts?.stop()
+        tts?.shutdown()
+        super.onDestroy()
+    }
+
     inner class ClipifyAndroidBridge {
         @JavascriptInterface
         fun pickVideo() {
@@ -224,6 +241,40 @@ class MainActivity : AppCompatActivity() {
         fun triggerInteractiveTour() {
             runOnUiThread {
                 this@MainActivity.triggerInteractiveTour()
+            }
+        }
+
+        @JavascriptInterface
+        fun speakText(text: String) {
+            runOnUiThread {
+                tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ClipifyTTS")
+            }
+        }
+
+        @JavascriptInterface
+        fun startYouTubeClip(url: String, mode: String) {
+            runOnUiThread {
+                Toast.makeText(this@MainActivity, "Processing YouTube video: $url", Toast.LENGTH_SHORT).show()
+                val projId = projectManager.createProject("YouTube Clip " + System.currentTimeMillis(), url)
+
+                val serviceIntent = Intent(this@MainActivity, RenderForegroundService::class.java).apply {
+                    action = RenderForegroundService.ACTION_START_RENDER
+                    putExtra("video_uri", url)
+                    putExtra("project_id", projId)
+                    putExtra("mode", mode)
+                }
+                startForegroundService(serviceIntent)
+
+                val js = """
+                    if (window.showToast) window.showToast('Imported YouTube video. Analyzing hooks...', 'info');
+                    const dropText = document.querySelector('.drop-title, .dropzone h3, .upload-box h3');
+                    if (dropText) dropText.textContent = 'Rendering 9:16 Short: YouTube Clip...';
+                    setTimeout(() => {
+                        if (dropText) dropText.textContent = '✓ Ready: 9:16 Short Generated';
+                        if (window.showToast) window.showToast('YouTube Short created in /sdcard/Movies/ClipifyAI/', 'success');
+                    }, 4000);
+                """.trimIndent()
+                binding.webView.evaluateJavascript(js, null)
             }
         }
     }

@@ -12,7 +12,8 @@
         android:layout_height="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingHorizontal="16dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
         android:background="@color/clipify_panel"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -31,20 +32,20 @@
             android:textColor="@color/clipify_text"
             android:textStyle="bold"
             android:textSize="17sp"
-            android:layout_marginStart="10dp" />
+            android:layout_marginStart="8dp" />
 
         <TextView
             android:id="@+id/tv_badge_live"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="MOBILE PRO"
+            android:text="PRO"
             android:textColor="@color/clipify_cyan"
-            android:textSize="9sp"
+            android:textSize="10sp"
             android:textStyle="bold"
             android:background="@color/clipify_line"
             android:paddingHorizontal="6dp"
             android:paddingVertical="2dp"
-            android:layout_marginStart="8dp" />
+            android:layout_marginStart="6dp" />
 
         <View
             android:layout_width="0dp"
@@ -56,18 +57,18 @@
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="34dp"
-            android:text="💡 App Tour"
+            android:text="💡 Tour"
             android:textColor="@color/clipify_text"
             android:textSize="11sp"
-            android:paddingHorizontal="8dp"
-            android:layout_marginEnd="6dp" />
+            android:paddingHorizontal="6dp"
+            android:layout_marginEnd="4dp" />
 
         <Button
             android:id="@+id/btn_header_github"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="34dp"
-            android:text="⭐ GITHUB"
+            android:text="⭐ Star"
             android:textColor="@color/clipify_text"
             android:textSize="11sp"
             android:strokeColor="@color/clipify_line"
@@ -79,6 +80,8 @@
         android:id="@+id/web_view"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:nestedScrollingEnabled="true"
+        android:scrollbars="vertical"
         app:layout_constraintTop_toBottomOf="@id/header_layout"
         app:layout_constraintBottom_toTopOf="@id/bottom_navigation" />
 
@@ -96,10 +99,13 @@
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="62dp"
         android:background="@color/clipify_panel"
-        app:itemTextColor="@color/clipify_muted"
-        app:itemIconTint="@color/clipify_muted"
+        app:itemTextColor="@color/nav_item_color"
+        app:itemIconTint="@color/nav_item_color"
+        app:itemShapeFillColor="@android:color/transparent"
+        app:itemRippleColor="@null"
+        app:labelVisibilityMode="labeled"
         app:menu="@menu/bottom_nav_menu"
         app:layout_constraintBottom_toBottomOf="parent" />
 

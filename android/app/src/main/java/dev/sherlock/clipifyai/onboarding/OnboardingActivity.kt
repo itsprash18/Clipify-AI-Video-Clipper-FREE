@@ -35,7 +35,8 @@ class OnboardingActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupInstallerWebView() {
-        binding.installerWebview.setBackgroundColor(android.graphics.Color.parseColor("#0d1611"))
+        binding.installerWebview.setBackgroundColor(android.graphics.Color.parseColor("#090e0c"))
+        binding.installerWebview.setLayerType(View.LAYER_TYPE_HARDWARE, null)
         binding.installerWebview.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
@@ -45,6 +46,7 @@ class OnboardingActivity : AppCompatActivity() {
             loadWithOverviewMode = false
             setSupportZoom(false)
             displayZoomControls = false
+            cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
         }
 
         binding.installerWebview.webChromeClient = object : WebChromeClient() {

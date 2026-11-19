@@ -2,19 +2,18 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/nav_create"
-        android:icon="@drawable/ic_clipify_logo"
+        android:icon="@drawable/ic_nav_create"
         android:title="@string/nav_create" />
     <item
-        android:id="@+id/nav_live"
-        android:icon="@drawable/ic_clipify_logo"
-        android:title="@string/nav_live" />
-    <item
         android:id="@+id/nav_narrate"
-        android:icon="@drawable/ic_clipify_logo"
+        android:icon="@drawable/ic_nav_narrate"
         android:title="@string/nav_narrate" />
     <item
+        android:id="@+id/nav_live"
+        android:icon="@drawable/ic_nav_live"
+        android:title="@string/nav_live" />
+    <item
         android:id="@+id/nav_projects"
-        android:icon="@drawable/ic_clipify_logo"
+        android:icon="@drawable/ic_nav_projects"
         android:title="@string/nav_projects" />
 </menu>
-
