@@ -95,3 +95,4 @@ This document represents the master quality assurance catalogue of all screens, 
 3. **Android Scoped Storage & Cleartext Policy:**
    - Enforces Android Scoped Storage for Android 10+ (`MediaStore` / `context.filesDir`).
    - `network_security_config.xml` strictly limits cleartext traffic to local LAN subnets (`192.168.0.0/16`, `10.0.0.0/8`, `172.16.0.0/12`).
+

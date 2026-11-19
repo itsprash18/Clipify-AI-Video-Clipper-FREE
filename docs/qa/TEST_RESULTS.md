@@ -68,3 +68,4 @@
 | **Local AI Engine** | Ollama discovery, model switching, live inference | Qwen 2.5 3B / Qwen 3 8B | **PASS** |
 | **Transcription Engine**| Faster-Whisper tiny CTranslate2 model loading | Loaded in 1.74s | **PASS** |
 | **Video Engine** | FFmpeg 9.0.1 essentials & FFprobe 9.0.1 | 5/5 format matrix tests | **PASS** |
+

@@ -47,3 +47,4 @@ def test_invalid_model_error_handling(ollama_service):
     }
     r = requests.post(f"{ollama_service.host}/api/generate", json=payload, timeout=10)
     assert r.status_code == 404 or "error" in r.text.lower()
+

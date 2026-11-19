@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clipify AI · Live Studio</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png', v='20261018-3') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='20261118-4') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='live.css', v='20261119-1') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='tour.css', v='20261118-1') }}">
+</head>
+<body class="tweak-theme">
+<div class="noise"></div>
+
+<aside class="sidebar">
+  <div class="brand">
+    <img class="brand-mark" src="{{ url_for('static', filename='icon.png', v='20261018-3') }}" alt="" aria-hidden="true">
+    <div class="brand-copy"><b>Clipify AI</b><span>LIVE STUDIO <span class="brand-beta">BETA</span></span></div>
+  </div>
+  <a class="sidebar-github" href="https://github.com/sherlock-dev-ai" target="_blank" rel="noopener noreferrer"><span>↗</span> GitHub</a>
+  <nav>
+    <a href="/">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.75 18.25 12 12 20.25 5.75 12 12 3.75Zm0 3.5L8.25 12 12 15.75 15.75 12 12 7.25Z"/></svg>
+      <span>Create</span>
+    </a>
+    <a href="/narrate">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a5 5 0 0 0-5 5v4a5 5 0 0 0 10 0V8a5 5 0 0 0-5-5Zm-2.5 5a2.5 2.5 0 0 1 5 0v4a2.5 2.5 0 0 1-5 0V8ZM4 11h2a6 6 0 0 0 12 0h2a8 8 0 0 1-7 7.94V21h-2v-2.06A8 8 0 0 1 4 11Z"/></svg>
+      <span>Narrate</span>
+    </a>
+    <a href="/live" class="active">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 0-14.14 0M16.24 7.76a6 6 0 0 0-8.48 0M4.93 19.07a10 10 0 0 0 14.14 0M7.76 16.24a6 6 0 0 0 8.48 0"/></svg>
+      <span>Live Studio</span> <span class="nav-beta-tag">BETA</span>
+    </a>
+    <a href="/#projects">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-9Zm2.5-.5a.5.5 0 0 0-.5.5v9c0 .28.22.5.5.5h11a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-11Zm2 2.5h7v2h-7v-2Zm0 4h7v2h-7v-2Z"/></svg>
+      <span>Projects</span>
+    </a>
+    <a href="/#editor">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5 14.5 8l2.5 2.5L8.5 19H6v-2.5Zm9.7-10.8 2.1 2.1a1 1 0 0 1 0 1.4l-1.1 1.1-3.5-3.5 1.1-1.1a1 1 0 0 1 1.4 0Z"/></svg>
+      <span>Editor</span>
+    </a>
+  </nav>
+  <button class="sidebar-tour-btn" type="button" onclick="window.startClipifyTour && window.startClipifyTour()"><span>💡</span> App Tour</button>
+  <div class="side-spacer"></div>
+  <div class="side-card">
+    <span class="dot" id="liveHealthDot"></span>
+    <div class="status-copy"><b>Live Engine</b><small id="liveHealthText">Ready</small></div>
+  </div>
+</aside>
+
+<main class="main live-main">
+  <!-- Minimalist Header -->
+  <header class="topbar">
+    <div>
+      <h1 class="living-title">LIVE STUDIO <span class="title-feature-pill">LIVE STREAM CLIPPING</span> <span class="badge-beta-pill">BETA</span></h1>
+      <p class="topbar-subtitle">Turn live moments into viral 9:16 Shorts automatically with real-time AI highlights.</p>
+    </div>
+    <div class="top-actions">
+      <div class="live-badge" id="streamLiveBadge"><span class="pulse-dot"></span> <strong id="streamLiveText">IDLE</strong></div>
+      <button class="ghost" id="btnObsGuide" type="button">OBS Setup</button>
+      <button class="primary" id="btnInstantClip" type="button" disabled>⚡ Instant Clip (30s)</button>
+    </div>
+  </header>
+
+  <!-- SOURCE SELECTION PANEL -->
+  <section class="panel live-source-panel">
+    <div class="source-tabs">
+      <button class="source-tab active" data-source="youtube" type="button">
+        <span class="tab-icon">▶</span>
+        <div><b>YouTube Live</b><small>Paste any public live stream link</small></div>
+      </button>
+      <button class="source-tab" data-source="twitch" type="button">
+        <span class="tab-icon">🟣</span>
+        <div><b>Twitch Live</b><small>Connect live stream or channel</small></div>
+      </button>
+      <button class="source-tab" data-source="obs" type="button">
+        <span class="tab-icon">⚲</span>
+        <div><b>OBS Studio</b><small>Local RTMP ingestion</small></div>
+      </button>
+    </div>
+
+    <!-- YouTube / Twitch URL Connection Bar -->
+    <div class="source-input-group" id="youtubeInputGroup">
+      <div class="input-row">
+        <input type="url" id="liveSourceUrl" placeholder="https://www.youtube.com/watch?v=... or https://www.youtube.com/live/..." autocomplete="off">
+        <button type="button" class="primary" id="btnConnectStream">Connect & Start Clipping</button>
+        <button type="button" class="ghost" id="btnDisconnectStream" style="display:none;">Disconnect</button>
+      </div>
+      <small class="field-hint" id="sourceHelpText">Supports standard YouTube Live stream links and channel /live URLs.</small>
+    </div>
+
+    <!-- OBS Quick Config Box (Shown when OBS tab is selected) -->
+    <div class="obs-box" id="obsConfigBox" style="display:none;">
+      <div class="obs-grid">
+        <div>
+          <label>Server (RTMP URL)</label>
+          <div class="copy-input-row">
+            <input type="text" id="obsServerUrl" readonly value="rtmp://127.0.0.1:1935/live">
+            <button type="button" class="ghost copy-btn" data-target="obsServerUrl">Copy</button>
+          </div>
+        </div>
+        <div>
+          <label>Stream Key</label>
+          <div class="copy-input-row">
+            <input type="text" id="obsStreamKey" readonly value="stream">
+            <button type="button" class="ghost copy-btn" data-target="obsStreamKey">Copy</button>
+          </div>
+        </div>
+      </div>
+      <div class="obs-action-row">
+        <button type="button" class="primary" id="btnConnectObs">Start Listening for OBS</button>
+        <button type="button" class="ghost" id="btnDisconnectObs" style="display:none;">Stop Listening</button>
+      </div>
+      <p class="obs-instructions"><b>How to connect OBS:</b> In OBS Studio, open <b>Settings → Stream</b>. Set Service to <b>Custom...</b>, paste the Server and Stream Key above, then click <b>Start Streaming</b>.</p>
+    </div>
+  </section>
+
+  <!-- LIVE STUDIO WORKSPACE GRID -->
+  <div class="live-grid">
+    <!-- LEFT: 16:9 MONITOR SCREEN & LIVE TRANSCRIPT -->
+    <div class="live-left">
+      <!-- 16:9 Live Preview Screen (Centerpiece) -->
+      <section class="panel monitor-panel">
+        <div class="section-head">
+          <div>
+            <span class="kicker">PREVIEW MONITOR</span>
+            <h2 id="monitorTitle">Stream Preview</h2>
+          </div>
+          <div class="stream-telemetry">
+            <span id="telemetryElapsed">00:00:00</span>
+            <span class="telemetry-chip" id="telemetryBuffer">Buffer: 0s</span>
+            <span class="telemetry-chip" id="telemetryChunks">0 chunks</span>
+          </div>
+        </div>
+
+        <div class="monitor-screen" id="monitorScreen">
+          <!-- 1. Idle State -->
+          <div class="monitor-state monitor-idle" id="monitorIdleView">
+            <div class="monitor-idle-icon">
+              <svg viewBox="0 0 24 24" width="36" height="36" stroke="currentColor" fill="none" stroke-width="1.75">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.07 4.93a10 10 0 0 0-14.14 0M16.24 7.76a6 6 0 0 0-8.48 0M4.93 19.07a10 10 0 0 0 14.14 0M7.76 16.24a6 6 0 0 0 8.48 0"/>
+              </svg>
+            </div>
+            <h3>Ready when you are.</h3>
+            <p>Connect a live stream above to begin monitoring and clipping in real time.</p>
+          </div>
+
+          <!-- 2. Connecting / Resolving State -->
+          <div class="monitor-state monitor-loading" id="monitorLoadingView" style="display:none;">
+            <div class="minimal-spinner"></div>
+            <h3 id="monitorLoadingTitle">Resolving stream...</h3>
+            <p id="monitorLoadingDetail">Connecting to live broadcast feed and initializing buffer</p>
+          </div>
+
+          <!-- 3. Active Live Video State -->
+          <div class="monitor-state monitor-live" id="monitorLiveView" style="display:none;">
+            <!-- Real YouTube Live Stream Player -->
+            <iframe id="monitorLiveEmbed" class="monitor-live-embed"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen style="display:none;">
+            </iframe>
+
+            <!-- Direct Video Ingestion Frame (OBS / RTMP / Fallback) -->
+            <img id="monitorVideoFrame" class="monitor-live-img" alt="Live Preview Frame">
+            
+            <div class="monitor-overlay-top">
+              <div class="overlay-left">
+                <span class="live-indicator-pill">● LIVE</span>
+                <span class="monitor-stream-title" id="streamOverlayTitle">Live Broadcast</span>
+              </div>
+              <div class="overlay-right">
+                <div class="monitor-view-toggles" id="monitorViewToggles" style="display:none;">
+                  <button type="button" class="view-toggle-pill active" id="btnToggleLivePlayer" title="Watch live stream with real audio">▶ Live Video</button>
+                  <button type="button" class="view-toggle-pill" id="btnToggleSnapshot" title="View video pipeline ingestion frame">📷 Snapshot</button>
+                </div>
+                <span class="telemetry-badge" id="overlayElapsed">00:00:00</span>
+                <span class="telemetry-badge" id="overlayBuffer">0s buf</span>
+              </div>
+            </div>
+
+            <div class="monitor-overlay-bottom">
+              <span class="author-tag" id="streamAuthor">Broadcast</span>
+              <div class="audio-waveform" id="waveform">
+                <span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                <span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                <span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Error / Failed State -->
+          <div class="monitor-state monitor-failed" id="monitorFailedView" style="display:none;">
+            <div class="monitor-failed-icon">⚠</div>
+            <h3 id="monitorFailedTitle">Connection Failed</h3>
+            <p id="monitorFailedDetail">Live stream is offline or URL is invalid.</p>
+            <button type="button" class="ghost mini-btn" id="btnRetryConnection">Try Again</button>
+          </div>
+        </div>
+
+        <!-- Live Connected Action Bar & Clip Controls (Appears after connecting) -->
+        <div class="live-connected-controls" id="liveConnectedControls" style="display:none;">
+          <div class="controls-left">
+            <button type="button" class="primary big-clip-btn" id="btnLiveClipNow">
+              <span class="clip-icon">⚡</span>
+              <span><b>Clip Highlight</b><small>Capture & auto-edit Short</small></span>
+            </button>
+            <div class="clip-duration-pills">
+              <button type="button" class="pill-btn" data-dur="15">15s</button>
+              <button type="button" class="pill-btn active" data-dur="30">30s</button>
+              <button type="button" class="pill-btn" data-dur="60">60s</button>
+            </div>
+          </div>
+
+          <div class="controls-right">
+            <div class="count-selector-box">
+              <label for="liveBatchCountSelect">Target Clips:</label>
+              <select id="liveBatchCountSelect">
+                <option value="1">1 Short</option>
+                <option value="2">2 Shorts</option>
+                <option value="3">3 Shorts</option>
+                <option value="4" selected>4 Shorts (Recommended)</option>
+                <option value="5">5 Shorts</option>
+                <option value="6">6 Shorts</option>
+              </select>
+            </div>
+            <button type="button" class="ghost batch-clip-btn" id="btnBatchClip">
+              <span>🎬 Generate <b id="batchCountNum">4</b> Clips</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Studio Activity Console -->
+        <div class="studio-console-panel" id="studioConsolePanel">
+          <div class="console-header">
+            <div class="console-title">
+              <span class="console-prompt">&gt;_</span>
+              <span>STUDIO ACTIVITY CONSOLE</span>
+              <span class="console-pulse">●</span>
+            </div>
+            <div class="console-actions">
+              <button type="button" class="console-clear-btn" id="btnClearConsole" title="Clear console logs">Clear</button>
+            </div>
+          </div>
+          <div class="console-body" id="studioConsoleBody">
+            <div class="console-line system"><span class="log-time">[INIT]</span> Studio activity console online. Ready for live events.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT: CLIPPING PREFERENCES & LIVE TRANSCRIPTION -->
+    <div class="live-right">
+      <!-- Collapsible Clipping Preferences -->
+      <details class="clipping-prefs-details" open>
+        <summary class="clipping-prefs-summary">
+          <div class="summary-left">
+            <span class="summary-arrow">▾</span>
+            <b>Clipping Preferences</b>
+          </div>
+          <div class="summary-chips">
+            <span class="status-chip" id="chipAutoClip">Auto-Clip: ON</span>
+            <span class="status-chip" id="chipSensitivity">Sensitivity: 5</span>
+          </div>
+        </summary>
+        <div class="clipping-prefs-body">
+          <div class="pref-row">
+            <div>
+              <b>Auto-Clipping</b>
+              <small>Automatically detect highlights and render Shorts in background</small>
+            </div>
+            <label class="tweak-toggle">
+              <input type="checkbox" id="toggleAutoClip" checked>
+              <span class="tweak-switch"></span>
+            </label>
+          </div>
+
+          <div class="pref-row auto-clip-interval-row" id="autoClipIntervalRow">
+            <div>
+              <b>Auto-Clip Interval</b>
+              <small>Time frequency between automated highlight detections</small>
+            </div>
+            <select id="autoClipIntervalSelect" class="compact-select">
+              <option value="2">Every 2 mins</option>
+              <option value="3">Every 3 mins</option>
+              <option value="5" selected>Every 5 mins (Default)</option>
+              <option value="10">Every 10 mins</option>
+              <option value="15">Every 15 mins</option>
+            </select>
+          </div>
+
+          <div class="pref-row auto-clip-target-row" id="autoClipTargetRow">
+            <div>
+              <b>Auto-Clip Target Limit (1 - 100)</b>
+              <small>Total clips to generate automatically before pausing</small>
+            </div>
+            <div class="target-input-group">
+              <input type="number" id="autoClipTargetInput" class="compact-number-input" min="1" max="100" value="10">
+              <span class="target-unit-tag">clips</span>
+            </div>
+          </div>
+
+          <div class="pref-row-col">
+            <div class="slider-header">
+              <label for="sensitivitySlider">Highlight Sensitivity</label>
+              <span class="slider-value" id="sensitivityOut">5 (Balanced)</span>
+            </div>
+            <input type="range" id="sensitivitySlider" min="1" max="10" value="5">
+            <div class="slider-sublabels">
+              <span>Fewer, Highest Quality</span>
+              <span>More Frequent Clips</span>
+            </div>
+          </div>
+
+          <div class="pref-grid-two">
+            <div>
+              <label for="clipFormatSelect">Clip Format</label>
+              <select id="clipFormatSelect">
+                <option value="vertical" selected>9:16 Vertical Short (Reframed)</option>
+                <option value="horizontal">16:9 Horizontal (Original)</option>
+              </select>
+            </div>
+            <div>
+              <label for="liveModelSelect">AI Model</label>
+              <select id="liveModelSelect">
+                <option value="qwen2.5:3b" selected>Qwen 2.5 (Local)</option>
+                <option value="heuristic">Built-in Fast AI</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Smart AI Editing Engine Controls -->
+          <div class="pref-separator"><span>AI SMART EDITING</span></div>
+
+          <div class="pref-row">
+            <div>
+              <b>Smart Auto-Editing</b>
+              <small>Intelligent layouts, auto-framing, and dynamic energy zooms</small>
+            </div>
+            <label class="tweak-toggle">
+              <input type="checkbox" id="toggleAutoEdit" checked>
+              <span class="tweak-switch"></span>
+            </label>
+          </div>
+
+          <div class="pref-row">
+            <div>
+              <b>Face Detection & Tracking</b>
+              <small>Track speaker centroids with deadzone & EMA jitter smoothing</small>
+            </div>
+            <label class="tweak-toggle">
+              <input type="checkbox" id="toggleFaceTrack" checked>
+              <span class="tweak-switch"></span>
+            </label>
+          </div>
+
+          <div class="pref-row">
+            <div>
+              <b>Gaming Split-Screen Layout</b>
+              <small>58% gameplay on top + 42% reaction webcam on bottom</small>
+            </div>
+            <label class="tweak-toggle">
+              <input type="checkbox" id="toggleGamingLayout" checked>
+              <span class="tweak-switch"></span>
+            </label>
+          </div>
+
+          <div class="pref-row">
+            <div>
+              <b>Animated Auto-Captions</b>
+              <small>Burn word-by-word karaoke highlighted subtitles into Shorts</small>
+            </div>
+            <label class="tweak-toggle">
+              <input type="checkbox" id="toggleAutoCaptions" checked>
+              <span class="tweak-switch"></span>
+            </label>
+          </div>
+
+          <div class="pref-grid-two">
+            <div>
+              <label for="captionStyleSelect">Caption Style Preset</label>
+              <select id="captionStyleSelect">
+                <option value="highlight" selected>Karaoke Highlight (Yellow/White)</option>
+                <option value="creator">Bold Creator (ALL CAPS Neon)</option>
+                <option value="gaming">Gaming High-Energy (Spring Green)</option>
+                <option value="clean">Modern Clean Minimal (White)</option>
+                <option value="minimal">Subdued Lower-Third (Light Gray)</option>
+                <option value="none">None (Disable Captions)</option>
+              </select>
+            </div>
+            <div>
+              <label for="captionFontSelect">Caption & Text Font</label>
+              <select id="captionFontSelect">
+                <option value="Montserrat Extra Bold" selected>Montserrat Extra Bold</option>
+                <option value="Arial Black">Arial Black (Ultra Bold)</option>
+                <option value="Impact">Impact (High-Energy)</option>
+                <option value="Segoe UI Black">Segoe UI Black (Crisp)</option>
+                <option value="Arial">Arial (Clean)</option>
+                <option value="Segoe UI">Segoe UI (Minimal)</option>
+                <option value="Trebuchet MS">Trebuchet MS (Dynamic)</option>
+                <option value="Verdana">Verdana (Wide Legible)</option>
+                <option value="Calibri">Calibri (Neutral)</option>
+                <option value="Georgia">Georgia (Serif)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Canvas Background & Custom Brand Styling -->
+          <div class="pref-grid-two">
+            <div>
+              <label for="bgStyleSelect">Canvas Background</label>
+              <select id="bgStyleSelect">
+                <option value="soft_blur" selected>Soft Ambient Blur</option>
+                <option value="heavy_blur">Heavy Cinematic Blur</option>
+                <option value="solid_black">Solid Black Canvas</option>
+                <option value="custom_color">Custom Brand Color</option>
+              </select>
+            </div>
+            <div id="bgColorWrapper" style="display:none;">
+              <label for="bgColorPicker">Background Color</label>
+              <div class="color-picker-row">
+                <input type="color" id="bgColorPicker" value="#0f172a">
+                <input type="text" id="bgColorHex" value="#0f172a" maxlength="7" class="color-hex-input">
+              </div>
+            </div>
+          </div>
+
+          <!-- Custom Branding & Watermark Text -->
+          <div class="pref-separator"><span>CUSTOM BRANDING & WATERMARK</span></div>
+
+          <div class="pref-row">
+            <div>
+              <b>Custom Text Overlay</b>
+              <small>Add watermark, channel handle, or broadcast tag to clips</small>
+            </div>
+            <label class="tweak-toggle">
+              <input type="checkbox" id="toggleCustomText">
+              <span class="tweak-switch"></span>
+            </label>
+          </div>
+
+          <div id="customTextSection" style="display:none;" class="custom-text-box">
+            <div class="pref-grid-two">
+              <div>
+                <label for="customTextInput">Overlay Text</label>
+                <input type="text" id="customTextInput" placeholder="e.g. LIVE · @MYCHANNEL" maxlength="50">
+              </div>
+              <div>
+                <label for="customTextPos">Position</label>
+                <select id="customTextPos">
+                  <option value="top-center" selected>Top Center</option>
+                  <option value="top-left">Top Left</option>
+                  <option value="top-right">Top Right</option>
+                  <option value="bottom-center">Bottom Center</option>
+                  <option value="bottom-left">Bottom Left</option>
+                  <option value="bottom-right">Bottom Right</option>
+                </select>
+              </div>
+            </div>
+            <div class="pref-grid-two" style="margin-top:8px;">
+              <div>
+                <label for="customTextColorPicker">Text Color</label>
+                <div class="color-picker-row">
+                  <input type="color" id="customTextColorPicker" value="#FFFFFF">
+                  <input type="text" id="customTextColorHex" value="#FFFFFF" maxlength="7" class="color-hex-input">
+                </div>
+              </div>
+              <div></div>
+            </div>
+          </div>
+
+          <div class="pref-grid-two" style="margin-top:12px;">
+            <div>
+              <label for="prefTargetClips">Target Number of Shorts</label>
+              <select id="prefTargetClips">
+                <option value="1">1 Short</option>
+                <option value="2">2 Shorts</option>
+                <option value="3">3 Shorts</option>
+                <option value="4" selected>4 Shorts (Recommended)</option>
+                <option value="5">5 Shorts</option>
+                <option value="6">6 Shorts</option>
+                <option value="8">8 Shorts</option>
+                <option value="10">10 Shorts</option>
+                <option value="auto">Auto (Continuous)</option>
+              </select>
+            </div>
+            <div>
+              <label for="bufferWindowSelect">Rolling Buffer Window</label>
+              <select id="bufferWindowSelect">
+                <option value="5">5 Minutes</option>
+                <option value="10" selected>10 Minutes</option>
+                <option value="15">15 Minutes</option>
+                <option value="20">20 Minutes</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- Real-time Speech Transcription Feed (in right column beneath preferences) -->
+      <section class="panel transcript-panel">
+        <div class="section-head">
+          <div>
+            <span class="kicker">LIVE TRANSCRIPTION</span>
+            <h2>Speech Feed (WhisperX)</h2>
+          </div>
+          <span class="hint" id="transcriptionStatus">Listening...</span>
+        </div>
+        <div class="live-transcript-feed" id="transcriptFeed">
+          <div class="empty-feed">Speech will transcribe here in real-time as the stream plays...</div>
+        </div>
+      </section>
+    </div> <!-- end live-right -->
+  </div> <!-- end live-grid -->
+
+  <!-- Generated Clips Gallery (Full-Width Bottom Section) -->
+  <section class="panel clips-gallery-panel full-width-gallery">
+    <div class="section-head">
+      <div>
+        <span class="kicker">EXPORT READY</span>
+        <h2>Live Clips (<span id="clipsCount">0</span>)</h2>
+      </div>
+      <div class="gallery-head-actions">
+        <div class="shelf-scroll-controls">
+          <button type="button" class="shelf-nav-btn" id="btnScrollClipsLeft" title="Scroll clips left">‹</button>
+          <button type="button" class="shelf-nav-btn" id="btnScrollClipsRight" title="Scroll clips right">›</button>
+        </div>
+        <button class="primary rank-ai-btn" id="btnRankClipsAi" type="button" title="Use Ollama AI to evaluate viral hooks and rank the top 10 clips">
+          <span class="sparkle-icon">✨</span>
+          <span>RANK CLIPS AI</span>
+        </button>
+        <button class="ghost mini-btn" id="btnRefreshClips" type="button">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- Clips Batch Selection & Management Toolbar -->
+    <div class="clips-batch-toolbar" id="clipsBatchToolbar">
+      <div class="batch-left">
+        <label class="select-all-label">
+          <input type="checkbox" id="chkSelectAllClips">
+          <span>Select All</span>
+        </label>
+        <span class="selected-counter" id="selectedClipsCounter">0 selected</span>
+      </div>
+      <div class="batch-right">
+        <button type="button" class="danger-btn mini-btn" id="btnDeleteSelectedClips" disabled>
+          <span>🗑️ Delete Selected</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- AI Clip Ranking Live Process Console -->
+    <div class="ranking-console-panel" id="rankingConsolePanel" style="display:none;">
+      <div class="ranking-console-header">
+        <div class="terminal-dots">
+          <span class="t-dot t-red"></span>
+          <span class="t-dot t-yellow"></span>
+          <span class="t-dot t-green"></span>
+        </div>
+        <div class="console-title-wrap">
+          <span class="terminal-prompt-icon">&gt;_</span>
+          <b>AI VIRAL HOOK RANKING TERMINAL</b>
+          <span class="status-chip ranking-status-chip" id="rankingStatusBadge">Idle</span>
+        </div>
+        <button type="button" class="console-clear-btn" id="btnCloseRankingConsole">✕ Close</button>
+      </div>
+      <div class="ranking-console-body" id="rankingConsoleBody">
+        <div class="console-line system"><span class="log-time">[SYSTEM]</span> Ready. Click RANK CLIPS AI to score and order highlights.</div>
+      </div>
+    </div>
+
+    <!-- Sideways Horizontal Scrolling Live Clips Shelf -->
+    <div class="live-clips-grid" id="liveClipsGrid">
+      <div class="empty-clips" id="emptyClipsMsg">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="6" cy="6" r="3"/>
+            <circle cx="6" cy="18" r="3"/>
+            <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+            <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+            <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+          </svg>
+        </div>
+        <b>No clips generated yet</b>
+        <p>Clips will appear here automatically as highlights are detected, or click <b>Instant Clip</b> anytime.</p>
+      </div>
+    </div>
+
+    <!-- DEDICATED AI TOP RANKED HIGHLIGHTS BOX (Sideways Horizontal Carousel) -->
+    <div class="ranked-clips-section" id="rankedClipsSection" style="display:none;">
+      <div class="ranked-section-header">
+        <div>
+          <div class="ranked-header-badge">
+            <span class="trophy-icon">🏆</span>
+            <span>AI TOP RANKED HIGHLIGHTS (TOP 10)</span>
+          </div>
+          <p class="ranked-header-sub">Ollama AI predicted virality, hook retention score & dynamic ranking</p>
+        </div>
+        <div class="ranked-batch-actions">
+          <div class="shelf-scroll-controls">
+            <button type="button" class="shelf-nav-btn" id="btnScrollRankedLeft" title="Scroll ranked clips left">‹</button>
+            <button type="button" class="shelf-nav-btn" id="btnScrollRankedRight" title="Scroll ranked clips right">›</button>
+          </div>
+          <label class="select-all-label">
+            <input type="checkbox" id="chkSelectAllRanked">
+            <span>Select All Ranked</span>
+          </label>
+          <button type="button" class="danger-btn mini-btn" id="btnDeleteSelectedRanked" disabled>
+            <span>🗑️ Delete Selected</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="ranked-clips-grid" id="rankedClipsGrid">
+        <!-- Dynamically populated ranked clips cards -->
+      </div>
+    </div>
+  </section>
+
+<!-- Video Preview Modal -->
+<div class="modal-overlay" id="clipPreviewModal" style="display:none;">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="modalClipTitle">Short Preview</h3>
+      <button type="button" class="close-btn" id="closeClipModal">✕</button>
+    </div>
+    <div class="modal-video-container">
+      <video id="modalVideoPlayer" controls playsinline></video>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="secondary" id="modalPreviewEditBtn" style="padding: 10px 18px; font-weight: 600; cursor: pointer; border-radius: 8px;">Edit ✂️</button>
+      <a id="modalDownloadBtn" class="primary download-btn" download>Download 9:16 Short (MP4) ↓</a>
+      <a id="modalDownloadOrigBtn" class="ghost download-btn" download>Download 16:9 MP4 ↓</a>
+    </div>
+  </div>
+</div>
+
+<!-- Clip Quick Edit Modal -->
+<div class="modal-overlay" id="clipEditModal" style="display:none;">
+  <div class="modal-card clip-edit-modal-card">
+    <div class="modal-header">
+      <div class="modal-title-with-icon">
+        <span class="modal-warn-icon">✂️</span>
+        <h3 id="editModalHeader">Edit Short</h3>
+      </div>
+      <button type="button" class="close-btn" id="closeEditClipModal">✕</button>
+    </div>
+    <div class="modal-body-edit">
+      <div class="edit-modal-video-wrap">
+        <video id="editModalVideoPlayer" controls playsinline></video>
+      </div>
+      <div class="edit-modal-form">
+        <div class="edit-field">
+          <label for="editClipTitle">Title</label>
+          <input type="text" id="editClipTitle" class="edit-input" placeholder="Short Title">
+        </div>
+        <div class="edit-field">
+          <label for="editClipCategory">Category / Highlight Tag</label>
+          <select id="editClipCategory" class="edit-select">
+            <option value="High-energy moments">⚡ High-energy moments</option>
+            <option value="Viral Short">🔥 Viral Short</option>
+            <option value="Funny / Reaction">😂 Funny / Reaction</option>
+            <option value="Epic Gameplay">🎮 Epic Gameplay</option>
+            <option value="Top Highlight">⭐ Top Highlight</option>
+          </select>
+        </div>
+        <div class="edit-field">
+          <label for="editClipText">Overlay Text / Hook Caption</label>
+          <input type="text" id="editClipText" class="edit-input" placeholder="e.g. WAIT TILL THE END 😱">
+        </div>
+        <div class="edit-modal-actions-row">
+          <button type="button" class="primary" id="saveEditClipBtn">💾 Save Metadata</button>
+          <button type="button" class="ghost" id="openFullEditorBtn">🎨 Open in Full Editor</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Auto-Clip Storage Notice Modal -->
+<div class="modal-overlay" id="autoClipStorageModal" style="display:none;">
+  <div class="modal-card auto-clip-modal-card">
+    <div class="modal-header">
+      <div class="modal-title-with-icon">
+        <span class="modal-warn-icon">⚡</span>
+        <h3>Auto-Clipping &amp; Storage Notice</h3>
+      </div>
+      <button type="button" class="close-btn" id="closeAutoClipModal">✕</button>
+    </div>
+    <div class="modal-body-notice">
+      <p class="modal-notice-intro"><b>Auto-Clipping is active.</b> Clipify AI monitors the stream in the background, detects viral highlight moments, and automatically renders Shorts every <b><span id="modalIntervalLabel">5</span> minutes</b>.</p>
+      <div class="storage-warning-card">
+        <div class="storage-warning-icon">💾</div>
+        <div>
+          <b>Local Disk Storage Usage:</b>
+          <p>Continuous auto-clipping records rolling buffer chunks and encodes 1080x1920 vertical Shorts locally. Over long streams, this will consume disk space. You can change interval or delete clips at any time.</p>
+        </div>
+      </div>
+      <div class="modal-interval-picker">
+        <label for="modalAutoClipIntervalSelect">Auto-Clip Interval:</label>
+        <select id="modalAutoClipIntervalSelect">
+          <option value="2">Every 2 minutes (High Frequency)</option>
+          <option value="3">Every 3 minutes</option>
+          <option value="5" selected>Every 5 minutes (Recommended)</option>
+          <option value="10">Every 10 minutes</option>
+          <option value="15">Every 15 minutes (Storage Saver)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="primary" id="btnConfirmAutoClip">Got It, Enable Auto-Clipping</button>
+      <button type="button" class="ghost" id="btnCancelAutoClip">Turn Off Auto-Clipping</button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='live.js', v='20261119-1') }}"></script>
+<script src="{{ url_for('static', filename='tour.js', v='20261118-1') }}"></script>
+
+<script>
+window.isAndroidApp = true;
+window.addEventListener('DOMContentLoaded', () => {
+  console.log('[ClipifyAI Android] Web shell initialized.');
+  // Override file input to use Android native file picker
+  const fileInput = document.getElementById('videoInput');
+  if (fileInput) {
+    fileInput.addEventListener('click', (e) => {
+      if (window.AndroidBridge && window.AndroidBridge.pickVideo) {
+        e.preventDefault();
+        window.AndroidBridge.pickVideo();
+      }
+    });
+  }
+  // Connect GitHub star & follow buttons
+  document.querySelectorAll('a[href*="github.com"]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      if (window.AndroidBridge && window.AndroidBridge.openBrowser) {
+        e.preventDefault();
+        window.AndroidBridge.openBrowser(a.href);
+      }
+    });
+  });
+});
+
+function onAndroidVideoSelected(uri, filename, duration) {
+  console.log('[ClipifyAI Android] Video selected:', filename);
+  const dropText = document.querySelector('.drop-title');
+  if (dropText) dropText.textContent = 'Selected: ' + filename;
+  const badge = document.querySelector('.drop-badge');
+  if (badge) badge.textContent = 'Ready to Clip';
+  if (window.showToast) window.showToast('Imported ' + filename, 'success');
+}
+</script>
+</body>
+
+</html>

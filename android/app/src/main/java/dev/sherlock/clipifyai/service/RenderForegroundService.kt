@@ -59,7 +59,7 @@ class RenderForegroundService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Clipify AI Studio")
             .setContentText(message)
-            .setSmallIcon(R.drawable.ic_clipify_logo)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setProgress(100, progress, false)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

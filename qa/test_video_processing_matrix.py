@@ -146,3 +146,4 @@ def test_corrupted_file_error_handling(media_tools, tmp_path):
     # Must fail with non-zero exit code on corrupted file
     assert res.returncode != 0
     assert len(res.stderr) > 0
+
