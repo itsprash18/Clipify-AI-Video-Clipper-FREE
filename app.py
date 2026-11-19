@@ -401,7 +401,7 @@ def progress_for_line(line: str, current: int, current_stage: str = "") -> tuple
         if m:
             pct = float(m.group(1))
             scaled = 10 + int((pct / 100.0) * 19)
-            return max(current, min(29, scaled)), "Transcribing audio", text
+            return max(current, min(29, scaled)), "Transcribing audio", f"Transcribing audio ({pct:.0f}% completed)"
         return max(current, 10), "Transcribing audio", text
     if "transcribing video" in low or "starting transcription" in low:
         return max(current, 10), "Transcribing audio", text
@@ -1009,17 +1009,19 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
         "CLIPPEDAI_TEXT_X": str(branding.get("text_x", 50)),
         "CLIPPEDAI_TEXT_Y": str(branding.get("text_y", 75)),
         "CLIPPEDAI_SPLIT_SCREEN": "1" if split_screen else "0",
-        "TRANSCRIPTION_MODEL": os.getenv("TRANSCRIPTION_MODEL", "medium" if _is_cuda_available() else "base"),
+        "TRANSCRIPTION_MODEL": os.getenv("TRANSCRIPTION_MODEL", "medium" if _is_cuda_available() else "tiny"),
         "CLIPPEDAI_ALLOW_FALLBACK": "1",
         "HF_HUB_OFFLINE": os.getenv("HF_HUB_OFFLINE", "0"),
         "KMP_DUPLICATE_LIB_OK": "TRUE",
         "OMP_STACKSIZE": "64M",
         "KMP_STACKSIZE": "64M",
-        "OMP_NUM_THREADS": "4",
-        "MKL_NUM_THREADS": "4",
-        "OPENBLAS_NUM_THREADS": "4",
-        "VECLIB_MAXIMUM_THREADS": "4",
-        "NUMEXPR_NUM_THREADS": "4",
+        "WHISPERX_THREADS": os.getenv("WHISPERX_THREADS", str(max(4, os.cpu_count() or 4))),
+        "WHISPERX_LANGUAGE": os.getenv("WHISPERX_LANGUAGE", "en"),
+        "OMP_NUM_THREADS": str(max(4, os.cpu_count() or 4)),
+        "MKL_NUM_THREADS": str(max(4, os.cpu_count() or 4)),
+        "OPENBLAS_NUM_THREADS": str(max(4, os.cpu_count() or 4)),
+        "VECLIB_MAXIMUM_THREADS": str(max(4, os.cpu_count() or 4)),
+        "NUMEXPR_NUM_THREADS": str(max(4, os.cpu_count() or 4)),
         "PYTHONWARNINGS": "ignore::UserWarning:pyannote.audio.core.io,ignore:.*torchcodec.*",
     })
     diagnostic_log = job_dir / "diagnostics" / "qwen-decisions.jsonl"
@@ -1048,7 +1050,11 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
                     step_prog = min(28, 10 + int(elapsed / 25))
                     cur_prog = max(cur_prog, step_prog)
                     job["progress"] = cur_prog
-                    detail = f"Transcribing audio ({m}m {s}s elapsed · processing speech)"
+                    last_detail = job.get("detail", "")
+                    if "%" in last_detail:
+                        detail = f"{last_detail.split(' · ')[0]} · {m}m {s}s elapsed"
+                    else:
+                        detail = f"Transcribing audio ({m}m {s}s elapsed · processing speech)"
                 job["detail"] = detail
             emit(job_id, "progress", {
                 "progress": job.get("progress", 0),

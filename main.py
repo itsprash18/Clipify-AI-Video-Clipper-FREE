@@ -432,7 +432,7 @@ def _default_transcription_model() -> str:
             return "medium"
     except Exception:
         pass
-    return "base"
+    return "tiny"
 
 # --- Transcription ---
 TRANSCRIPTION_MODEL = _default_transcription_model()
@@ -1057,7 +1057,28 @@ def transcribe_with_progress(audio_file_path, transcriber):
         whisperx.align = safe_align
         try:
             is_cpu_device = getattr(transcriber, "_device", "cpu") == "cpu"
-            t_batch_size = 4 if is_cpu_device else 16
+            t_batch_size = 8 if is_cpu_device else 16
+
+            # Hook transcriber._model.transcribe for live progress updates and fast language inference
+            if hasattr(transcriber, "_model") and hasattr(transcriber._model, "transcribe"):
+                orig_model_transcribe = transcriber._model.transcribe
+
+                def live_progress_transcribe(audio_in, *t_args, **t_kwargs):
+                    def _on_whisper_progress(pct: float):
+                        if duration > 0:
+                            curr_s = (pct / 100.0) * duration
+                            print(f"Transcription progress: {pct:.1f}% ({curr_s:.1f}s / {duration:.1f}s)", flush=True)
+                        else:
+                            print(f"Transcription progress: {pct:.1f}%", flush=True)
+
+                    t_kwargs["progress_callback"] = _on_whisper_progress
+                    t_kwargs["print_progress"] = False
+                    if not t_kwargs.get("language"):
+                        t_kwargs["language"] = os.getenv("WHISPERX_LANGUAGE", "en")
+                    return orig_model_transcribe(audio_in, *t_args, **t_kwargs)
+
+                transcriber._model.transcribe = live_progress_transcribe
+
             transcription = transcriber.transcribe(
                 audio_file_path=audio_file_path,
                 iso6391_lang_code="en",
@@ -1269,7 +1290,9 @@ def create_transcriber(model_size: str) -> "Transcriber":
         kwargs["compute_type"] = os.getenv("WHISPERX_COMPUTE_TYPE", compute_params["compute_type"])
         if kwargs["device"] == "cpu":
             cpu_count = os.cpu_count() or 4
-            kwargs.setdefault("threads", min(4, max(2, cpu_count - 2)))
+            kwargs["threads"] = int(os.getenv("WHISPERX_THREADS", str(max(4, cpu_count))))
+        if "language" not in kwargs or kwargs["language"] is None:
+            kwargs["language"] = os.getenv("WHISPERX_LANGUAGE", "en")
 
         # Check local HuggingFace cache to prevent ProtocolError/ConnectionResetError (10054)
         hf_cache = Path.home() / ".cache" / "huggingface" / "hub"

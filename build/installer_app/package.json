@@ -1,7 +1,7 @@
 {
   "name": "clipify-ai-setup",
   "productName": "Clipify AI Setup",
-  "version": "3.7.0",
+  "version": "3.7.7",
   "description": "Clipify AI installer - your local AI-powered clipping workspace",
   "author": "sherlock-dev-ai",
   "license": "MIT",
@@ -32,17 +32,17 @@
       "build/icon.ico",
       "package.json"
     ],
-  "extraResources": [
-    {
-      "from": "resources/catalog.json",
-      "to": "catalog.json"
-    },
-    {
-      "from": "build/icon.ico",
-      "to": "icon.ico"
-    },
-    {
-      "from": "resources/payload",
+    "extraResources": [
+      {
+        "from": "resources/catalog.json",
+        "to": "catalog.json"
+      },
+      {
+        "from": "build/icon.ico",
+        "to": "icon.ico"
+      },
+      {
+        "from": "resources/payload",
         "to": "payload",
         "filter": [
           "**/*",
@@ -60,7 +60,7 @@
     ],
     "win": {
       "icon": "build/icon.ico",
-      "artifactName": "Clipify AI Setup.exe",
+      "artifactName": "Clipify.AI.Setup.3.7.7.exe",
       "target": [
         {
           "target": "nsis",
@@ -71,7 +71,7 @@
       ]
     },
     "nsis": {
-      "artifactName": "Clipify AI Setup.exe",
+      "artifactName": "Clipify.AI.Setup.3.7.7.exe",
       "unicode": true,
       "oneClick": true,
       "perMachine": false,

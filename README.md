@@ -56,7 +56,7 @@ Everything runs on your computer—preserving **100% privacy**, with **zero mont
 #### Verify SHA-256 integrity:
 ```powershell
 Get-FileHash ".\Clipify.AI.Setup.3.7.7.exe" -Algorithm SHA256
-# SHA-256: 957d3c77b2a9bb2e19e3a41e98294a381541d5e95fee376dddf61faaba018f8a
+# SHA-256: 1984252569e1333671a48626cf408eeb99fbbd904daff524a99a570dfd77cf65
 
 Get-FileHash ".\Clipify AI (beta).apk" -Algorithm SHA256
 # SHA-256: e1580152557b84b03f9777fcaf5403400414a671e9adcf66bb9c48f0fb9e21bb
