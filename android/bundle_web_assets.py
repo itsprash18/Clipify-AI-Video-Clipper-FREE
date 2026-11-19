@@ -446,6 +446,18 @@ const originalFetch = window.fetch;
 window.fetch = async function(url, options = {}) {
   const urlStr = String(url);
 
+  // Available models for dropdowns
+  if (urlStr.includes('/api/models')) {
+    return new Response(JSON.stringify({
+      ok: true,
+      models: ['Built-in Heuristic AI (Mobile)', 'Llama 3.2 Mobile (1B)', 'Qwen 2.5 Coder (1.5B)', 'Faster-Whisper Mobile'],
+      active_model: 'Built-in Heuristic AI (Mobile)'
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
   // Narrate Voices
   if (urlStr.includes('/api/narrate/voices')) {
     return new Response(JSON.stringify({ ok: true, voices: window.ANDROID_OFFLINE_VOICES }), {
@@ -612,8 +624,8 @@ for t in ["index.html", "narrate.html", "live.html"]:
         rendered = rendered.replace('<meta name="viewport" content="width=device-width,initial-scale=1">', '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">')
         rendered = rendered.replace('<meta name="viewport" content="width=device-width, initial-scale=1">', '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">')
 
-    rendered = rendered.replace("</head>", f"{mobile_css}\n</head>")
-    rendered = rendered.replace("</body>", bridge_script)
+    # Inject mobile CSS and bridge script into <head> so fetch interception is active BEFORE any scripts run
+    rendered = rendered.replace("</head>", f"{mobile_css}\n{bridge_script}\n</head>")
 
     dest_file = os.path.join(dest_www, t)
     with open(dest_file, "w", encoding="utf-8") as f:

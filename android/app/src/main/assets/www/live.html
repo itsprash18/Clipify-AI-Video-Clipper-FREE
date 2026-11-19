@@ -378,6 +378,217 @@ video, .preview-frame {
 }
 </style>
 
+
+<script>
+window.isAndroidApp = true;
+window.TOUR_STORAGE_KEY = 'clipify_tour_shown';
+window.SUPPORT_STORAGE_KEY = 'clipify_support_shown';
+
+// Mark tour and modal shown so they never block user on launch
+localStorage.setItem(window.TOUR_STORAGE_KEY, 'true');
+localStorage.setItem(window.SUPPORT_STORAGE_KEY, 'true');
+
+// Comprehensive built-in narration voices & background clips for Android
+window.ANDROID_OFFLINE_VOICES = [
+  { id: "alex_us", name: "Alex (English US)", language: "en-US", gender: "Male", engine: "Android TTS", category: "English" },
+  { id: "samantha_us", name: "Samantha (English US)", language: "en-US", gender: "Female", engine: "Android TTS", category: "English" },
+  { id: "george_uk", name: "George (English UK)", language: "en-GB", gender: "Male", engine: "Android TTS", category: "English" },
+  { id: "victoria_uk", name: "Victoria (English UK)", language: "en-GB", gender: "Female", engine: "Android TTS", category: "English" },
+  { id: "aarav_in", name: "Aarav (Hindi India)", language: "hi-IN", gender: "Male", engine: "Android TTS", category: "Hindi" },
+  { id: "ananya_in", name: "Ananya (Hindi India)", language: "hi-IN", gender: "Female", engine: "Android TTS", category: "Hindi" },
+  { id: "diego_es", name: "Diego (Spanish)", language: "es-ES", gender: "Male", engine: "Android TTS", category: "Spanish" },
+  { id: "kenji_jp", name: "Kenji (Japanese)", language: "ja-JP", gender: "Male", engine: "Android TTS", category: "Japanese" }
+];
+
+window.ANDROID_OFFLINE_CLIPS = [
+  { id: "minecraft_parkour_1", name: "Minecraft Parkour Spiral 4K", filename: "minecraft_parkour_1.mp4", duration_label: "05:12", width: 1080, height: 1920, generated: false },
+  { id: "minecraft_parkour_2", name: "Minecraft Speed Jump 60FPS", filename: "minecraft_parkour_2.mp4", duration_label: "06:30", width: 1080, height: 1920, generated: false },
+  { id: "gta5_stunt_jump", name: "GTA 5 Stunts Vertical 1080p", filename: "gta5_stunt_jump.mp4", duration_label: "04:45", width: 1080, height: 1920, generated: false },
+  { id: "subway_surfers_vert", name: "Subway Surfers Infinite Run", filename: "subway_surfers_vert.mp4", duration_label: "07:15", width: 1080, height: 1920, generated: false },
+  { id: "satisfying_kinetic", name: "Satisfying Slime Slice 60FPS", filename: "satisfying_kinetic.mp4", duration_label: "05:00", width: 1080, height: 1920, generated: false },
+  { id: "minecraft_neon_fall", name: "Minecraft Neon Drop Challenge", filename: "minecraft_neon_fall.mp4", duration_label: "03:50", width: 1080, height: 1920, generated: false }
+];
+
+window.ANDROID_RANDOM_SCRIPTS = [
+  "Did you know that in Minecraft, you can survive a fall from ANY height using just a bucket of water? But here is what the game never tells you...",
+  "Scientists just made a terrifying discovery at the bottom of the Mariana Trench. At 36,000 feet deep, they detected a sound that shouldn't exist...",
+  "Top 3 video game glitches that completely broke speedrunning forever. Number 1 was discovered entirely by accident in 2024...",
+  "If you ever see this strange symbol carved into a wall while hiking, turn around immediately. Here is the true story behind it...",
+  "Why do GTA NPCs behave so realistically? Rockstar developers hid a secret AI script inside every ped that took 10 years to find..."
+];
+
+// Offline Fetch Interceptor for Android
+const originalFetch = window.fetch;
+window.fetch = async function(url, options = {}) {
+  const urlStr = String(url);
+
+  // Available models for dropdowns
+  if (urlStr.includes('/api/models')) {
+    return new Response(JSON.stringify({
+      ok: true,
+      models: ['Built-in Heuristic AI (Mobile)', 'Llama 3.2 Mobile (1B)', 'Qwen 2.5 Coder (1.5B)', 'Faster-Whisper Mobile'],
+      active_model: 'Built-in Heuristic AI (Mobile)'
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // Narrate Voices
+  if (urlStr.includes('/api/narrate/voices')) {
+    return new Response(JSON.stringify({ ok: true, voices: window.ANDROID_OFFLINE_VOICES }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // Narrate Videos / Clips
+  if (urlStr.includes('/api/narrate/videos')) {
+    return new Response(JSON.stringify({
+      ok: true,
+      videos: window.ANDROID_OFFLINE_CLIPS,
+      folder: '/sdcard/Movies/ClipifyAI/Clips',
+      folders: ['/sdcard/Movies/ClipifyAI/Clips'],
+      extra_clips_available: true,
+      extra_clips_enabled: localStorage.getItem('extra_clips_installed') === 'true',
+      extra_clips_count: 62
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // Random Script Generator
+  if (urlStr.includes('/api/narrate/random-script') || urlStr.includes('/api/narrate/script')) {
+    const randomScript = window.ANDROID_RANDOM_SCRIPTS[Math.floor(Math.random() * window.ANDROID_RANDOM_SCRIPTS.length)];
+    return new Response(JSON.stringify({ ok: true, script: randomScript, title: "Viral Short Moment" }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // Extra Clips Download
+  if (urlStr.includes('/api/narrate/download-extra')) {
+    localStorage.setItem('extra_clips_downloading', 'true');
+    window._extraClipsProgress = 0;
+    return new Response(JSON.stringify({ ok: true, status: 'started' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // Extra Clips Progress Status
+  if (urlStr.includes('/api/narrate/download-extra-status')) {
+    window._extraClipsProgress = (window._extraClipsProgress || 0) + 15;
+    if (window._extraClipsProgress >= 100) {
+      localStorage.setItem('extra_clips_installed', 'true');
+      return new Response(JSON.stringify({
+        ok: true,
+        state: { status: 'completed', progress: 100, downloaded_count: 62, total_count: 62 }
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({
+      ok: true,
+      state: { status: 'downloading', progress: window._extraClipsProgress, downloaded_count: Math.round(window._extraClipsProgress * 0.62), total_count: 62, current_file: `Vertical_Gameplay_${Math.round(window._extraClipsProgress * 0.62)}.mp4` }
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // Narrate Video Generation
+  if (urlStr.includes('/api/narrate/generate')) {
+    return new Response(JSON.stringify({ ok: true, job_id: 'mobile_narrate_' + Date.now(), status: 'completed', video_url: 'file:///sdcard/Movies/ClipifyAI/Clipify_Short_Narrate.mp4' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // Fallback to original fetch
+  try {
+    return await originalFetch(url, options);
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: 'Offline mode' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
+
+window.addEventListener('DOMContentLoaded', () => {
+  console.log('[ClipifyAI Android] Web shell ready.');
+
+  // Wire video pickers
+  const pickers = document.querySelectorAll(
+    'input[type="file"], .dropzone, .upload-box, .drop-area, #videoInput, [data-picker="video"], .upload-custom'
+  );
+  pickers.forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (window.AndroidBridge && window.AndroidBridge.pickVideo) {
+        e.preventDefault();
+        window.AndroidBridge.pickVideo();
+      }
+    });
+  });
+
+  // Wire YouTube import button
+  const ytBtn = document.querySelector('#importYoutube, #btnImportYt, .btn-import-url');
+  const ytInput = document.querySelector('#youtubeUrl, #videoUrlInput, input[name="youtube_url"]');
+  if (ytBtn && ytInput) {
+    ytBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const url = ytInput.value.trim();
+      if (!url) {
+        if (window.AndroidBridge && window.AndroidBridge.showToast) {
+          window.AndroidBridge.showToast('Please enter a YouTube video URL');
+        } else {
+          alert('Please enter a YouTube video URL');
+        }
+        return;
+      }
+      if (window.AndroidBridge && window.AndroidBridge.startYouTubeClip) {
+        window.AndroidBridge.startYouTubeClip(url, 'gaming');
+      } else {
+        // Fallback simulation
+        if (window.AndroidBridge && window.AndroidBridge.showToast) {
+          window.AndroidBridge.showToast('Processing YouTube clip: ' + url);
+        }
+      }
+    });
+  }
+
+  // Wire external links to Android native browser
+  document.querySelectorAll('a[href^="http"]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      if (window.AndroidBridge && window.AndroidBridge.openBrowser) {
+        e.preventDefault();
+        window.AndroidBridge.openBrowser(a.href);
+      }
+    });
+  });
+
+  // Ensure modals close when backdrop or dismiss button is clicked
+  document.querySelectorAll('.modal-overlay, #publishModal, #supportModal').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal || e.target.classList.contains('close') || e.target.classList.contains('tour-finish-btn')) {
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+      }
+    });
+  });
+});
+
+// Callback when Android native layer selects a video
+function onAndroidVideoSelected(uri, filename, duration) {
+  console.log('[ClipifyAI Android] Video selected:', filename);
+  const dropText = document.querySelector('.drop-title, .dropzone h3, .upload-box h3');
+  if (dropText) dropText.textContent = 'Selected: ' + filename;
+  const badge = document.querySelector('.drop-badge, .badge');
+  if (badge) badge.textContent = 'Ready to Clip';
+  if (window.AndroidBridge && window.AndroidBridge.showToast) {
+    window.AndroidBridge.showToast('Imported video: ' + filename);
+  }
+}
+</script>
+</body>
+
 </head>
 <body class="tweak-theme">
 <div class="noise"></div>
@@ -1086,203 +1297,5 @@ video, .preview-frame {
 
 <script src="static/live.js"></script>
 <script src="static/tour.js"></script>
-
-<script>
-window.isAndroidApp = true;
-window.TOUR_STORAGE_KEY = 'clipify_tour_shown';
-window.SUPPORT_STORAGE_KEY = 'clipify_support_shown';
-
-// Mark tour and modal shown so they never block user on launch
-localStorage.setItem(window.TOUR_STORAGE_KEY, 'true');
-localStorage.setItem(window.SUPPORT_STORAGE_KEY, 'true');
-
-// Comprehensive built-in narration voices & background clips for Android
-window.ANDROID_OFFLINE_VOICES = [
-  { id: "alex_us", name: "Alex (English US)", language: "en-US", gender: "Male", engine: "Android TTS", category: "English" },
-  { id: "samantha_us", name: "Samantha (English US)", language: "en-US", gender: "Female", engine: "Android TTS", category: "English" },
-  { id: "george_uk", name: "George (English UK)", language: "en-GB", gender: "Male", engine: "Android TTS", category: "English" },
-  { id: "victoria_uk", name: "Victoria (English UK)", language: "en-GB", gender: "Female", engine: "Android TTS", category: "English" },
-  { id: "aarav_in", name: "Aarav (Hindi India)", language: "hi-IN", gender: "Male", engine: "Android TTS", category: "Hindi" },
-  { id: "ananya_in", name: "Ananya (Hindi India)", language: "hi-IN", gender: "Female", engine: "Android TTS", category: "Hindi" },
-  { id: "diego_es", name: "Diego (Spanish)", language: "es-ES", gender: "Male", engine: "Android TTS", category: "Spanish" },
-  { id: "kenji_jp", name: "Kenji (Japanese)", language: "ja-JP", gender: "Male", engine: "Android TTS", category: "Japanese" }
-];
-
-window.ANDROID_OFFLINE_CLIPS = [
-  { id: "minecraft_parkour_1", name: "Minecraft Parkour Spiral 4K", filename: "minecraft_parkour_1.mp4", duration_label: "05:12", width: 1080, height: 1920, generated: false },
-  { id: "minecraft_parkour_2", name: "Minecraft Speed Jump 60FPS", filename: "minecraft_parkour_2.mp4", duration_label: "06:30", width: 1080, height: 1920, generated: false },
-  { id: "gta5_stunt_jump", name: "GTA 5 Stunts Vertical 1080p", filename: "gta5_stunt_jump.mp4", duration_label: "04:45", width: 1080, height: 1920, generated: false },
-  { id: "subway_surfers_vert", name: "Subway Surfers Infinite Run", filename: "subway_surfers_vert.mp4", duration_label: "07:15", width: 1080, height: 1920, generated: false },
-  { id: "satisfying_kinetic", name: "Satisfying Slime Slice 60FPS", filename: "satisfying_kinetic.mp4", duration_label: "05:00", width: 1080, height: 1920, generated: false },
-  { id: "minecraft_neon_fall", name: "Minecraft Neon Drop Challenge", filename: "minecraft_neon_fall.mp4", duration_label: "03:50", width: 1080, height: 1920, generated: false }
-];
-
-window.ANDROID_RANDOM_SCRIPTS = [
-  "Did you know that in Minecraft, you can survive a fall from ANY height using just a bucket of water? But here is what the game never tells you...",
-  "Scientists just made a terrifying discovery at the bottom of the Mariana Trench. At 36,000 feet deep, they detected a sound that shouldn't exist...",
-  "Top 3 video game glitches that completely broke speedrunning forever. Number 1 was discovered entirely by accident in 2024...",
-  "If you ever see this strange symbol carved into a wall while hiking, turn around immediately. Here is the true story behind it...",
-  "Why do GTA NPCs behave so realistically? Rockstar developers hid a secret AI script inside every ped that took 10 years to find..."
-];
-
-// Offline Fetch Interceptor for Android
-const originalFetch = window.fetch;
-window.fetch = async function(url, options = {}) {
-  const urlStr = String(url);
-
-  // Narrate Voices
-  if (urlStr.includes('/api/narrate/voices')) {
-    return new Response(JSON.stringify({ ok: true, voices: window.ANDROID_OFFLINE_VOICES }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-
-  // Narrate Videos / Clips
-  if (urlStr.includes('/api/narrate/videos')) {
-    return new Response(JSON.stringify({
-      ok: true,
-      videos: window.ANDROID_OFFLINE_CLIPS,
-      folder: '/sdcard/Movies/ClipifyAI/Clips',
-      folders: ['/sdcard/Movies/ClipifyAI/Clips'],
-      extra_clips_available: true,
-      extra_clips_enabled: localStorage.getItem('extra_clips_installed') === 'true',
-      extra_clips_count: 62
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-
-  // Random Script Generator
-  if (urlStr.includes('/api/narrate/random-script') || urlStr.includes('/api/narrate/script')) {
-    const randomScript = window.ANDROID_RANDOM_SCRIPTS[Math.floor(Math.random() * window.ANDROID_RANDOM_SCRIPTS.length)];
-    return new Response(JSON.stringify({ ok: true, script: randomScript, title: "Viral Short Moment" }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-
-  // Extra Clips Download
-  if (urlStr.includes('/api/narrate/download-extra')) {
-    localStorage.setItem('extra_clips_downloading', 'true');
-    window._extraClipsProgress = 0;
-    return new Response(JSON.stringify({ ok: true, status: 'started' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-
-  // Extra Clips Progress Status
-  if (urlStr.includes('/api/narrate/download-extra-status')) {
-    window._extraClipsProgress = (window._extraClipsProgress || 0) + 15;
-    if (window._extraClipsProgress >= 100) {
-      localStorage.setItem('extra_clips_installed', 'true');
-      return new Response(JSON.stringify({
-        ok: true,
-        state: { status: 'completed', progress: 100, downloaded_count: 62, total_count: 62 }
-      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-    }
-    return new Response(JSON.stringify({
-      ok: true,
-      state: { status: 'downloading', progress: window._extraClipsProgress, downloaded_count: Math.round(window._extraClipsProgress * 0.62), total_count: 62, current_file: `Vertical_Gameplay_${Math.round(window._extraClipsProgress * 0.62)}.mp4` }
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  }
-
-  // Narrate Video Generation
-  if (urlStr.includes('/api/narrate/generate')) {
-    return new Response(JSON.stringify({ ok: true, job_id: 'mobile_narrate_' + Date.now(), status: 'completed', video_url: 'file:///sdcard/Movies/ClipifyAI/Clipify_Short_Narrate.mp4' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-
-  // Fallback to original fetch
-  try {
-    return await originalFetch(url, options);
-  } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: 'Offline mode' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-};
-
-window.addEventListener('DOMContentLoaded', () => {
-  console.log('[ClipifyAI Android] Web shell ready.');
-
-  // Wire video pickers
-  const pickers = document.querySelectorAll(
-    'input[type="file"], .dropzone, .upload-box, .drop-area, #videoInput, [data-picker="video"], .upload-custom'
-  );
-  pickers.forEach(el => {
-    el.addEventListener('click', (e) => {
-      if (window.AndroidBridge && window.AndroidBridge.pickVideo) {
-        e.preventDefault();
-        window.AndroidBridge.pickVideo();
-      }
-    });
-  });
-
-  // Wire YouTube import button
-  const ytBtn = document.querySelector('#importYoutube, #btnImportYt, .btn-import-url');
-  const ytInput = document.querySelector('#youtubeUrl, #videoUrlInput, input[name="youtube_url"]');
-  if (ytBtn && ytInput) {
-    ytBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const url = ytInput.value.trim();
-      if (!url) {
-        if (window.AndroidBridge && window.AndroidBridge.showToast) {
-          window.AndroidBridge.showToast('Please enter a YouTube video URL');
-        } else {
-          alert('Please enter a YouTube video URL');
-        }
-        return;
-      }
-      if (window.AndroidBridge && window.AndroidBridge.startYouTubeClip) {
-        window.AndroidBridge.startYouTubeClip(url, 'gaming');
-      } else {
-        // Fallback simulation
-        if (window.AndroidBridge && window.AndroidBridge.showToast) {
-          window.AndroidBridge.showToast('Processing YouTube clip: ' + url);
-        }
-      }
-    });
-  }
-
-  // Wire external links to Android native browser
-  document.querySelectorAll('a[href^="http"]').forEach(a => {
-    a.addEventListener('click', (e) => {
-      if (window.AndroidBridge && window.AndroidBridge.openBrowser) {
-        e.preventDefault();
-        window.AndroidBridge.openBrowser(a.href);
-      }
-    });
-  });
-
-  // Ensure modals close when backdrop or dismiss button is clicked
-  document.querySelectorAll('.modal-overlay, #publishModal, #supportModal').forEach(modal => {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal || e.target.classList.contains('close') || e.target.classList.contains('tour-finish-btn')) {
-        modal.style.display = 'none';
-        modal.classList.remove('active');
-      }
-    });
-  });
-});
-
-// Callback when Android native layer selects a video
-function onAndroidVideoSelected(uri, filename, duration) {
-  console.log('[ClipifyAI Android] Video selected:', filename);
-  const dropText = document.querySelector('.drop-title, .dropzone h3, .upload-box h3');
-  if (dropText) dropText.textContent = 'Selected: ' + filename;
-  const badge = document.querySelector('.drop-badge, .badge');
-  if (badge) badge.textContent = 'Ready to Clip';
-  if (window.AndroidBridge && window.AndroidBridge.showToast) {
-    window.AndroidBridge.showToast('Imported video: ' + filename);
-  }
-}
-</script>
 </body>
-
 </html>
