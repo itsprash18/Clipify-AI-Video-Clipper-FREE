@@ -50,13 +50,13 @@ Everything runs on your computer—preserving **100% privacy**, with **zero mont
 
 | Package | Platform | Version | Size | Download |
 | :--- | :---: | :---: | :---: | :--- |
-| **`Clipify.AI.Setup.3.7.7.exe`** | Windows 10/11 (64-bit) | `v3.7.7` | **331.6 MB** | [**Download Windows Installer (x64)**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.7.7/Clipify.AI.Setup.3.7.7.exe) |
-| **`Clipify AI (beta).apk`** | Android 8.0+ (ARM64/x86) | `v3.7.7` | **13.8 MB** | [**Download Android APK (beta)**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.7.7/Clipify.AI.%28beta%29.apk) |
+| **`Clipify.AI.Setup.3.7.7.exe`** | Windows 10/11 (64-bit) | `v3.7.7` | **331.4 MB** | [**Download Windows Installer (x64)**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.7.7/Clipify.AI.Setup.3.7.7.exe) |
+| **`Clipify AI (beta).apk`** | Android 8.0+ (ARM64/x86) | `v3.7.7` | **13.8 MB** | [**Download Android APK (beta)**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.7.7/Clipify.AI.beta.apk) |
 
 #### Verify SHA-256 integrity:
 ```powershell
 Get-FileHash ".\Clipify.AI.Setup.3.7.7.exe" -Algorithm SHA256
-# SHA-256: 8c6663c988430e7db7bc045493200c69022fcb0041fc7b1e37dbed86c4331d7e
+# SHA-256: 957d3c77b2a9bb2e19e3a41e98294a381541d5e95fee376dddf61faaba018f8a
 
 Get-FileHash ".\Clipify AI (beta).apk" -Algorithm SHA256
 # SHA-256: e1580152557b84b03f9777fcaf5403400414a671e9adcf66bb9c48f0fb9e21bb
