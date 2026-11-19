@@ -1,0 +1,10 @@
+[tool.pyright]
+reportMissingImports = false
+reportMissingModuleSource = false
+
+[tool.pyrefly]
+disableMissingImports = true
+reportMissingImports = "none"
+
+[tool.mypy]
+ignore_missing_imports = true

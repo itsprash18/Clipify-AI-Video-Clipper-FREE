@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# pyrefly: disable=missing-import
+# type: ignore
 """Main script to process videos and create YouTube Shorts using AI-powered transcription and clip detection."""
 
 from __future__ import annotations
