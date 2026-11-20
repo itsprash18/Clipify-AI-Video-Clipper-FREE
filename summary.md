@@ -4,7 +4,7 @@
 > **Repository**: `sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE`  
 > **Release Tag**: [`v4.0.5`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.5)  
 > **Production Installers**:
-> - `installer/Clipify.AI.Setup.4.0.5.exe` (Version 4.0.5 — Premium Captions, Watermark & Beta Testing)
+> - `installer/Clipify.AI.Setup.4.0.5.exe` (Version 4.0.5 — SHA-256: `3F13235D6DF92034371A503D0E304F4753073A50C6E87ECFB9D75E2D5A6D73B0`)
 > - `installer/Clipify.AI.Setup.4.0.4.exe` (Preserved intact — SHA-256: `7A652BC40AB00F22C21F21238EDA832E12586BC86D7AFF91AFDCD18D126FEAC4`)
 
 ---
@@ -146,6 +146,13 @@ flowchart TD
 
 ### 8. Installer Maximize Button
 - Added `btn-maximize` (`□`) between minimize and close in the custom titlebar, connected via Electron IPC to toggle `mainWindow.maximize()` and `mainWindow.unmaximize()`.
+
+### 9. Pip Runtime Library Download False "No Output" Warnings
+- **Root Cause**: During machine learning wheel installation (PyTorch, WhisperX, Mediapipe, Kokoro), pip downloads multi-hundred-megabyte packages into its cache prior to writing anything into `site-packages`. When stdout is piped to Node, pip suppresses interactive line-by-line progress updates. A rigid 90-second heartbeat check emitted alarming yellow `WARN` notes ("No pip output or staged package-file changes for 1m.. 3m.."), making users assume installation had frozen.
+- **Fix**:
+  1. Injected `PYTHONUNBUFFERED=1` into the child process environment to guarantee zero stream buffering.
+  2. Added `--no-input` and `--timeout 60` to pip invocation commands to prevent indefinitely stalled sockets.
+  3. Replaced false `WARN` alerts with reassuring `INFO` status updates (*"Downloading & verifying AI runtime packages — download in progress..."*) while child processes are active, and widened the quiet threshold to 3 minutes.
 
 ---
 
