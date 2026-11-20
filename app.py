@@ -3157,6 +3157,61 @@ def get_ollama_download_status():
     return jsonify({"ok": True, **_ollama_download_state})
 
 
+@app.post("/api/models/ollama/delete")
+def delete_ollama_model():
+    payload = request.get_json(silent=True) or {}
+    model_name = payload.get("model", "").strip()
+    if not model_name:
+        return jsonify({"ok": False, "error": "Model name is required"}), 400
+    exe = shutil.which("ollama") or _find_ollama_exe()
+    if not exe:
+        return jsonify({"ok": False, "error": "Ollama executable not found on PC."}), 404
+    try:
+        res = _run_hidden([exe, "rm", model_name], capture_output=True, text=True, timeout=30, check=False)
+        if res.returncode == 0:
+            return jsonify({"ok": True, "message": f"Successfully deleted model '{model_name}'."})
+        else:
+            return jsonify({"ok": False, "error": res.stderr or res.stdout or f"Could not remove {model_name}"}), 500
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.get("/api/models/ollama/details")
+def ollama_models_details():
+    """Returns all locally installed Ollama models with their exact sizes and IDs."""
+    exe = shutil.which("ollama") or _find_ollama_exe()
+    installed_list = []
+    if exe:
+        try:
+            res = _run_hidden([exe, "list"], capture_output=True, text=True, timeout=10, check=False)
+            if res.returncode == 0 and res.stdout:
+                lines = res.stdout.strip().splitlines()
+                if len(lines) > 1:
+                    for line in lines[1:]:
+                        parts = re.split(r"\s{2,}", line.strip())
+                        if parts and parts[0]:
+                            name = parts[0].strip()
+                            size = parts[2].strip() if len(parts) > 2 else ""
+                            modified = parts[3].strip() if len(parts) > 3 else ""
+                            installed_list.append({"name": name, "size": size, "modified": modified})
+        except Exception:
+            pass
+    if not installed_list:
+        models_raw, _ = _discover_ollama_models()
+        for m in models_raw:
+            installed_list.append({"name": m, "size": "", "modified": ""})
+
+    cfg = _load_ai_config()
+    default_model = cfg.get("ollama_model") or "qwen2.5:3b"
+
+    return jsonify({
+        "ok": True,
+        "models": installed_list,
+        "default": default_model,
+        "count": len(installed_list),
+    })
+
+
 @app.get("/api/fonts")
 def fonts():
     # Curated names are intentionally limited to fonts that ASS/DirectWrite can resolve on normal Windows installs,

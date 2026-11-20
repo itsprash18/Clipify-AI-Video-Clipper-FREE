@@ -1045,6 +1045,10 @@ async function loadOptions(){
 
       modelSelect.value=state.model;
 
+      if (window.refreshModelHub) {
+        window.refreshModelHub();
+      }
+
       create.disabled=!state.source;
 
       $('#healthDot')?.classList.add('online');
