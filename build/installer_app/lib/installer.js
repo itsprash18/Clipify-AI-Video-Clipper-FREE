@@ -518,9 +518,43 @@ class Installer extends EventEmitter {
     heartbeatMs = 0, watchDirectory = '', quietWarningMs = 0, onHeartbeat,
   } = {}) {
     return new Promise((resolve) => {
-      const child = spawn(command, args, {
+      const systemRoot = process.env.SystemRoot || process.env.WINDIR || 'C:\\Windows';
+      let execCmd = command;
+      if (process.platform === 'win32' && !path.isAbsolute(command)) {
+        const cmdLower = command.toLowerCase();
+        if (cmdLower === 'powershell.exe' || cmdLower === 'powershell') {
+          const fullPs = path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+          if (fs.existsSync(fullPs)) execCmd = fullPs;
+        } else if (cmdLower === 'tar.exe' || cmdLower === 'tar') {
+          const fullTar = path.join(systemRoot, 'System32', 'tar.exe');
+          if (fs.existsSync(fullTar)) execCmd = fullTar;
+        } else if (cmdLower === 'cmd.exe' || cmdLower === 'cmd') {
+          const fullCmd = path.join(systemRoot, 'System32', 'cmd.exe');
+          if (fs.existsSync(fullCmd)) execCmd = fullCmd;
+        }
+      }
+
+      // Ensure PATH contains essential Windows system directories to prevent ENOENT
+      const systemDirs = [
+        path.join(systemRoot, 'System32'),
+        systemRoot,
+        path.join(systemRoot, 'System32', 'Wbem'),
+        path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0'),
+      ];
+      const mergedEnv = { ...process.env, ...(env || {}) };
+      let currentPath = mergedEnv.PATH || '';
+      for (const sDir of systemDirs) {
+        if (!currentPath.toLowerCase().includes(sDir.toLowerCase()) && fs.existsSync(sDir)) {
+          currentPath = `${sDir};${currentPath}`;
+        }
+      }
+      mergedEnv.PATH = currentPath;
+      mergedEnv.SystemRoot = systemRoot;
+      mergedEnv.WINDIR = systemRoot;
+
+      const child = spawn(execCmd, args, {
         cwd,
-        env: { ...process.env, ...(env || {}) },
+        env: mergedEnv,
         windowsHide: true,
         shell: false,
       });
@@ -880,13 +914,25 @@ class Installer extends EventEmitter {
       this.emitProgress();
       const quotePs = (value) => String(value).replace(/'/g, "''");
       const expandCommand = `$ErrorActionPreference='Stop'; Expand-Archive -LiteralPath '${quotePs(archive)}' -DestinationPath '${quotePs(unpackDir)}' -Force`;
-      const unpackResult = await this.runProcess(
+      let unpackResult = await this.runProcess(
         'powershell.exe',
         ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', expandCommand],
         { timeoutMs: 15 * 60 * 1000 }
       );
-      const packageRoot = path.join(unpackDir, 'tools');
+      let packageRoot = path.join(unpackDir, 'tools');
       if (unpackResult.code !== 0 || !fs.existsSync(path.join(packageRoot, 'python.exe'))) {
+        this.log('PowerShell archive extraction failed or did not yield python.exe, trying fallback extraction with tar.exe...');
+        const systemRoot = process.env.SystemRoot || process.env.WINDIR || 'C:\\Windows';
+        const tarExe = path.join(systemRoot, 'System32', 'tar.exe');
+        if (fs.existsSync(tarExe)) {
+          const tarResult = await this.runProcess(tarExe, ['-xf', archive, '-C', unpackDir], { timeoutMs: 5 * 60 * 1000 });
+          this.log(`tar fallback extraction completed with exit code ${tarResult.code}`);
+        }
+      }
+      if (!fs.existsSync(path.join(packageRoot, 'python.exe')) && fs.existsSync(path.join(unpackDir, 'python.exe'))) {
+        packageRoot = unpackDir;
+      }
+      if (!fs.existsSync(path.join(packageRoot, 'python.exe'))) {
         this.finishPhase(id, 'error', 'Python engine archive could not be unpacked');
         throw new Error(`Python engine archive extraction failed (exit ${unpackResult.code}).`);
       }

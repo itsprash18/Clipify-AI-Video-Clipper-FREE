@@ -312,6 +312,29 @@ function reportUninstallRegistration(message) {
   forward('setup:log', message);
 }
 
+function getSafePowerShellExe() {
+  const systemRoot = process.env.SystemRoot || process.env.WINDIR || 'C:\\Windows';
+  const fullPs = path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+  return fs.existsSync(fullPs) ? fullPs : 'powershell.exe';
+}
+
+function getSafeProcessEnv() {
+  const systemRoot = process.env.SystemRoot || process.env.WINDIR || 'C:\\Windows';
+  const systemDirs = [
+    path.join(systemRoot, 'System32'),
+    systemRoot,
+    path.join(systemRoot, 'System32', 'Wbem'),
+    path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0'),
+  ];
+  let currentPath = process.env.PATH || '';
+  for (const sDir of systemDirs) {
+    if (!currentPath.toLowerCase().includes(sDir.toLowerCase()) && fs.existsSync(sDir)) {
+      currentPath = `${sDir};${currentPath}`;
+    }
+  }
+  return { ...process.env, PATH: currentPath, SystemRoot: systemRoot, WINDIR: systemRoot };
+}
+
 /** Writes the Add/Remove Programs entry so Windows can uninstall us. */
 function registerUninstallEntry(installDir) {
   if (process.platform !== 'win32') return;
@@ -335,8 +358,9 @@ function registerUninstallEntry(installDir) {
       `$registeredPath=Get-ItemPropertyValue -Path $k -Name InstallLocation;` +
       `if ($registeredPath -ne '${psQuote(installDir)}') { throw 'InstallLocation registry verification failed'; }`;
     return new Promise((resolve) => {
-      execFile('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], {
+      execFile(getSafePowerShellExe(), ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], {
         windowsHide: true,
+        env: getSafeProcessEnv(),
       }, (error, _stdout, stderr) => {
         if (error) {
           reportUninstallRegistration(`could not register uninstall entry: ${error.message}; ${stderr || ''}`);
@@ -363,7 +387,7 @@ function cleanSetupWrapperUninstallEntry() {
     `if (Test-Path $setupStub) { Remove-Item -LiteralPath $setupStub -Force -ErrorAction SilentlyContinue; }`
   ].join(' ');
   return new Promise((resolve) => {
-    require('child_process').execFile('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { windowsHide: true }, () => resolve());
+    require('child_process').execFile(getSafePowerShellExe(), ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { windowsHide: true, env: getSafeProcessEnv() }, () => resolve());
   });
 }
 
@@ -595,12 +619,12 @@ async function runUninstall() {
     fs.rmSync(desktop, { force: true });
     await new Promise((resolve, reject) => {
       require('child_process').execFile(
-        'powershell.exe',
+        getSafePowerShellExe(),
         [
           '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
           `Remove-Item -LiteralPath '${UNINSTALL_KEY}' -Recurse -Force -ErrorAction SilentlyContinue`,
         ],
-        { windowsHide: true },
+        { windowsHide: true, env: getSafeProcessEnv() },
         (error) => error ? reject(error) : resolve()
       );
     });

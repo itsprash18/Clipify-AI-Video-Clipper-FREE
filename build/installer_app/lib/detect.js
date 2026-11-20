@@ -150,13 +150,40 @@ function isolatedInstallDir(slug, localAppData, userData) {
   return path.join(base, 'Programs', safeSlug);
 }
 
+function resolveSystemExecutable(command) {
+  if (process.platform === 'win32' && !path.isAbsolute(command)) {
+    const systemRoot = process.env.SystemRoot || process.env.WINDIR || 'C:\\Windows';
+    const cmdLower = command.toLowerCase();
+    if (cmdLower === 'powershell.exe' || cmdLower === 'powershell') {
+      const fullPs = path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+      if (fs.existsSync(fullPs)) return fullPs;
+    }
+  }
+  return command;
+}
+
 /** Runs a command and resolves to stdout, or null when it is unavailable. */
 async function tryRun(command, args, timeout = 8000) {
   try {
-    const { stdout } = await execFileAsync(command, args, {
+    const systemRoot = process.env.SystemRoot || process.env.WINDIR || 'C:\\Windows';
+    const systemDirs = [
+      path.join(systemRoot, 'System32'),
+      systemRoot,
+      path.join(systemRoot, 'System32', 'Wbem'),
+      path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0'),
+    ];
+    let currentPath = process.env.PATH || '';
+    for (const sDir of systemDirs) {
+      if (!currentPath.toLowerCase().includes(sDir.toLowerCase()) && fs.existsSync(sDir)) {
+        currentPath = `${sDir};${currentPath}`;
+      }
+    }
+    const resolved = resolveSystemExecutable(command);
+    const { stdout } = await execFileAsync(resolved, args, {
       timeout,
       windowsHide: true,
       maxBuffer: 8 * 1024 * 1024,
+      env: { ...process.env, PATH: currentPath, SystemRoot: systemRoot, WINDIR: systemRoot },
     });
     return stdout;
   } catch {
