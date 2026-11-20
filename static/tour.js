@@ -112,8 +112,6 @@
     overlayEl.style.display = 'none';
     localStorage.setItem(TOUR_STORAGE_KEY, 'true');
   }
-    localStorage.setItem(TOUR_STORAGE_KEY, 'true');
-  }
 
   function nextStep() {
     if (currentStepIndex < TOUR_STEPS.length - 1) {

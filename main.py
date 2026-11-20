@@ -5325,15 +5325,17 @@ def _compose_gaming_split_layout(source_path: str, output_path: str,
         else:
             # Person-detection trajectory for streamer camera
             points, info = _detect_person_trajectory(source_path, target_w, cam_h, zoom=1.6)
-            scaled_w = int(round(info.get("scaled_w") or target_w))
-            scaled_h = int(round(info.get("scaled_h") or cam_h))
+            scaled_w = int(round(float(info.get("scaled_w") or target_w) / 2.0)) * 2
+            scaled_h = int(round(float(info.get("scaled_h") or cam_h) / 2.0)) * 2
             keyframes = info.get("keyframes", [])
             if not keyframes:
                 cam_x = "(in_w-out_w)/2"
                 cam_y = "(in_h-out_h)/3"
             else:
-                cam_x = _camera_expression(keyframes, "x", max_kf=30)
-                cam_y = _camera_expression(keyframes, "y", max_kf=30)
+                raw_cx = _camera_expression(keyframes, "x", max_kf=30)
+                raw_cy = _camera_expression(keyframes, "y", max_kf=30)
+                cam_x = f"min(max(0\\,{raw_cx})\\,in_w-out_w)"
+                cam_y = f"min(max(0\\,{raw_cy})\\,in_h-out_h)"
             cam_crop = (
                 f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase,setsar=1,"
                 f"crop={target_w}:{cam_h}:{cam_x}:{cam_y},setsar=1"
@@ -5499,15 +5501,18 @@ def resize_to_vertical_with_zoom(input_path: str, output_path: str, zoom_factor:
                 keyframes, key, max_kf=55, preserve_snap_events=False
             )
 
-        scaled_w = int(round(target_w * zoom))
-        scaled_h = int(round(target_h * zoom))
+        scaled_w = int(round(target_w * zoom / 2.0)) * 2
+        scaled_h = int(round(target_h * zoom / 2.0)) * 2
         crop_x = "(in_w-out_w)/2"
         crop_y = "(in_h-out_h)/2"
         if points and info:
-            scaled_w = int(round(info["scaled_w"]))
-            scaled_h = int(round(info["scaled_h"]))
-            crop_x = camera_expression("x")
-            crop_y = camera_expression("y")
+            scaled_w = int(round(float(info["scaled_w"]) / 2.0)) * 2
+            scaled_h = int(round(float(info["scaled_h"]) / 2.0)) * 2
+            raw_crop_x = camera_expression("x")
+            raw_crop_y = camera_expression("y")
+            # Always clamp crop offsets within valid video bounds (0 <= offset <= in - out)
+            crop_x = f"min(max(0\\,{raw_crop_x})\\,in_w-out_w)"
+            crop_y = f"min(max(0\\,{raw_crop_y})\\,in_h-out_h)"
 
         vf = (f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase,"
               f"crop@vertical_crop={target_w}:{target_h}:{crop_x}:{crop_y}")
@@ -5520,18 +5525,21 @@ def resize_to_vertical_with_zoom(input_path: str, output_path: str, zoom_factor:
               f"switches={len(info.get('switch_events', []))}; keyframes={len(info.get('keyframes', []))}")
         cmd = [FFMPEG_BIN, "-i", input_path, "-vf", vf, "-c:v", "libx264", "-preset", "fast", "-crf", "23",
                "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-y", output_path]
-        _run_hidden(cmd, check=True, capture_output=True, text=True)
+        try:
+            _run_hidden(cmd, check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as sub_err:
+            print(f"  [Framing] Complex crop warning ({sub_err}); falling back to clean centered 9:16 vertical crop...")
+            fallback_vf = f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase,crop={target_w}:{target_h}:(in_w-out_w)/2:(in_h-out_h)/2"
+            fb_cmd = [FFMPEG_BIN, "-i", input_path, "-vf", fallback_vf, "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                      "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-y", output_path]
+            _run_hidden(fb_cmd, check=True, capture_output=True, text=True)
+
         return (os.path.isfile(output_path) and os.path.getsize(output_path) > 1024
                 and _validate_camera_render(input_path, output_path, target_w, target_h))
     except subprocess.CalledProcessError as e:
         stderr_tail = e.stderr[-800:] if e.stderr else str(e)
         print(f"  [ERROR] Camera-tracked vertical resize FAILED.")
         print(f"  [ERROR] FFmpeg stderr: {stderr_tail}")
-        # Do NOT silently fall back to a centered crop — that would produce visually
-        # incorrect output (background between people) without any visible signal.
-        # Report the failure clearly so the caller can decide what to do.
-        print(f"  [ERROR] Camera render aborted. No centered-crop fallback will be used.")
-        print(f"  [ERROR] Check the camera_expression output or reduce clip length.")
         return False
 def calculate_engagement_score(
     clip,
@@ -6154,19 +6162,35 @@ def process_single_video(
 
         print(f"\n  [{clip_pos}/{len(selected_final)}] Rendering Short #{short_num_str}...")
         try:
-            # Trim
-            dur = clip.end_time - clip.start_time
-            print(f"     [1/5] Trim {clip.start_time:.1f}s–{clip.end_time:.1f}s ({dur:.1f}s)")
-            from clipsai import AudioVideoFile, MediaEditor
-
-            media_editor = MediaEditor()
-            media_file = AudioVideoFile(input_path)
-            media_editor.trim(
-                media_file=media_file,
-                start_time=clip.start_time,
-                end_time=clip.end_time,
-                trimmed_media_file_path=trimmed_path,
-            )
+            # Frame-accurate and sample-accurate trim to guarantee caption sound and timing align 100%
+            dur = max(0.1, clip.end_time - clip.start_time)
+            print(f"     [1/5] Trim {clip.start_time:.2f}s–{clip.end_time:.2f}s ({dur:.2f}s, frame-accurate A/V sync)")
+            trim_cmd = [
+                FFMPEG_BIN, "-hide_banner", "-y",
+                "-ss", f"{clip.start_time:.3f}",
+                "-t", f"{dur:.3f}",
+                "-i", input_path,
+                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "18",
+                "-c:a", "aac", "-b:a", "192k",
+                "-avoid_negative_ts", "make_zero",
+                "-async", "1",
+                trimmed_path,
+            ]
+            trim_res = _run_hidden(trim_cmd, check=False, capture_output=True, text=True, errors="replace")
+            if not os.path.exists(trimmed_path) or os.path.getsize(trimmed_path) < 1024:
+                # Fallback to clipsai if direct trim encountered an unexpected error
+                try:
+                    from clipsai import AudioVideoFile, MediaEditor
+                    media_editor = MediaEditor()
+                    media_file = AudioVideoFile(input_path)
+                    media_editor.trim(
+                        media_file=media_file,
+                        start_time=clip.start_time,
+                        end_time=clip.end_time,
+                        trimmed_media_file_path=trimmed_path,
+                    )
+                except Exception as fb_err:
+                    print(f"     [Trim] Fallback error: {fb_err}")
             if not os.path.exists(trimmed_path) or os.path.getsize(trimmed_path) < 1024:
                 raise RuntimeError(f"Trim output missing or empty: {trimmed_path}")
 

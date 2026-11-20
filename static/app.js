@@ -2470,8 +2470,8 @@ $('#openOutput2')?.addEventListener('click', (e) => {
 window.addEventListener(
   'hashchange',
   ()=>{
-    const urlParams = new URLSearchParams(location.search);
-    const raw = location.hash.slice(1) || urlParams.get('section') || 'create';
+    const searchParams = new URLSearchParams(location.search);
+    const raw = location.hash.slice(1) || searchParams.get('section') || 'create';
     const id = raw.split('?')[0];
     navigateTo(id);
 

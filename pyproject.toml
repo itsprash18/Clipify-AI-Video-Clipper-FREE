@@ -1,11 +1,26 @@
 [tool.pyright]
+venvPath = "L:/tester"
+venv = "runtime"
+pythonPath = "L:/tester/runtime/Scripts/python.exe"
+extraPaths = [
+    "L:/tester/runtime/Lib/site-packages",
+    "L:/ClipifyAI",
+    "L:/ClippedAI"
+]
 reportMissingImports = false
 reportMissingModuleSource = false
 
 [tool.pyrefly]
+pythonPath = "L:/tester/runtime/Scripts/python.exe"
+venvPath = "L:/tester"
+venv = "runtime"
+extraPaths = [
+    "L:/tester/runtime/Lib/site-packages",
+    "L:/ClipifyAI",
+    "L:/ClippedAI"
+]
 disableMissingImports = true
 reportMissingImports = "none"
 
 [tool.mypy]
 ignore_missing_imports = true
-
