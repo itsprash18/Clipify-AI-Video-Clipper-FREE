@@ -3379,6 +3379,149 @@ def open_output_folder():
         "error": error_msg
     })
 
+APP_VERSION = "v4.0.5"
+GITHUB_REPO = "sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE"
+
+
+@app.route("/api/updater/check", methods=["GET"])
+def updater_check():
+    """Checks GitHub for the latest release and local Git status."""
+    result = {
+        "current_version": APP_VERSION,
+        "latest_version": APP_VERSION,
+        "update_available": False,
+        "release_name": "",
+        "release_url": f"https://github.com/{GITHUB_REPO}/releases",
+        "published_at": "",
+        "body": "",
+        "is_git": (ROOT / ".git").is_dir(),
+        "git_behind": False,
+        "error": None,
+    }
+    # 1. Check GitHub API for latest release
+    try:
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": "ClipifyAI-Updater",
+                "Accept": "application/vnd.github.v3+json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=4.5) as resp:
+            if resp.status == 200:
+                rel = json.loads(resp.read().decode("utf-8"))
+                latest_tag = (rel.get("tag_name") or "").strip()
+                result["latest_version"] = latest_tag or APP_VERSION
+                result["release_name"] = rel.get("name") or latest_tag
+                result["release_url"] = rel.get("html_url") or result["release_url"]
+                result["published_at"] = rel.get("published_at", "")
+                result["body"] = (rel.get("body") or "")[:500]
+
+                curr_norm = APP_VERSION.lstrip("v").strip()
+                late_norm = latest_tag.lstrip("v").strip()
+                if late_norm and curr_norm != late_norm:
+                    result["update_available"] = True
+    except Exception as e:
+        result["error"] = str(e)
+
+    # 2. If inside a git repository, check git status
+    if result["is_git"]:
+        try:
+            git_bin = shutil.which("git") or shutil.which("git.exe") or "git"
+            _run_hidden([git_bin, "fetch", "--dry-run"], cwd=str(ROOT), timeout=5, check=False)
+            status = _run_hidden([git_bin, "status", "-uno"], cwd=str(ROOT), timeout=5, check=False)
+            if status.returncode == 0:
+                out = (status.stdout or "").lower()
+                if "your branch is behind" in out or "can be fast-forwarded" in out:
+                    result["update_available"] = True
+                    result["git_behind"] = True
+        except Exception:
+            pass
+
+    return jsonify(result)
+
+
+@app.route("/api/updater/apply", methods=["POST"])
+def updater_apply():
+    """Performs a fast, in-place update from GitHub without requiring a full re-install."""
+    is_git = (ROOT / ".git").is_dir()
+    git_bin = shutil.which("git") or shutil.which("git.exe") or "git"
+
+    if is_git:
+        try:
+            # Determine current branch
+            branch_cmd = _run_hidden([git_bin, "branch", "--show-current"], cwd=str(ROOT), timeout=5, check=False)
+            branch = (branch_cmd.stdout or "").strip() or "feature/cross-platform"
+
+            # 1. Fetch latest changes
+            _run_hidden([git_bin, "fetch", "origin", branch], cwd=str(ROOT), timeout=30, check=False)
+
+            # 2. Fast-forward pull
+            pull = _run_hidden([git_bin, "pull", "--ff-only", "origin", branch], cwd=str(ROOT), timeout=60, check=False)
+            if pull.returncode != 0:
+                # Fallback: stash unstaged scratch edits and pull
+                _run_hidden([git_bin, "stash"], cwd=str(ROOT), timeout=10, check=False)
+                pull = _run_hidden([git_bin, "pull", "origin", branch], cwd=str(ROOT), timeout=60, check=False)
+
+            if pull.returncode == 0:
+                return jsonify({
+                    "ok": True,
+                    "method": "git",
+                    "message": "Successfully updated to the latest GitHub code! Reloading in 3 seconds…",
+                    "details": pull.stdout or "Updated to latest commit.",
+                })
+            else:
+                return jsonify({
+                    "ok": False,
+                    "error": f"Git pull failed: {pull.stderr or pull.stdout or 'Unknown git error'}",
+                }), 500
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+    # Standalone installation: download lightweight source archive from GitHub
+    try:
+        import tempfile
+        import zipfile
+
+        zip_url = f"https://github.com/{GITHUB_REPO}/archive/refs/heads/feature/cross-platform.zip"
+        req = urllib.request.Request(zip_url, headers={"User-Agent": "ClipifyAI-Updater"})
+        with urllib.request.urlopen(req, timeout=35.0) as resp:
+            zip_bytes = resp.read()
+
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tf:
+            tf.write(zip_bytes)
+            tf_path = Path(tf.name)
+
+        protected_dirs = {"runtime", "input", "output", "jobs", "models", "settings", "installer", ".venv", "tools"}
+        updated_count = 0
+        with zipfile.ZipFile(tf_path, "r") as zf:
+            for member in zf.infolist():
+                if member.is_dir():
+                    continue
+                rel_parts = member.filename.split("/")[1:]
+                if not rel_parts or not rel_parts[0]:
+                    continue
+                if rel_parts[0] in protected_dirs:
+                    continue
+
+                dest_file = ROOT / Path(*rel_parts)
+                dest_file.parent.mkdir(parents=True, exist_ok=True)
+                with zf.open(member) as source, open(dest_file, "wb") as target:
+                    shutil.copyfileobj(source, target)
+                updated_count += 1
+
+        tf_path.unlink(missing_ok=True)
+        return jsonify({
+            "ok": True,
+            "method": "archive",
+            "message": f"Successfully updated {updated_count} files in-place! Reloading in 3 seconds…",
+            "files_updated": updated_count,
+        })
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"In-place update failed: {exc}"}), 500
+
+
 @app.get("/api/health")
 def health():
     installed, error = _discover_ollama_models()
