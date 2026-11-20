@@ -798,6 +798,39 @@ def _ffmpeg_path() -> str:
     raise RuntimeError("FFmpeg was not found.")
 
 
+def _ensure_video_has_audio(target: Path) -> Path:
+    """Ensure video has an audio track; if silent/video-only, mux a silent audio track so ClipsAI never fails."""
+    if not target or not target.is_file():
+        return target
+    try:
+        ffmpeg_bin = _ffmpeg_path()
+        ffprobe_bin = str(Path(ffmpeg_bin).with_name("ffprobe.exe" if sys.platform.startswith("win") else "ffprobe"))
+        probe = _run_hidden(
+            [ffprobe_bin, "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_type", "-of", "csv=p=0", str(target)],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30, check=False
+        )
+        if probe.returncode == 0 and "audio" in probe.stdout.lower():
+            return target
+        # Video is missing audio track. Mux silent audio stream.
+        temp_out = target.with_name(f"{target.stem}_audio_fixed{target.suffix}")
+        mux = _run_hidden(
+            [
+                ffmpeg_bin, "-hide_banner", "-y",
+                "-i", str(target),
+                "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
+                "-c:v", "copy", "-c:a", "aac", "-b:a", "128k", "-shortest", "-movflags", "+faststart",
+                str(temp_out),
+            ],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120, check=False
+        )
+        if mux.returncode == 0 and temp_out.is_file() and temp_out.stat().st_size > 0:
+            target.unlink(missing_ok=True)
+            temp_out.rename(target)
+    except Exception as e:
+        logger.warning("Failed ensuring audio stream for %s: %s", target.name, e)
+    return target
+
+
 def _media_duration_seconds(path_value: str) -> float:
     """Return the duration of a media file in seconds, or 0.0 when unknown."""
     p = Path(str(path_value or ""))
@@ -2235,6 +2268,7 @@ def upload():
     output_dir.mkdir(parents=True, exist_ok=True)
     target = input_dir / safe_name
     file.save(target)
+    target = _ensure_video_has_audio(target)
 
     # Reuse a matching cached transcription from the shared input folder when available.
     target_stem = Path(safe_name).stem
@@ -2439,6 +2473,7 @@ def import_youtube():
                     jobs[job_id]["events"].append({"kind":"error","message":detail})
                 return
             target = max(videos, key=lambda p: p.stat().st_mtime)
+            target = _ensure_video_has_audio(target)
             safe_name = secure_filename(target.name) or f"youtube_{job_id}.mp4"
             with jobs_lock:
                 jobs[job_id].update(filename=safe_name, status="uploaded", progress=100,

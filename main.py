@@ -781,6 +781,77 @@ def get_ffmpeg_path() -> str:
     return FFMPEG_BIN
 
 
+def check_has_audio_stream(file_path: str) -> bool:
+    """Check if the given media file contains at least one audio stream."""
+    if not file_path or not os.path.isfile(file_path):
+        return False
+    try:
+        cmd = [
+            FFPROBE_BIN,
+            "-v", "error",
+            "-select_streams", "a",
+            "-show_entries", "stream=codec_type",
+            "-of", "csv=p=0",
+            file_path,
+        ]
+        res = _run_hidden(cmd, capture_output=True, text=True, check=False)
+        return res.returncode == 0 and "audio" in res.stdout.lower()
+    except Exception:
+        return False
+
+
+def ensure_audio_stream(file_path: str) -> str:
+    """Ensures the video file has an audio stream.
+
+    If the video has no audio stream (e.g. video-only download or silent clip),
+    ClipsAI raises MediaEditorError because it requires AudioVideoFile or AudioFile.
+    This generates and muxes a silent AAC audio track so WhisperX and ClipsAI can
+    safely process the file without crashing.
+    """
+    if not file_path or not os.path.isfile(file_path):
+        return file_path
+    if check_has_audio_stream(file_path):
+        return file_path
+
+    vname = os.path.basename(file_path)
+    print(f"  [Intake] Notice: '{vname}' has no audio stream. Muxing silent audio track for ClipsAI compatibility...")
+    temp_out = file_path + ".with_audio.mp4"
+    try:
+        cmd = [
+            FFMPEG_BIN,
+            "-hide_banner", "-y",
+            "-i", file_path,
+            "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
+            "-c:v", "copy",
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-shortest",
+            "-movflags", "+faststart",
+            temp_out,
+        ]
+        res = _run_hidden(cmd, capture_output=True, text=True, check=False)
+        if res.returncode == 0 and os.path.isfile(temp_out) and os.path.getsize(temp_out) > 0:
+            backup = file_path + ".orig.bak"
+            try:
+                if os.path.exists(backup):
+                    os.remove(backup)
+                os.replace(file_path, backup)
+                os.replace(temp_out, file_path)
+                if os.path.exists(backup):
+                    os.remove(backup)
+                print(f"  [Intake] Successfully added silent audio stream to '{vname}'.")
+                return file_path
+            except Exception as replace_err:
+                print(f"  [Intake] Path fallback used: {replace_err}")
+                return temp_out
+        else:
+            err_msg = res.stderr[:200] if res.stderr else "unknown error"
+            print(f"  [Intake] FFmpeg silent audio mux failed ({err_msg}). Continuing with original file.")
+    except Exception as e:
+        print(f"  [Intake] Could not ensure audio stream: {e}")
+    return file_path
+
+
 def ffmpeg_ass_filter(ass_path: str) -> str:
     """Build a Windows-safe FFmpeg ass= filter. Never use raw backslashes in f-strings."""
     ass_abs = os.path.abspath(ass_path).replace("\\", "/")
@@ -6194,6 +6265,7 @@ def process_single_video(
     Never crashes the caller; wraps everything in try/except with clear logs.
     """
     created: List[str] = []
+    input_path = ensure_audio_stream(input_path)
     vname = os.path.basename(input_path)
     print(
         f"\n{'='*68}\n"

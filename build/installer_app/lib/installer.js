@@ -1230,8 +1230,8 @@ class Installer extends EventEmitter {
             } else {
               this.throttledNote(
                 'runtime-quiet',
-                `No pip output or staged package-file changes for ${Math.floor(idleSeconds / 60)}m ${idleSeconds % 60}s; child process has stopped.`,
-                'warn',
+                `AI runtime installation is progressing (${Math.floor(idleSeconds / 60)}m ${idleSeconds % 60}s elapsed). Pip is unpacking wheels and writing package files.`,
+                'info',
                 120000
               );
             }
