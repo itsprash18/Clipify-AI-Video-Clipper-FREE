@@ -2576,14 +2576,47 @@ $('#previewReview')?.addEventListener('click', (e) => {
   }
 });
 
-$('#openOutput2')?.addEventListener('click', (e) => {
-  e.preventDefault();
+async function handleOpenOutput(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  const btn = e?.currentTarget || $('#openOutput') || $('#openOutput2');
+  const originalText = btn ? btn.textContent : 'Open output';
+  if (btn) btn.textContent = 'Opening…';
+
+  try {
+    const res = await fetch('/api/open-output-folder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: state.jobId || null })
+    });
+    const data = await res.json();
+    if (data && data.opened) {
+      if (btn) {
+        btn.textContent = 'Opened ✓';
+        setTimeout(() => { if (btn) btn.textContent = originalText; }, 2000);
+      }
+      return;
+    }
+  } catch (err) {
+    console.warn('Native folder open failed:', err);
+  }
+
+  if (btn) {
+    btn.textContent = originalText;
+  }
+
+  // Graceful browser fallback: if in a remote/sandbox browser or explorer failed
   if (state.jobId && state.outputs?.[0]) {
-    window.location.href = `/media/${state.jobId}/${encodeURIComponent(state.outputs[0])}?download=1`;
+    selectReview(state.jobId, state.outputs[0]);
   } else {
     navigateTo('projects');
   }
-});
+}
+
+$('#openOutput')?.addEventListener('click', handleOpenOutput);
+$('#openOutput2')?.addEventListener('click', handleOpenOutput);
 
 window.addEventListener(
   'hashchange',

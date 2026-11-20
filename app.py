@@ -3162,6 +3162,83 @@ def sync_project():
     except Exception as exc:
         return jsonify({"error": f"Failed to sync project: {exc}"}), 500
 
+@app.route("/api/open-output-folder", methods=["GET", "POST"])
+def open_output_folder():
+    """Opens the local output folder in Windows File Explorer (or default system file manager)."""
+    data = {}
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+    elif request.args:
+        data = request.args.to_dict()
+
+    job_id = data.get("jobId") or data.get("job_id")
+    target_dir: Path | None = None
+
+    # 1. If explicit job_id is provided, check its output folder first
+    if job_id:
+        safe_job = _safe_job_directory(str(job_id).strip())
+        if safe_job:
+            cand = safe_job / "output"
+            if cand.exists() and cand.is_dir():
+                target_dir = cand
+            elif safe_job.exists():
+                target_dir = safe_job
+
+    # 2. Check top-level output directory (where standalone renders and exported shorts go)
+    if not target_dir:
+        cand = (ROOT / "output").resolve()
+        if cand.exists() and any(cand.iterdir()):
+            target_dir = cand
+
+    if not target_dir:
+        cand = (USER_DATA_DIR / "output").resolve()
+        if cand.exists() and any(cand.iterdir()):
+            target_dir = cand
+
+    # 3. Check most recent job with output files
+    if not target_dir and JOBS.exists():
+        try:
+            for d in sorted(JOBS.iterdir(), key=lambda p: p.stat().st_mtime if p.exists() else 0, reverse=True):
+                if d.is_dir() and not d.name.startswith("."):
+                    cand = d / "output"
+                    if cand.exists() and cand.is_dir() and any(cand.iterdir()):
+                        target_dir = cand.resolve()
+                        break
+        except Exception:
+            pass
+
+    # 4. Fallback: ensure ROOT / "output" exists
+    if not target_dir:
+        target_dir = (ROOT / "output").resolve()
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+    opened = False
+    error_msg = None
+    try:
+        target_str = str(target_dir)
+        if sys.platform == "win32":
+            try:
+                os.startfile(target_str)
+                opened = True
+            except Exception:
+                subprocess.Popen(["explorer.exe", target_str])
+                opened = True
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", target_str])
+            opened = True
+        else:
+            subprocess.Popen(["xdg-open", target_str])
+            opened = True
+    except Exception as exc:
+        error_msg = str(exc)
+
+    return jsonify({
+        "ok": True,
+        "opened": opened,
+        "path": str(target_dir),
+        "error": error_msg
+    })
+
 @app.get("/api/health")
 def health():
     installed, error = _discover_ollama_models()
