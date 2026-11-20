@@ -160,10 +160,12 @@ drop?.addEventListener('drop',e=>{
 });
 
 async function importYouTube(){
+  sanitizeYouTubeInput(youtubeUrl);
   const url=youtubeUrl.value.trim();
 
-  if(!url){
-    youtubeStatus.textContent='Paste a YouTube link first.';
+  if(!url || (url.includes('@') && !url.includes('youtube.com') && !url.includes('youtu.be'))){
+    youtubeUrl.value = '';
+    youtubeStatus.textContent='Paste a valid YouTube video link first.';
     return;
   }
 
@@ -348,6 +350,34 @@ youtubeUrl?.addEventListener(
     }, 50);
   }
 );
+
+// Prevent browser password/email autofill from injecting credentials into YouTube link inputs
+function sanitizeYouTubeInput(inputEl){
+  if(!inputEl) return;
+  const v = (inputEl.value || '').trim();
+  if(v && v.includes('@') && !v.includes('youtube.com') && !v.includes('youtu.be')){
+    inputEl.value = '';
+  }
+}
+
+['DOMContentLoaded', 'load'].forEach(ev => {
+  window.addEventListener(ev, () => {
+    [10, 80, 200, 500, 1000, 2000].forEach(delay => {
+      setTimeout(() => {
+        sanitizeYouTubeInput(youtubeUrl);
+        const betaYt = $('#betaYtUrl');
+        if (betaYt) sanitizeYouTubeInput(betaYt);
+      }, delay);
+    });
+  });
+});
+
+[youtubeUrl, $('#betaYtUrl')].forEach(el => {
+  if(!el) return;
+  ['input', 'change', 'focus', 'animationstart'].forEach(ev => {
+    el.addEventListener(ev, () => sanitizeYouTubeInput(el));
+  });
+});
 
 $$('.mode-card').forEach(btn=>
   btn.addEventListener('click',()=>{

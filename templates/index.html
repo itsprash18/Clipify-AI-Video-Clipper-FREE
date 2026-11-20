@@ -82,7 +82,7 @@
         <div class="source-options">
           <label class="dropzone" id="dropzone"><input type="file" id="videoInput" accept="video/*" hidden><div class="upload-icon">↑</div><strong>Upload a video</strong><span>Drop it here or <u>browse files</u></span><small>MP4 · MOV · MKV · WEBM</small></label>
           <div class="source-divider"><span>OR</span></div>
-          <div class="youtube-import"><div class="youtube-mark">▶</div><div><strong>Paste a YouTube link</strong><span>Download a video you have permission to use.</span></div><div class="youtube-input-row"><input id="youtubeUrl" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…"><button class="ghost" type="button" id="youtubeImport">Import video</button></div><small id="youtubeStatus" class="source-status" aria-live="polite"></small><div class="youtube-progress" id="youtubeProgress" hidden><div class="youtube-progress-track"><div class="youtube-progress-bar" id="youtubeProgressBar"></div></div></div></div>
+          <div class="youtube-import"><div class="youtube-mark">▶</div><div><strong>Paste a YouTube link</strong><span>Download a video you have permission to use.</span></div><div class="youtube-input-row"><input id="youtubeUrl" name="youtube_url_no_autofill" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other"><button class="ghost" type="button" id="youtubeImport">Import video</button></div><small id="youtubeStatus" class="source-status" aria-live="polite"></small><div class="youtube-progress" id="youtubeProgress" hidden><div class="youtube-progress-track"><div class="youtube-progress-bar" id="youtubeProgressBar"></div></div></div></div>
         </div>
         <div class="file-chip source-chip" id="fileChip" hidden><span>◉</span><b id="fileName"></b><i id="fileSize"></i></div>
       </section>
@@ -114,8 +114,10 @@
                 </select>
               </label>
               <label>Hugging Face API Token
+                <!-- Decoy to absorb browser password-manager autofill and prevent hijacking the YouTube URL input -->
+                <input type="text" name="fake_username_sink" style="display:none!important;position:absolute!important;opacity:0!important;pointer-events:none!important;" tabindex="-1" autocomplete="username">
                 <div class="token-input-row" style="display:flex;gap:8px;">
-                  <input type="password" id="hfTokenInput" placeholder="hf_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" style="flex:1;" />
+                  <input type="password" id="hfTokenInput" name="hf_token_custom_secret" placeholder="hf_xxxxxxxxxxxxxxxxxxxx" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" style="flex:1;" />
                   <button type="button" class="ghost" id="btnVerifyHfToken" style="padding:0 12px;font-size:0.8rem;white-space:nowrap;">Verify Token</button>
                 </div>
               </label>
@@ -473,7 +475,7 @@
         </div>
 
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <input type="url" id="betaYtUrl" placeholder="https://www.youtube.com/watch?v=..." style="flex:1;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.3);color:#fff;font-size:0.88rem;">
+          <input type="url" id="betaYtUrl" name="beta_youtube_url_no_autofill" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other" style="flex:1;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.3);color:#fff;font-size:0.88rem;">
           <button type="button" class="ghost" id="betaYtImportBtn" style="white-space:nowrap;padding:0 16px;">Fetch Link</button>
         </div>
         
