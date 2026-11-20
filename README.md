@@ -27,7 +27,7 @@
 
 ---
 
-Instgram group chat for Clipify user for discussing new features and sharing clips
+Instagram group chat for Clipify user for discussing new features and sharing clips
 
 https://ig.me/j/AQj1lYCWh_iV_S7J/
 
