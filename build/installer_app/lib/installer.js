@@ -567,6 +567,7 @@ class Installer extends EventEmitter {
       mergedEnv.PATH = currentPath;
       mergedEnv.SystemRoot = systemRoot;
       mergedEnv.WINDIR = systemRoot;
+      mergedEnv.PYTHONUNBUFFERED = '1';
 
       const child = spawn(execCmd, args, {
         cwd,
@@ -1197,7 +1198,7 @@ class Installer extends EventEmitter {
       }
     }
 
-    const pipArgs = ['-m', 'pip', 'install', '--disable-pip-version-check', '--progress-bar', 'on'];
+    const pipArgs = ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-input', '--timeout', '60', '--progress-bar', 'on'];
     pipArgs.push('--extra-index-url', 'https://download.pytorch.org/whl/cpu');
     if (fs.existsSync(wheelsDir)) {
       pipArgs.push('--find-links', wheelsDir);
@@ -1210,21 +1211,30 @@ class Installer extends EventEmitter {
       {
         timeoutMs: 4 * 60 * 60 * 1000,
         heartbeatMs: 15000,
-        quietWarningMs: 90000,
+        quietWarningMs: 180000,
         watchDirectory: path.join(venvDir, 'Lib', 'site-packages'),
         onHeartbeat: ({ silentForMs, fileActivityAgoMs, processActive, quiet }) => {
           const idleSeconds = Math.floor(silentForMs / 1000);
           const writingPackages = fileActivityAgoMs <= 30000;
           this.activeItem = writingPackages
             ? `Installing AI libraries; package files are changing (${idleSeconds}s since console output)`
-            : `Installing AI libraries; child process ${processActive ? 'is still running' : 'has stopped'}, no recent package output (${idleSeconds}s)`;
+            : `Installing AI libraries; child process ${processActive ? 'is actively running' : 'has stopped'} (${idleSeconds}s since console output)`;
           if (quiet) {
-            this.throttledNote(
-              'runtime-quiet',
-              `No pip output or staged package-file changes for ${Math.floor(idleSeconds / 60)}m ${idleSeconds % 60}s; the installer is checking the live child process and waiting safely.`,
-              'warn',
-              90000
-            );
+            if (processActive) {
+              this.throttledNote(
+                'runtime-quiet',
+                `Downloading & verifying AI runtime packages (Torch, WhisperX, Mediapipe). Large downloads take several minutes depending on network speed — download in progress (${Math.floor(idleSeconds / 60)}m ${idleSeconds % 60}s).`,
+                'info',
+                120000
+              );
+            } else {
+              this.throttledNote(
+                'runtime-quiet',
+                `No pip output or staged package-file changes for ${Math.floor(idleSeconds / 60)}m ${idleSeconds % 60}s; child process has stopped.`,
+                'warn',
+                120000
+              );
+            }
           }
           this.emitProgress({ processRunning: processActive, quietForMs: silentForMs });
         },
@@ -1302,7 +1312,7 @@ class Installer extends EventEmitter {
         );
       }
 
-      const retryArgs = ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-cache-dir', '--progress-bar', 'on'];
+      const retryArgs = ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-input', '--timeout', '60', '--no-cache-dir', '--progress-bar', 'on'];
       retryArgs.push('--extra-index-url', 'https://download.pytorch.org/whl/cpu');
       if (fs.existsSync(wheelsDir)) {
         retryArgs.push('--find-links', wheelsDir);
@@ -1315,8 +1325,19 @@ class Installer extends EventEmitter {
         {
           timeoutMs: 4 * 60 * 60 * 1000,
           heartbeatMs: 15000,
-          quietWarningMs: 90000,
+          quietWarningMs: 180000,
           watchDirectory: path.join(venvDir, 'Lib', 'site-packages'),
+          onHeartbeat: ({ silentForMs, fileActivityAgoMs, processActive, quiet }) => {
+            const idleSeconds = Math.floor(silentForMs / 1000);
+            if (quiet && processActive) {
+              this.throttledNote(
+                'runtime-retry-quiet',
+                `Retrying download of AI packages — download in progress (${Math.floor(idleSeconds / 60)}m ${idleSeconds % 60}s).`,
+                'info',
+                120000
+              );
+            }
+          },
         }
       );
 
