@@ -477,6 +477,32 @@ TEXT_MARGIN = max(20, min(500, int(os.getenv("CLIPPEDAI_TEXT_MARGIN", "110"))))
 TEXT_X = max(0.0, min(100.0, float(os.getenv("CLIPPEDAI_TEXT_X", "50"))))
 TEXT_Y = max(0.0, min(100.0, float(os.getenv("CLIPPEDAI_TEXT_Y", "75"))))
 
+# --- Dedicated Transparent Text Watermark ---
+WATERMARK_TEXT_ENABLED = os.getenv("CLIPPEDAI_WATERMARK_TEXT_ENABLED", "0") == "1"
+WATERMARK_TEXT = os.getenv("CLIPPEDAI_WATERMARK_TEXT", "").strip()
+WATERMARK_TEXT_POSITION = os.getenv("CLIPPEDAI_WATERMARK_TEXT_POSITION", "center") if os.getenv("CLIPPEDAI_WATERMARK_TEXT_POSITION", "center") in BRANDING_POSITIONS or os.getenv("CLIPPEDAI_WATERMARK_TEXT_POSITION", "center") in {"center", "lower-middle"} else "center"
+WATERMARK_TEXT_SIZE = max(3, min(20, int(os.getenv("CLIPPEDAI_WATERMARK_TEXT_SIZE", "6"))))
+WATERMARK_TEXT_OPACITY = max(0, min(100, int(os.getenv("CLIPPEDAI_WATERMARK_TEXT_OPACITY", "35"))))
+WATERMARK_TEXT_ANGLE = max(-45, min(45, int(os.getenv("CLIPPEDAI_WATERMARK_TEXT_ANGLE", "-20"))))
+WATERMARK_TEXT_COLOR = os.getenv("CLIPPEDAI_WATERMARK_TEXT_COLOR", "#FFFFFF")
+WATERMARK_TEXT_X = max(0.0, min(100.0, float(os.getenv("CLIPPEDAI_WATERMARK_TEXT_X", "50"))))
+WATERMARK_TEXT_Y = max(0.0, min(100.0, float(os.getenv("CLIPPEDAI_WATERMARK_TEXT_Y", "50"))))
+
+# --- Premium Captions & Situational Cues ---
+PREMIUM_CAPTIONS = os.getenv("CLIPPEDAI_PREMIUM_CAPTIONS", "1").strip().lower() in {"1", "true", "yes", "on"}
+SITUATIONAL_CUES = os.getenv("CLIPPEDAI_SITUATIONAL_CUES", "1").strip().lower() in {"1", "true", "yes", "on"}
+CAPTION_PRESET = os.getenv("CLIPPEDAI_CAPTION_PRESET", "auto").strip().lower()
+CAPTION_ACCENT = os.getenv("CLIPPEDAI_CAPTION_ACCENT", "gold_yellow").strip().lower()
+CAPTION_MARGIN_V = int(os.getenv("CLIPPEDAI_CAPTION_MARGIN_V", "920" if (os.getenv("CLIPPEDAI_GAMING_SPLIT", "1") == "1" or SPLIT_SCREEN) else "300"))
+
+ACCENT_COLOR_MAP = {
+    "gold_yellow": "&H0000FFFF&",
+    "lime_green": "&H0000FF7F&",
+    "cyan_sky": "&H00FFD700&",
+    "coral_red": "&H005050FF&",
+    "pink_lavender": "&H00FFAAFF&",
+}
+
 # --- Groq API ---
 GROQ_API_KEY = os.getenv(
     "GROQ_API_KEY",
@@ -1545,7 +1571,7 @@ def _ass_encode_text(text: str) -> str:
     return text
 
 
-def _group_words_into_beats(word_info_local: List[Dict]) -> List[List[Dict]]:
+def _group_words_into_beats(word_info_local: List[Dict], max_words: Optional[int] = None) -> List[List[Dict]]:
     """Group clip-local word_info entries into 2-5 word beats.
 
     Each beat is a list of word_info dicts with local (clip-relative) start/end.
@@ -1553,13 +1579,14 @@ def _group_words_into_beats(word_info_local: List[Dict]) -> List[List[Dict]]:
     beats: List[List[Dict]] = []
     current: List[Dict] = []
     last_end: Optional[float] = None
+    limit = max_words if max_words is not None else (4 if PREMIUM_CAPTIONS else 5)
     for w in word_info_local:
         ws = float(w["start_time"])
         we = float(w["end_time"])
         start_new = False
         if not current:
             start_new = True
-        elif len(current) >= 5:
+        elif len(current) >= limit:
             start_new = True
         elif last_end is not None and (ws - last_end) >= 0.45:
             start_new = True
@@ -1581,6 +1608,64 @@ def _group_words_into_beats(word_info_local: List[Dict]) -> List[List[Dict]]:
     if current:
         beats.append(current)
     return beats
+
+
+def _generate_situational_cues(beats: List[List[Dict]], total_duration: float) -> List[Dict]:
+    """Derive context-aware action cues (*ACTION*) from silence intervals and dynamic moments."""
+    cues = []
+    if not beats:
+        return cues
+
+    for i in range(len(beats) - 1):
+        end_curr = float(beats[i][-1]["end_time"])
+        start_next = float(beats[i+1][0]["start_time"])
+        gap = start_next - end_curr
+        if gap >= 1.35:
+            cue_start = end_curr + 0.15
+            cue_end = min(start_next - 0.15, cue_start + min(1.8, gap - 0.3))
+            if cue_end > cue_start + 0.3:
+                last_words = " ".join(str(w.get("word", "")).lower() for w in beats[i])
+                cue_text = "*REACTS*"
+                if any(w in last_words for w in ("look", "see", "watch", "omg", "whoa")):
+                    cue_text = "*LOOKS CLOSER*"
+                elif any(w in last_words for w in ("no", "way", "what", "bro", "how")):
+                    cue_text = "*CAN'T BELIEVE IT*"
+                elif any(w in last_words for w in ("run", "go", "fast", "car", "drive")):
+                    cue_text = "*SPEEDS UP*"
+                elif any(w in last_words for w in ("kill", "hit", "punch", "fight", "dead")):
+                    cue_text = "*TAKES ACTION*"
+                elif any(w in last_words for w in ("money", "dollar", "cash", "buy", "burger")):
+                    cue_text = "*PAYS ATTENTION*"
+                elif any(w in last_words for w in ("haha", "lol", "funny", "laugh", "smile")):
+                    cue_text = "*LAUGHS*"
+                elif any(w in last_words for w in ("game", "play", "gta", "mission")):
+                    cue_text = "*GAMEPLAY INTENSIFIES*"
+                else:
+                    cue_text = "*SHOCKED*"
+                
+                cues.append({
+                    "start_time": cue_start,
+                    "end_time": cue_end,
+                    "text": cue_text,
+                })
+
+    first_start = float(beats[0][0]["start_time"])
+    if first_start >= 1.5:
+        cues.insert(0, {
+            "start_time": 0.3,
+            "end_time": min(first_start - 0.2, 2.0),
+            "text": "*WATCH THIS*",
+        })
+
+    last_end = float(beats[-1][-1]["end_time"])
+    if total_duration - last_end >= 1.5:
+        cues.append({
+            "start_time": last_end + 0.2,
+            "end_time": min(total_duration - 0.2, last_end + 2.0),
+            "text": "*UNBELIEVABLE*",
+        })
+
+    return cues
 
 
 def _dialogue_line(start: str, end: str, style: str, layer: int, text: str) -> str:
@@ -1690,8 +1775,8 @@ def _wrap_caption_words(words: List[Dict], max_width: int = 900, font_size: int 
     return [words[:mid], words[mid:]]
 
 
-def _caption_line_text(words: List[Dict], active_idx: Optional[int] = None) -> str:
-    """Build one ASS caption line with stable layout and no duplicate overlays."""
+def _caption_line_text(words: List[Dict], active_idx: Optional[int] = None, accent_code: str = "&H0000FFFF&") -> str:
+    """Build one ASS caption line with stable layout and high-contrast styling."""
     parts = []
     for i, w in enumerate(words):
         raw = _ass_encode_text(str(w.get("word", "")).strip())
@@ -1699,10 +1784,10 @@ def _caption_line_text(words: List[Dict], active_idx: Optional[int] = None) -> s
             continue
         important = _is_important_word(str(w.get("word", "")))
         if i == active_idx:
-            # Active word: yellow + slightly stronger outline. No scaling, so it cannot overlap neighbours.
-            parts.append("{\\c&H00FFFF&\\3c&H000000&\\bord4}" + raw + "{\\rBase}")
+            # Active word: accent color + heavy outline
+            parts.append(f"{{\\c{accent_code}\\3c&H000000&\\bord6}}" + raw + "{\\rBase}")
         elif important:
-            parts.append("{\\c&H00FFFF&}" + raw + "{\\rBase}")
+            parts.append(f"{{\\c{accent_code}}}" + raw + "{\\rBase}")
         else:
             parts.append(raw)
     return " ".join(parts)
@@ -1770,10 +1855,38 @@ def create_animated_subtitles(video_path, transcription, clip, output_path):
         shutil.copy2(video_path, output_path)
         return output_path
 
+    # Apply ALL CAPS for Premium Caption grammar
+    if PREMIUM_CAPTIONS:
+        for w in clip_words_local:
+            w["word"] = str(w.get("word", "")).upper()
+
     beats = _group_words_into_beats(clip_words_local)
     font_name = resolve_caption_font_name(CAPTION_FONT)
     font_size = max(48, min(110, CAPTION_FONT_SIZE))
-    print(f"  [Captions] {len(clip_words_local)} words -> {len(beats)} beats; font={font_name}, size={font_size}")
+    outline = 6 if PREMIUM_CAPTIONS else 4
+    shadow = 2
+
+    # Determine positioning
+    accent_code = ACCENT_COLOR_MAP.get(CAPTION_ACCENT, "&H0000FFFF&")
+    gaming_split_active = os.getenv("CLIPPEDAI_GAMING_SPLIT", "1").strip().lower() in {"1", "true", "yes", "on"}
+    preset = CAPTION_PRESET.strip().lower()
+    if preset in ("center_seam", "split"):
+        alignment = 2
+        margin_v = 920
+    elif preset in ("lower_safe", "lower"):
+        alignment = 2
+        margin_v = 300
+    elif preset in ("top_safe", "top"):
+        alignment = 8
+        margin_v = 240
+    elif preset == "custom":
+        alignment = 2
+        margin_v = CAPTION_MARGIN_V
+    else:
+        alignment = 2
+        margin_v = 920 if (gaming_split_active or SPLIT_SCREEN) else 300
+
+    print(f"  [Captions] {len(clip_words_local)} words -> {len(beats)} beats; font={font_name}, size={font_size}, preset={preset}, margin_v={margin_v}")
 
     ass_file = os.path.abspath(os.path.join(OUTPUT_DIR, "temp_subtitles.ass"))
     final_output = os.path.abspath(output_path.replace(".mp4", "_with_subtitles.mp4"))
@@ -1782,12 +1895,23 @@ def create_animated_subtitles(video_path, transcription, clip, output_path):
         "WrapStyle: 0\nScaledBorderAndShadow: yes\nYCbCr Matrix: TV.709\n\n"
         "[V4+ Styles]\n"
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
-        f"Style: Base,{font_name},{font_size},&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,70,70,300,1\n\n"
+        f"Style: Base,{font_name},{font_size},&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,{outline},{shadow},{alignment},60,60,{margin_v},1\n"
+        f"Style: SituationalCue,{font_name},{max(54, font_size - 4)},{accent_code},{accent_code},&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,{outline+1},{shadow},{alignment},60,60,{margin_v},1\n\n"
         "[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
     )
+    pop_tag = "{\\fscx85\\fscy85\\t(0,75,\\fscx108\\fscy108)\\t(75,140,\\fscx100\\fscy100)}" if PREMIUM_CAPTIONS else ""
     try:
         with open(ass_file, "w", encoding="utf-8-sig") as f:
             f.write(style_header)
+
+            # Insert situational action cues during pauses if enabled
+            if PREMIUM_CAPTIONS and SITUATIONAL_CUES:
+                clip_dur = float(clip.end_time - clip.start_time)
+                cues = _generate_situational_cues(beats, clip_dur)
+                cue_pop = "{\\fscx85\\fscy85\\t(0,80,\\fscx110\\fscy110)\\t(80,150,\\fscx100\\fscy100)}"
+                for cue in cues:
+                    f.write(_dialogue_line(ass_time(cue["start_time"]), ass_time(cue["end_time"]), "SituationalCue", 1, cue_pop + cue["text"]))
+
             for beat in beats:
                 lines = _wrap_caption_words(beat, max_width=900, font_size=font_size)
                 beat_start = max(0.0, float(beat[0]["start_time"]))
@@ -1800,9 +1924,9 @@ def create_animated_subtitles(video_path, transcription, clip, output_path):
                     line_texts = []
                     for line in lines:
                         local_active = next((i for i, item in enumerate(line) if item is active_word), None)
-                        line_texts.append(_caption_line_text(line, local_active))
+                        line_texts.append(_caption_line_text(line, local_active, accent_code=accent_code))
                     text = "\\N".join(line_texts)
-                    f.write(_dialogue_line(ass_time(start), ass_time(end), "Base", 0, text))
+                    f.write(_dialogue_line(ass_time(start), ass_time(end), "Base", 0, pop_tag + text))
 
         if not os.path.isfile(ass_file) or os.path.getsize(ass_file) < 200:
             raise RuntimeError("Caption ASS file was not created correctly.")
@@ -5882,11 +6006,104 @@ def _ffmpeg_filter_path(path_value: str) -> str:
     return value
 
 
+def _render_transparent_watermark_image(
+    text: str,
+    output_png_path: str,
+    opacity_pct: int = 35,
+    pos_preset: str = "center",
+    x_pct: float = 50.0,
+    y_pct: float = 50.0,
+    font_size_pct: int = 6,
+    angle: int = -20,
+    color: str = "#FFFFFF",
+    canvas_w: int = 1080,
+    canvas_h: int = 1920,
+) -> str:
+    """Generate a 1080x1920 RGBA transparent image with rotated, styled watermark text."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        return ""
+
+    img = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
+    font_size = max(24, round(canvas_w * font_size_pct / 100))
+    
+    font = None
+    for font_name in ["Montserrat-ExtraBold.ttf", "Montserrat Extra Bold.ttf", "arialbd.ttf", "arial.ttf", "seguiemb.ttf", "segoeui.ttf"]:
+        try:
+            for root in [FONT_DIR, os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")]:
+                fp = os.path.join(root, font_name)
+                if os.path.isfile(fp):
+                    font = ImageFont.truetype(fp, font_size)
+                    break
+            if font:
+                break
+        except Exception:
+            pass
+    if not font:
+        try:
+            font = ImageFont.load_default()
+        except Exception:
+            pass
+
+    c = color.lstrip('#')
+    if len(c) == 6:
+        r, g, b = int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16)
+    else:
+        r, g, b = 255, 255, 255
+    alpha = max(0, min(255, int(255 * (opacity_pct / 100.0))))
+    fill_color = (r, g, b, alpha)
+
+    dummy_draw = ImageDraw.Draw(img)
+    try:
+        bbox = dummy_draw.textbbox((0, 0), text, font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+    except Exception:
+        tw = len(text) * font_size * 0.6
+        th = font_size
+        bbox = (0, 0, tw, th)
+
+    margin = 50
+    preset_positions = {
+        "top-left": (margin, margin),
+        "top-center": ((canvas_w - tw) // 2, margin),
+        "top-right": (canvas_w - tw - margin, margin),
+        "center-left": (margin, (canvas_h - th) // 2),
+        "center": ((canvas_w - tw) // 2, (canvas_h - th) // 2),
+        "center-right": (canvas_w - tw - margin, (canvas_h - th) // 2),
+        "lower-middle": ((canvas_w - tw) // 2, int(canvas_h * 0.75)),
+        "bottom-left": (margin, canvas_h - th - margin - 100),
+        "bottom-center": ((canvas_w - tw) // 2, canvas_h - th - margin - 100),
+        "bottom-right": (canvas_w - tw - margin, canvas_h - th - margin - 100),
+        "custom": (int((canvas_w - tw) * (x_pct / 100.0)), int((canvas_h - th) * (y_pct / 100.0))),
+    }
+    target_pos = preset_positions.get(pos_preset, preset_positions["center"])
+
+    if angle != 0:
+        pad = 24
+        txt_img = Image.new("RGBA", (int(tw) + pad * 2, int(th) + pad * 2), (0, 0, 0, 0))
+        txt_draw = ImageDraw.Draw(txt_img)
+        txt_draw.text((pad - bbox[0], pad - bbox[1]), text, font=font, fill=fill_color)
+        rotated_txt = txt_img.rotate(angle, expand=True, resample=Image.BICUBIC)
+        rw, rh = rotated_txt.size
+        cx = target_pos[0] + tw // 2
+        cy = target_pos[1] + th // 2
+        img.paste(rotated_txt, (int(cx - rw // 2), int(cy - rh // 2)), rotated_txt)
+    else:
+        dummy_draw.text((target_pos[0] - bbox[0], target_pos[1] - bbox[1]), text, font=font, fill=fill_color)
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_png_path)), exist_ok=True)
+    img.save(output_png_path, "PNG")
+    return output_png_path
+
+
 def apply_optional_branding(input_video: str, output_video: str) -> str:
-    """Burn optional logo and/or static text overlay into the final 1080x1920 Short."""
+    """Burn optional logo, transparent watermark text, and/or static text overlay into the final 1080x1920 Short."""
     logo = _resolve_watermark_file(WATERMARK_PATH) if WATERMARK_ENABLED else None
     text = TEXT_OVERLAY if TEXT_ENABLED and TEXT_OVERLAY else ""
-    if not logo and not text:
+    wm_text = WATERMARK_TEXT if WATERMARK_TEXT_ENABLED and WATERMARK_TEXT else ""
+    if not logo and not text and not wm_text:
         return input_video
     ffmpeg = get_ffmpeg_path()
     filters = []
@@ -5909,8 +6126,27 @@ def apply_optional_branding(input_video: str, output_video: str) -> str:
         filters.append(logo_chain)
         filters.append(f"[{current}][wm]overlay=x={x}:y={y}:format=auto[v1]")
         current = "v1"
+    wm_png_file = None
+    if wm_text:
+        wm_png_file = os.path.join(OUTPUT_DIR, f"_wm_text_{os.getpid()}_{int(time.time()*1000)}.png")
+        _render_transparent_watermark_image(
+            text=wm_text,
+            output_png_path=wm_png_file,
+            opacity_pct=WATERMARK_TEXT_OPACITY,
+            pos_preset=WATERMARK_TEXT_POSITION,
+            x_pct=WATERMARK_TEXT_X,
+            y_pct=WATERMARK_TEXT_Y,
+            font_size_pct=WATERMARK_TEXT_SIZE,
+            angle=WATERMARK_TEXT_ANGLE,
+            color=WATERMARK_TEXT_COLOR,
+        )
+        wm_input_idx = len(inputs) // 2
+        inputs += ["-i", wm_png_file]
+        filters.append(f"[{current}][{wm_input_idx}:v]overlay=0:0:format=auto[v_wm]")
+        current = "v_wm"
+    text_file = None
     if text:
-        text_file = os.path.join(OUTPUT_DIR, "_branding_text.txt")
+        text_file = os.path.join(OUTPUT_DIR, f"_branding_text_{os.getpid()}.txt")
         Path(text_file).write_text(text, encoding="utf-8")
         font_path = _caption_font_path()
         escaped_font_path = _ffmpeg_filter_path(font_path) if font_path else ""
@@ -5929,10 +6165,12 @@ def apply_optional_branding(input_video: str, output_video: str) -> str:
     fc = ";".join(filters)
     cmd = [ffmpeg, "-y", *inputs, "-filter_complex", fc, "-map", f"[{current}]", "-map", "0:a?", "-c:v", "libx264", "-preset", "fast", "-crf", "21", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", output_video]
     proc = _run_hidden(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
-    try:
-        Path(text_file).unlink()
-    except Exception:
-        pass
+    if text_file:
+        try: Path(text_file).unlink()
+        except Exception: pass
+    if wm_png_file:
+        try: Path(wm_png_file).unlink()
+        except Exception: pass
     if proc.returncode != 0 or not os.path.exists(output_video) or os.path.getsize(output_video) < 1024:
         raise RuntimeError(f"Branding render failed: {proc.stderr[-1800:]}")
     return output_video

@@ -612,6 +612,35 @@ function updatePreview(){
       +$('#textMargin').value
     );
   }
+
+  const wm = $('#previewWatermark');
+  if(wm){
+    const wmEnabled = $('#watermarkTextEnabled')?.checked || false;
+    const wmText = ($('#watermarkTextInput')?.value || '').trim();
+    if(wmEnabled && wmText){
+      wm.style.display = 'block';
+      wm.textContent = wmText;
+      const opacity = (+($('#watermarkTextOpacity')?.value || 35)) / 100;
+      const angle = +($('#watermarkTextAngle')?.value || -20);
+      const sizePct = +($('#watermarkTextSize')?.value || 6);
+      const color = $('#watermarkTextColor')?.value || '#FFFFFF';
+      const pos = $('#watermarkTextPosition')?.value || 'center';
+      wm.style.opacity = opacity;
+      wm.style.color = color;
+      wm.style.fontSize = Math.max(12, Math.round(280 * (sizePct / 100))) + 'px';
+      wm.style.transform = `rotate(${angle}deg)`;
+
+      if(pos === 'custom'){
+        const xPct = +($('#watermarkTextX')?.value || 50);
+        const yPct = +($('#watermarkTextY')?.value || 50);
+        applyCustom(wm, xPct, yPct);
+      }else{
+        applyPresetPosition(wm, pos, 40);
+      }
+    }else{
+      wm.style.display = 'none';
+    }
+  }
 }
 
 function beginDrag(el,e){
@@ -1152,7 +1181,46 @@ function selectedBranding(){
       +($('#previewText')?.dataset.x||50),
 
     text_y:
-      +($('#previewText')?.dataset.y||75)
+      +($('#previewText')?.dataset.y||75),
+
+    watermark_text_enabled:
+      $('#watermarkTextEnabled')?.checked || false,
+
+    watermark_text:
+      $('#watermarkTextInput')?.value || '',
+
+    watermark_text_position:
+      $('#watermarkTextPosition')?.value || 'center',
+
+    watermark_text_size:
+      +($('#watermarkTextSize')?.value || 6),
+
+    watermark_text_opacity:
+      +($('#watermarkTextOpacity')?.value || 35),
+
+    watermark_text_angle:
+      +($('#watermarkTextAngle')?.value || -20),
+
+    watermark_text_color:
+      $('#watermarkTextColor')?.value || '#FFFFFF',
+
+    watermark_text_x:
+      +($('#watermarkTextX')?.value || 50),
+
+    watermark_text_y:
+      +($('#watermarkTextY')?.value || 50),
+
+    premium_captions:
+      $('#premiumCaptionsToggle')?.checked ?? true,
+
+    situational_cues:
+      $('#situationalCuesToggle')?.checked ?? true,
+
+    caption_preset:
+      $('#captionPresetSelect')?.value || 'center_seam',
+
+    caption_accent:
+      $('#captionAccentSelect')?.value || 'gold_yellow'
   };
 }
 
@@ -1265,6 +1333,26 @@ async function start(){
   form.append(
     'fast_whisper',
     $('#fastWhisperToggle')?.checked ? '1' : '0'
+  );
+
+  form.append(
+    'premium_captions',
+    $('#premiumCaptionsToggle')?.checked ? '1' : '0'
+  );
+
+  form.append(
+    'situational_cues',
+    $('#situationalCuesToggle')?.checked ? '1' : '0'
+  );
+
+  form.append(
+    'caption_preset',
+    $('#captionPresetSelect')?.value || 'center_seam'
+  );
+
+  form.append(
+    'caption_accent',
+    $('#captionAccentSelect')?.value || 'gold_yellow'
   );
 
   form.append(
@@ -2829,3 +2917,321 @@ function initAIModelManagement() {
 }
 
 initAIModelManagement();
+initWatermarkAndCaptionsUI();
+initBetaTestingSection();
+
+// --- Watermark & Caption UI Setup ---
+function initWatermarkAndCaptionsUI() {
+  const premToggle = $('#premiumCaptionsToggle');
+  const premDrawer = $('#premiumCaptionDrawer');
+  if (premToggle && premDrawer) {
+    premToggle.addEventListener('change', () => {
+      premDrawer.style.display = premToggle.checked ? 'block' : 'none';
+    });
+  }
+
+  const wmToggle = $('#watermarkTextEnabled');
+  const wmDrawer = $('#watermarkControlsDrawer');
+  if (wmToggle && wmDrawer) {
+    wmToggle.addEventListener('change', () => {
+      wmDrawer.style.display = wmToggle.checked ? 'block' : 'none';
+      updatePreview();
+    });
+  }
+
+  const wmPos = $('#watermarkTextPosition');
+  const wmCoords = $('#watermarkCustomCoords');
+  if (wmPos && wmCoords) {
+    wmPos.addEventListener('change', () => {
+      wmCoords.style.display = wmPos.value === 'custom' ? 'grid' : 'none';
+      updatePreview();
+    });
+  }
+
+  const bindSlider = (sliderId, outId, suffix = '') => {
+    const s = $(sliderId);
+    const o = $(outId);
+    if (s && o) {
+      s.addEventListener('input', () => {
+        o.textContent = s.value + suffix;
+        updatePreview();
+      });
+    }
+  };
+
+  bindSlider('#watermarkTextOpacity', '#watermarkTextOpacityOut', '%');
+  bindSlider('#watermarkTextAngle', '#watermarkTextAngleOut', '°');
+  bindSlider('#watermarkTextSize', '#watermarkTextSizeOut', '%');
+  bindSlider('#watermarkTextX', '#watermarkTextXOut', '%');
+  bindSlider('#watermarkTextY', '#watermarkTextYOut', '%');
+
+  ['#watermarkTextInput', '#watermarkTextColor', '#captionPresetSelect', '#captionAccentSelect'].forEach(sel => {
+    $(sel)?.addEventListener('input', updatePreview);
+  });
+}
+
+// --- Beta Testing Section Controller ---
+function initBetaTestingSection() {
+  const dropZone = $('#betaDropZone');
+  const fileInput = $('#betaFileInput');
+  const ytUrl = $('#betaYtUrl');
+  const ytImportBtn = $('#betaYtImportBtn');
+  const sourceInfo = $('#betaSourceInfo');
+  const sourceName = $('#betaSourceName');
+  const sourceMeta = $('#betaSourceMeta');
+  const clearSource = $('#betaClearSource');
+  const runBtn = $('#betaRunPipelineBtn');
+  const progressBox = $('#betaProgressBox');
+  const progressBar = $('#betaProgressBar');
+  const progressPct = $('#betaProgressPct');
+  const stageText = $('#betaStageText');
+  const logBox = $('#betaLog');
+  const resultVideo = $('#betaResultVideo');
+  const placeholder = $('#betaPlaceholder');
+  const clipSwitcher = $('#betaClipSwitcher');
+  const downloadBtn = $('#betaDownloadBtn');
+  const openInEditorBtn = $('#betaOpenInEditor');
+
+  let betaState = {
+    sourceFile: null,
+    jobId: null,
+    running: false,
+    outputs: [],
+    selectedClip: null,
+  };
+
+  const bindBetaSlider = (sliderId, outId, suffix = '') => {
+    const s = $(sliderId);
+    const o = $(outId);
+    if (s && o) {
+      s.addEventListener('input', () => { o.textContent = s.value + suffix; });
+    }
+  };
+  bindBetaSlider('#betaWmOpacity', '#betaWmOpacityOut', '%');
+  bindBetaSlider('#betaWmAngle', '#betaWmAngleOut', '°');
+
+  if (dropZone && fileInput) {
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#ffffff'; });
+    dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = 'rgba(255,255,255,0.18)'; });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = 'rgba(255,255,255,0.18)';
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleBetaFile(e.dataTransfer.files[0]);
+      }
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files && fileInput.files[0]) {
+        handleBetaFile(fileInput.files[0]);
+      }
+    });
+  }
+
+  async function handleBetaFile(file) {
+    betaState.sourceFile = file;
+    betaState.jobId = null;
+    dropZone.style.display = 'none';
+    sourceInfo.style.display = 'flex';
+    sourceName.textContent = file.name;
+    sourceMeta.textContent = `${(file.size / (1024 * 1024)).toFixed(1)} MB · Local Upload`;
+  }
+
+  if (clearSource) {
+    clearSource.addEventListener('click', () => {
+      betaState.sourceFile = null;
+      betaState.jobId = null;
+      dropZone.style.display = 'block';
+      sourceInfo.style.display = 'none';
+      if (fileInput) fileInput.value = '';
+    });
+  }
+
+  if (ytImportBtn && ytUrl) {
+    ytImportBtn.addEventListener('click', async () => {
+      const url = ytUrl.value.trim();
+      if (!url) return alert('Enter a valid YouTube URL first.');
+      ytImportBtn.disabled = true;
+      ytImportBtn.textContent = 'Fetching...';
+      try {
+        const res = await fetch('/api/import-youtube', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to import YouTube video');
+        betaState.jobId = data.job_id;
+        betaState.sourceFile = null;
+        dropZone.style.display = 'none';
+        sourceInfo.style.display = 'flex';
+        sourceName.textContent = data.title || 'YouTube Video';
+        sourceMeta.textContent = `Project ${data.job_id} · Imported from YouTube`;
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        ytImportBtn.disabled = false;
+        ytImportBtn.textContent = 'Fetch Link';
+      }
+    });
+  }
+
+  if (runBtn) {
+    runBtn.addEventListener('click', async () => {
+      if (!betaState.sourceFile && !betaState.jobId) {
+        alert('Please select a video file or fetch a YouTube link first.');
+        return;
+      }
+      runBtn.disabled = true;
+      progressBox.style.display = 'block';
+      progressBar.style.width = '3%';
+      progressPct.textContent = '3%';
+      stageText.textContent = 'Uploading / Preparing workspace...';
+      logBox.textContent = '[Beta] Initializing run...\n';
+
+      try {
+        if (!betaState.jobId && betaState.sourceFile) {
+          const upForm = new FormData();
+          upForm.append('video', betaState.sourceFile);
+          const upRes = await fetch('/api/upload', { method: 'POST', body: upForm });
+          const upData = await upRes.json();
+          if (!upRes.ok || !upData.job_id) throw new Error(upData.error || 'Failed to upload video');
+          betaState.jobId = upData.job_id;
+          logBox.textContent += `[Upload] Created project ${betaState.jobId}\n`;
+        }
+
+        const layout = $('#betaLayout')?.value || 'gaming_split';
+        const splitScreen = layout !== 'normal' ? '1' : '0';
+        const gamingSplit = layout === 'gaming_split' ? '1' : '0';
+
+        const brandingPayload = {
+          watermark_text_enabled: $('#betaWatermarkEnabled')?.checked || false,
+          watermark_text: $('#betaWatermarkText')?.value || '',
+          watermark_text_position: $('#betaWatermarkPosition')?.value || 'center',
+          watermark_text_opacity: +($('#betaWmOpacity')?.value || 35),
+          watermark_text_angle: +($('#betaWmAngle')?.value || -20),
+          watermark_text_size: 6,
+          watermark_text_color: '#FFFFFF',
+          premium_captions: $('#betaPremiumCaptions')?.checked ?? true,
+          situational_cues: $('#betaSituationalCues')?.checked ?? true,
+          caption_preset: $('#betaCaptionPreset')?.value || 'center_seam',
+          caption_accent: $('#betaCaptionAccent')?.value || 'gold_yellow',
+        };
+
+        const startPayload = {
+          job_id: betaState.jobId,
+          mode: 'viral',
+          clips: $('#betaClipsCount')?.value || 2,
+          min_duration: 25,
+          max_duration: 60,
+          split_screen: splitScreen,
+          gaming_split: gamingSplit,
+          fast_whisper: '1',
+          branding: brandingPayload,
+          premium_captions: $('#betaPremiumCaptions')?.checked ?? true,
+          situational_cues: $('#betaSituationalCues')?.checked ?? true,
+          caption_preset: $('#betaCaptionPreset')?.value || 'center_seam',
+          caption_accent: $('#betaCaptionAccent')?.value || 'gold_yellow',
+        };
+
+        const startRes = await fetch('/api/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(startPayload)
+        });
+        const startData = await startRes.json();
+        if (!startRes.ok || !startData.ok) throw new Error(startData.error || 'Failed to start pipeline');
+
+        logBox.textContent += `[Pipeline] Job ${betaState.jobId} started with Premium Captions & Watermark...\n`;
+
+        const sse = new EventSource(`/api/events/${betaState.jobId}`);
+        sse.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'progress') {
+              const pct = Math.min(100, Math.max(0, parseInt(data.progress || 0)));
+              progressBar.style.width = `${pct}%`;
+              progressPct.textContent = `${pct}%`;
+              if (data.stage) stageText.textContent = data.stage;
+            } else if (data.type === 'log') {
+              logBox.textContent += `${data.text}\n`;
+              logBox.scrollTop = logBox.scrollHeight;
+            } else if (data.type === 'complete') {
+              sse.close();
+              progressBar.style.width = '100%';
+              progressPct.textContent = '100%';
+              stageText.textContent = 'Finished rendering all Shorts!';
+              runBtn.disabled = false;
+              loadBetaOutputs(betaState.jobId);
+            } else if (data.type === 'error') {
+              sse.close();
+              runBtn.disabled = false;
+              stageText.textContent = 'Pipeline error';
+              logBox.textContent += `[Error] ${data.text}\n`;
+            }
+          } catch (_) {}
+        };
+        sse.onerror = () => {
+          sse.close();
+          runBtn.disabled = false;
+        };
+
+      } catch (err) {
+        alert(err.message);
+        runBtn.disabled = false;
+        stageText.textContent = 'Run failed';
+      }
+    });
+  }
+
+  async function loadBetaOutputs(jobId) {
+    try {
+      const res = await fetch(`/api/job/${jobId}`);
+      const data = await res.json();
+      const outputs = data.outputs || [];
+      if (!outputs.length) {
+        logBox.textContent += '[Warning] No outputs returned.\n';
+        return;
+      }
+      betaState.outputs = outputs;
+      clipSwitcher.innerHTML = '';
+      outputs.forEach((filename, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `ghost ${idx === 0 ? 'active' : ''}`;
+        btn.style.padding = '5px 12px';
+        btn.style.fontSize = '0.78rem';
+        btn.textContent = `Short #${idx + 1} (${filename})`;
+        btn.addEventListener('click', () => {
+          $$('#betaClipSwitcher button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          playBetaClip(jobId, filename);
+        });
+        clipSwitcher.appendChild(btn);
+      });
+
+      playBetaClip(jobId, outputs[0]);
+    } catch (err) {
+      logBox.textContent += `[Error] Failed to fetch job outputs: ${err.message}\n`;
+    }
+  }
+
+  function playBetaClip(jobId, filename) {
+    betaState.selectedClip = filename;
+    const url = `/media/${jobId}/${encodeURIComponent(filename)}`;
+    placeholder.style.display = 'none';
+    resultVideo.style.display = 'block';
+    resultVideo.src = url;
+    resultVideo.load();
+    resultVideo.play().catch(() => {});
+
+    downloadBtn.href = `${url}?download=1`;
+    downloadBtn.style.pointerEvents = 'auto';
+    downloadBtn.style.opacity = '1';
+
+    openInEditorBtn.disabled = false;
+    openInEditorBtn.onclick = () => {
+      window.location.hash = `#editor?video=${encodeURIComponent(url)}&title=${encodeURIComponent(filename)}`;
+    };
+  }
+}

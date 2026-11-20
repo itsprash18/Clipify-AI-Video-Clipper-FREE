@@ -523,14 +523,30 @@ class Installer extends EventEmitter {
       if (process.platform === 'win32' && !path.isAbsolute(command)) {
         const cmdLower = command.toLowerCase();
         if (cmdLower === 'powershell.exe' || cmdLower === 'powershell') {
-          const fullPs = path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-          if (fs.existsSync(fullPs)) execCmd = fullPs;
+          const psCandidates = [
+            path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+            path.join(systemRoot, 'SysWOW64', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+            path.join(systemRoot, 'System32', 'powershell.exe'),
+          ];
+          for (const cand of psCandidates) {
+            if (fs.existsSync(cand)) { execCmd = cand; break; }
+          }
         } else if (cmdLower === 'tar.exe' || cmdLower === 'tar') {
-          const fullTar = path.join(systemRoot, 'System32', 'tar.exe');
-          if (fs.existsSync(fullTar)) execCmd = fullTar;
+          const tarCandidates = [
+            path.join(systemRoot, 'System32', 'tar.exe'),
+            path.join(systemRoot, 'SysWOW64', 'tar.exe'),
+          ];
+          for (const cand of tarCandidates) {
+            if (fs.existsSync(cand)) { execCmd = cand; break; }
+          }
         } else if (cmdLower === 'cmd.exe' || cmdLower === 'cmd') {
-          const fullCmd = path.join(systemRoot, 'System32', 'cmd.exe');
-          if (fs.existsSync(fullCmd)) execCmd = fullCmd;
+          const cmdCandidates = [
+            path.join(systemRoot, 'System32', 'cmd.exe'),
+            path.join(systemRoot, 'SysWOW64', 'cmd.exe'),
+          ];
+          for (const cand of cmdCandidates) {
+            if (fs.existsSync(cand)) { execCmd = cand; break; }
+          }
         }
       }
 
@@ -923,8 +939,15 @@ class Installer extends EventEmitter {
       if (unpackResult.code !== 0 || !fs.existsSync(path.join(packageRoot, 'python.exe'))) {
         this.log('PowerShell archive extraction failed or did not yield python.exe, trying fallback extraction with tar.exe...');
         const systemRoot = process.env.SystemRoot || process.env.WINDIR || 'C:\\Windows';
-        const tarExe = path.join(systemRoot, 'System32', 'tar.exe');
-        if (fs.existsSync(tarExe)) {
+        const tarCandidates = [
+          path.join(systemRoot, 'System32', 'tar.exe'),
+          path.join(systemRoot, 'SysWOW64', 'tar.exe'),
+        ];
+        let tarExe = null;
+        for (const cand of tarCandidates) {
+          if (fs.existsSync(cand)) { tarExe = cand; break; }
+        }
+        if (tarExe) {
           const tarResult = await this.runProcess(tarExe, ['-xf', archive, '-C', unpackDir], { timeoutMs: 5 * 60 * 1000 });
           this.log(`tar fallback extraction completed with exit code ${tarResult.code}`);
         }

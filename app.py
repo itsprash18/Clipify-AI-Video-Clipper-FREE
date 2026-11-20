@@ -879,18 +879,111 @@ def _ffmpeg_filter_path(path_value: str) -> str:
     return value
 
 
+def _render_transparent_watermark_image(
+    text: str,
+    output_png_path: str,
+    opacity_pct: int = 35,
+    pos_preset: str = "center",
+    x_pct: float = 50.0,
+    y_pct: float = 50.0,
+    font_size_pct: int = 6,
+    angle: int = -20,
+    color: str = "#FFFFFF",
+    canvas_w: int = 1080,
+    canvas_h: int = 1920,
+) -> str:
+    """Generate a 1080x1920 RGBA transparent image with rotated, styled watermark text."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        return ""
+
+    img = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
+    font_size = max(24, round(canvas_w * font_size_pct / 100))
+
+    font = None
+    for font_name in ["Montserrat-ExtraBold.ttf", "Montserrat Extra Bold.ttf", "arialbd.ttf", "arial.ttf", "seguiemb.ttf", "segoeui.ttf"]:
+        try:
+            for root in [str(ROOT / "fonts"), os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")]:
+                fp = os.path.join(root, font_name)
+                if os.path.isfile(fp):
+                    font = ImageFont.truetype(fp, font_size)
+                    break
+            if font:
+                break
+        except Exception:
+            pass
+    if not font:
+        try:
+            font = ImageFont.load_default()
+        except Exception:
+            pass
+
+    c = color.lstrip('#')
+    if len(c) == 6:
+        r, g, b = int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16)
+    else:
+        r, g, b = 255, 255, 255
+    alpha = max(0, min(255, int(255 * (opacity_pct / 100.0))))
+    fill_color = (r, g, b, alpha)
+
+    dummy_draw = ImageDraw.Draw(img)
+    try:
+        bbox = dummy_draw.textbbox((0, 0), text, font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+    except Exception:
+        tw = len(text) * font_size * 0.6
+        th = font_size
+        bbox = (0, 0, tw, th)
+
+    margin = 50
+    preset_positions = {
+        "top-left": (margin, margin),
+        "top-center": ((canvas_w - tw) // 2, margin),
+        "top-right": (canvas_w - tw - margin, margin),
+        "center-left": (margin, (canvas_h - th) // 2),
+        "center": ((canvas_w - tw) // 2, (canvas_h - th) // 2),
+        "center-right": (canvas_w - tw - margin, (canvas_h - th) // 2),
+        "lower-middle": ((canvas_w - tw) // 2, int(canvas_h * 0.75)),
+        "bottom-left": (margin, canvas_h - th - margin - 100),
+        "bottom-center": ((canvas_w - tw) // 2, canvas_h - th - margin - 100),
+        "bottom-right": (canvas_w - tw - margin, canvas_h - th - margin - 100),
+        "custom": (int((canvas_w - tw) * (x_pct / 100.0)), int((canvas_h - th) * (y_pct / 100.0))),
+    }
+    target_pos = preset_positions.get(pos_preset, preset_positions["center"])
+
+    if angle != 0:
+        pad = 24
+        txt_img = Image.new("RGBA", (int(tw) + pad * 2, int(th) + pad * 2), (0, 0, 0, 0))
+        txt_draw = ImageDraw.Draw(txt_img)
+        txt_draw.text((pad - bbox[0], pad - bbox[1]), text, font=font, fill=fill_color)
+        rotated_txt = txt_img.rotate(angle, expand=True, resample=Image.BICUBIC)
+        rw, rh = rotated_txt.size
+        cx = target_pos[0] + tw // 2
+        cy = target_pos[1] + th // 2
+        img.paste(rotated_txt, (int(cx - rw // 2), int(cy - rh // 2)), rotated_txt)
+    else:
+        dummy_draw.text((target_pos[0] - bbox[0], target_pos[1] - bbox[1]), text, font=font, fill=fill_color)
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_png_path)), exist_ok=True)
+    img.save(output_png_path, "PNG")
+    return output_png_path
+
+
 def apply_branding_to_file(input_video: str, output_video: str, branding: dict[str, Any], font_name: str = "Arial") -> None:
-    """Apply logo/text branding and camera/framing adjustments to an already-rendered Short without rerunning AI."""
+    """Apply logo/watermark text/custom text branding and camera/framing adjustments to an already-rendered Short without rerunning AI."""
     ffmpeg = _ffmpeg_path()
     logo = _resolve_logo(str(branding.get("logo_path", ""))) if branding.get("logo_enabled") else None
     text = str(branding.get("text", "")).strip() if branding.get("text_enabled") else ""
+    wm_text = str(branding.get("watermark_text", "")).strip() if branding.get("watermark_text_enabled") else ""
     framing = branding.get("framing") if isinstance(branding.get("framing"), dict) else {}
     pan_x = max(-50.0, min(50.0, float(framing.get("pan_x", 0.0))))
     pan_y = max(-50.0, min(50.0, float(framing.get("pan_y", 0.0))))
     zoom = max(1.0, min(2.5, float(framing.get("zoom", 1.0))))
     has_framing = (abs(pan_x) > 0.01 or abs(pan_y) > 0.01 or zoom > 1.01)
 
-    if not logo and not text and not has_framing:
+    if not logo and not text and not wm_text and not has_framing:
         shutil.copy2(input_video, output_video)
         return
 
@@ -935,6 +1028,25 @@ def apply_branding_to_file(input_video: str, output_video: str, branding: dict[s
         filters.append(f"[{current}][wm]overlay=x={x}:y={y}:format=auto[vlogo]")
         current = "vlogo"
 
+    wm_png_file = None
+    if wm_text:
+        wm_png_file = str(Path(output_video).with_name(f"_wm_text_{int(time.time()*1000)}.png"))
+        _render_transparent_watermark_image(
+            text=wm_text,
+            output_png_path=wm_png_file,
+            opacity_pct=max(0, min(100, int(branding.get("watermark_text_opacity", 35)))),
+            pos_preset=str(branding.get("watermark_text_position", "center")),
+            x_pct=max(0, min(100, float(branding.get("watermark_text_x", 50)))),
+            y_pct=max(0, min(100, float(branding.get("watermark_text_y", 50)))),
+            font_size_pct=max(3, min(20, int(branding.get("watermark_text_size", 6)))),
+            angle=max(-45, min(45, int(branding.get("watermark_text_angle", -20)))),
+            color=str(branding.get("watermark_text_color", "#FFFFFF")),
+        )
+        wm_idx = len(inputs) // 2
+        inputs += ["-i", wm_png_file]
+        filters.append(f"[{current}][{wm_idx}:v]overlay=0:0:format=auto[v_wm]")
+        current = "v_wm"
+
     temp_text = None
     if text:
         temp_text = str(Path(output_video).with_name("_editor_text.txt"))
@@ -962,6 +1074,9 @@ def apply_branding_to_file(input_video: str, output_video: str, branding: dict[s
     proc = _run_hidden(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
     if temp_text:
         try: Path(temp_text).unlink()
+        except OSError: pass
+    if wm_png_file:
+        try: Path(wm_png_file).unlink()
         except OSError: pass
     if proc.returncode != 0 or not Path(output_video).exists() or Path(output_video).stat().st_size < 1024:
         raise RuntimeError(f"Branding render failed: {proc.stderr[-1800:]}")
@@ -1054,6 +1169,19 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
         "CLIPPEDAI_TEXT_MARGIN": str(branding.get("text_margin", 110)),
         "CLIPPEDAI_TEXT_X": str(branding.get("text_x", 50)),
         "CLIPPEDAI_TEXT_Y": str(branding.get("text_y", 75)),
+        "CLIPPEDAI_PREMIUM_CAPTIONS": "1" if branding.get("premium_captions", True) else "0",
+        "CLIPPEDAI_SITUATIONAL_CUES": "1" if branding.get("situational_cues", True) else "0",
+        "CLIPPEDAI_CAPTION_PRESET": str(branding.get("caption_preset", "center_seam" if (gaming_split or split_screen) else "lower_safe")),
+        "CLIPPEDAI_CAPTION_ACCENT": str(branding.get("caption_accent", "gold_yellow")),
+        "CLIPPEDAI_WATERMARK_TEXT_ENABLED": "1" if branding.get("watermark_text_enabled") else "0",
+        "CLIPPEDAI_WATERMARK_TEXT": str(branding.get("watermark_text", "")),
+        "CLIPPEDAI_WATERMARK_TEXT_POSITION": str(branding.get("watermark_text_position", "center")),
+        "CLIPPEDAI_WATERMARK_TEXT_SIZE": str(branding.get("watermark_text_size", 6)),
+        "CLIPPEDAI_WATERMARK_TEXT_OPACITY": str(branding.get("watermark_text_opacity", 35)),
+        "CLIPPEDAI_WATERMARK_TEXT_ANGLE": str(branding.get("watermark_text_angle", -20)),
+        "CLIPPEDAI_WATERMARK_TEXT_COLOR": str(branding.get("watermark_text_color", "#FFFFFF")),
+        "CLIPPEDAI_WATERMARK_TEXT_X": str(branding.get("watermark_text_x", 50)),
+        "CLIPPEDAI_WATERMARK_TEXT_Y": str(branding.get("watermark_text_y", 50)),
         "CLIPPEDAI_SPLIT_SCREEN": "1" if split_screen else "0",
         "CLIPPEDAI_GAMING_SPLIT": "1" if gaming_split else "0",
         "CLIPPEDAI_FAST_WHISPER": "1" if fast_whisper else "0",
@@ -2390,6 +2518,19 @@ def start():
         "text_margin": max(20, min(500, int(branding_raw.get("text_margin", 110)))),
         "text_x": max(0, min(100, float(branding_raw.get("text_x", 50)))),
         "text_y": max(0, min(100, float(branding_raw.get("text_y", 75)))),
+        "watermark_text_enabled": bool(branding_raw.get("watermark_text_enabled", False)),
+        "watermark_text": str(branding_raw.get("watermark_text", "")).strip()[:100],
+        "watermark_text_position": str(branding_raw.get("watermark_text_position", "center")),
+        "watermark_text_size": max(3, min(20, int(branding_raw.get("watermark_text_size", 6)))),
+        "watermark_text_opacity": max(0, min(100, int(branding_raw.get("watermark_text_opacity", 35)))),
+        "watermark_text_angle": max(-45, min(45, int(branding_raw.get("watermark_text_angle", -20)))),
+        "watermark_text_color": "#" + _hex6(str(branding_raw.get("watermark_text_color", "#FFFFFF"))),
+        "watermark_text_x": max(0, min(100, float(branding_raw.get("watermark_text_x", 50)))),
+        "watermark_text_y": max(0, min(100, float(branding_raw.get("watermark_text_y", 50)))),
+        "premium_captions": bool(branding_raw.get("premium_captions", data.get("premium_captions", True))),
+        "situational_cues": bool(branding_raw.get("situational_cues", data.get("situational_cues", True))),
+        "caption_preset": str(branding_raw.get("caption_preset", data.get("caption_preset", "center_seam" if (gaming_split or split_screen) else "lower_safe"))),
+        "caption_accent": str(branding_raw.get("caption_accent", data.get("caption_accent", "gold_yellow"))),
     }
     if branding["logo_position"] not in BRANDING_POSITIONS:
         branding["logo_position"] = "top-right"
@@ -2452,6 +2593,15 @@ def apply_branding(job_id: str):
         "text_margin": max(20, min(500, int(b.get("text_margin", 110)))),
         "text_x": max(0, min(100, float(b.get("text_x", 50)))),
         "text_y": max(0, min(100, float(b.get("text_y", 75)))),
+        "watermark_text_enabled": bool(b.get("watermark_text_enabled", False)),
+        "watermark_text": str(b.get("watermark_text", "")).strip()[:100],
+        "watermark_text_position": str(b.get("watermark_text_position", "center")),
+        "watermark_text_size": max(3, min(20, int(b.get("watermark_text_size", 6)))),
+        "watermark_text_opacity": max(0, min(100, int(b.get("watermark_text_opacity", 35)))),
+        "watermark_text_angle": max(-45, min(45, int(b.get("watermark_text_angle", -20)))),
+        "watermark_text_color": "#" + _hex6(str(b.get("watermark_text_color", "#FFFFFF"))),
+        "watermark_text_x": max(0, min(100, float(b.get("watermark_text_x", 50)))),
+        "watermark_text_y": max(0, min(100, float(b.get("watermark_text_y", 50)))),
     }
     framing_raw = data.get("framing") if isinstance(data.get("framing"), dict) else (b.get("framing") if isinstance(b.get("framing"), dict) else {})
     branding["framing"] = {

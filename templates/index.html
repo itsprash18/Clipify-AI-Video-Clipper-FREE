@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Clipify AI</title><link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png', v='4.0.4') }}"><link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='4.0.4') }}"><link rel="stylesheet" href="{{ url_for('static', filename='studio.css', v='4.0.4') }}"><link rel="stylesheet" href="{{ url_for('static', filename='tour.css', v='4.0.4') }}">
+  <title>Clipify AI</title><link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png', v='4.0.5') }}"><link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='4.0.5') }}"><link rel="stylesheet" href="{{ url_for('static', filename='studio.css', v='4.0.5') }}"><link rel="stylesheet" href="{{ url_for('static', filename='tour.css', v='4.0.5') }}">
 </head>
 <body>
 <div class="aurora aurora-one"></div><div class="aurora aurora-two"></div><div class="aurora aurora-three"></div><div class="noise"></div>
@@ -36,6 +36,10 @@
     <a href="#assets" data-nav="assets">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h8a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3Zm0 2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1H8Zm2 2h4v2h-4V9Zm0 4h4v2h-4v-2Z"/></svg>
       <span>Assets</span>
+    </a>
+    <a href="#beta" data-nav="beta">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+      <span>Beta Testing</span> <span class="nav-beta-tag">BETA</span>
     </a>
   </nav>
   <button class="sidebar-tour-btn" type="button" onclick="window.startClipifyTour && window.startClipifyTour()"><span>💡</span> App Tour</button>
@@ -155,6 +159,34 @@
           <label class="toggle-row"><input type="checkbox" id="fastWhisperToggle" checked><span class="switch"></span><b>Fast Whisper (Turbo Generation)</b></label>
           <small>Accelerates transcription up to 10× with 16 threads. Turn off for High Accuracy / Deep Scan.</small>
         </div>
+        <div class="premium-caption-card" id="premiumCaptionCard" style="margin-top:12px;padding:12px 14px;border:1px solid rgba(255,255,255,0.12);border-radius:12px;background:rgba(255,255,255,0.02);">
+          <label class="toggle-row"><input type="checkbox" id="premiumCaptionsToggle" checked><span class="switch"></span><b>✨ Premium Caption Mode (Action Cues & Scale Pop)</b></label>
+          <small style="display:block;margin-top:4px;color:rgba(255,255,255,0.55);font-size:0.75rem;">Exact motion grammar of viral reaction shorts: heavy display typography, snappy scale-in pop, and situational asterisk cues.</small>
+          <div class="premium-caption-drawer" id="premiumCaptionDrawer" style="margin-top:10px;">
+            <div class="two">
+              <label>Placement Preset
+                <select id="captionPresetSelect">
+                  <option value="center_seam" selected>Center Seam (Split Layouts 48%-52%)</option>
+                  <option value="lower_safe">Lower Safe Band (Single Layout 72%-82%)</option>
+                  <option value="top_safe">Top Safe Band</option>
+                </select>
+              </label>
+              <label>Accent Color
+                <select id="captionAccentSelect">
+                  <option value="gold_yellow" selected>Gold Yellow</option>
+                  <option value="lime_green">Lime Green</option>
+                  <option value="cyan_sky">Cyan Sky</option>
+                  <option value="coral_red">Coral Red</option>
+                  <option value="pink_lavender">Pink Lavender</option>
+                </select>
+              </label>
+            </div>
+            <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);">
+              <label class="toggle-row compact"><input type="checkbox" id="situationalCuesToggle" checked><span class="switch"></span><b>Situational Action Cues (*ACTION CUE*)</b></label>
+              <small class="control-help" style="display:block;margin-top:4px;color:rgba(255,255,255,0.45);font-size:0.72rem;">Dynamically detects pauses and scene moments to insert bold asterisk cues like *REACTS*, *WATCH THIS*, etc.</small>
+            </div>
+          </div>
+        </div>
       </section>
       <section class="panel branding-panel">
         <div class="section-head"><div><span class="kicker">03</span><h2>Watermark & Branding</h2></div><span class="optional">OPTIONAL</span></div>
@@ -173,6 +205,38 @@
           <div class="logo-card"><div class="logo-preview">C</div><small>Small, subtle and positioned over the final 1080×1920 render.</small></div>
         </div>
       </section>
+      <section class="panel watermark-panel" id="watermarkPanel">
+        <div class="section-head"><div><span class="kicker">03B</span><h2>Add Watermark (Transparent Text)</h2></div><span class="optional">OPTIONAL</span></div>
+        <label class="toggle-row"><input type="checkbox" id="watermarkTextEnabled"><span class="switch"></span><b>Enable Watermark Text</b></label>
+        <div class="watermark-controls-drawer" id="watermarkControlsDrawer" style="display:none;margin-top:12px;">
+          <div class="two">
+            <label>Watermark text<input type="text" id="watermarkTextInput" placeholder="e.g. @YourHandle or Channel" maxlength="60"></label>
+            <label>Position preset
+              <select id="watermarkTextPosition">
+                <option value="center" selected>Center</option>
+                <option value="top-left">Top-Left</option>
+                <option value="top-right">Top-Right</option>
+                <option value="lower-middle">Lower-Middle</option>
+                <option value="bottom-center">Bottom-Center</option>
+                <option value="bottom-right">Bottom-Right</option>
+                <option value="custom">Custom (X/Y)</option>
+              </select>
+            </label>
+          </div>
+          <div class="two" id="watermarkCustomCoords" style="display:none;margin-top:8px;">
+            <div class="slider-row"><label>Position X <output id="watermarkTextXOut">50%</output></label><input id="watermarkTextX" type="range" min="0" max="100" value="50"></div>
+            <div class="slider-row"><label>Position Y <output id="watermarkTextYOut">50%</output></label><input id="watermarkTextY" type="range" min="0" max="100" value="50"></div>
+          </div>
+          <div class="two" style="margin-top:8px;">
+            <div class="slider-row"><label>Opacity <output id="watermarkTextOpacityOut">35%</output></label><input id="watermarkTextOpacity" type="range" min="5" max="100" value="35"></div>
+            <div class="slider-row"><label>Rotation Angle <output id="watermarkTextAngleOut">-20°</output></label><input id="watermarkTextAngle" type="range" min="-45" max="45" value="-20"></div>
+          </div>
+          <div class="two" style="margin-top:8px;">
+            <div class="slider-row"><label>Font Size <output id="watermarkTextSizeOut">6%</output></label><input id="watermarkTextSize" type="range" min="3" max="15" value="6"></div>
+            <label>Watermark Color<input id="watermarkTextColor" type="color" value="#FFFFFF"></label>
+          </div>
+        </div>
+      </section>
       <section class="panel text-panel">
         <div class="section-head"><div><span class="kicker">04</span><h2>Text Overlay</h2></div><span class="optional">OPTIONAL</span></div>
         <label class="toggle-row"><input type="checkbox" id="textEnabled"><span class="switch"></span><b>Enable Text Overlay</b></label>
@@ -185,7 +249,7 @@
       <button class="primary big" id="createBtn" disabled><span>Generate Shorts</span><b>→</b></button>
     </div>
     <aside class="preview-column">
-      <section class="panel preview-panel"><div class="preview-head"><div><span class="kicker">PREVIEW</span><h2>Output preview</h2></div><span class="format-pill">1080 × 1920 · 9:16</span></div><div class="preview-frame" id="previewFrame"><video id="sourcePreview" controls muted playsinline hidden></video><div class="preview-placeholder"><span>9:16</span><b>Your Short preview</b><small>Upload a video, then drag the logo/text.</small></div><div class="preview-logo draggable-overlay" id="previewLogo"><img id="previewLogoImg" alt="Logo preview"></div><div class="preview-text draggable-overlay" id="previewText">Your text</div><div class="drag-hint">Drag logo or text to position</div></div><div class="preview-meta" id="previewMeta">Upload a video to preview the source. Branding previews update instantly.</div><div class="preview-actions"><button class="ghost" id="previewReview">Open Editor</button><button class="ghost" id="openOutput2">Open Output</button></div></section>
+      <section class="panel preview-panel"><div class="preview-head"><div><span class="kicker">PREVIEW</span><h2>Output preview</h2></div><span class="format-pill">1080 × 1920 · 9:16</span></div><div class="preview-frame" id="previewFrame"><video id="sourcePreview" controls muted playsinline hidden></video><div class="preview-placeholder"><span>9:16</span><b>Your Short preview</b><small>Upload a video, then drag the logo/text.</small></div><div class="preview-logo draggable-overlay" id="previewLogo"><img id="previewLogoImg" alt="Logo preview"></div><div class="preview-text draggable-overlay" id="previewText">Your text</div><div class="preview-watermark-overlay" id="previewWatermark" style="display:none;position:absolute;pointer-events:none;z-index:4;font-family:inherit;font-weight:900;text-shadow:0 2px 8px rgba(0,0,0,0.6);white-space:nowrap;"></div><div class="drag-hint">Drag logo or text to position</div></div><div class="preview-meta" id="previewMeta">Upload a video to preview the source. Branding previews update instantly.</div><div class="preview-actions"><button class="ghost" id="previewReview">Open Editor</button><button class="ghost" id="openOutput2">Open Output</button></div></section>
     </aside>
   </div>
   <section class="panel progress-panel" id="progressPanel" data-state="idle" hidden>
@@ -214,6 +278,183 @@
 <section id="projects" class="page-section secondary-section"><header class="section-page-head"><div><span class="eyebrow">WORKSPACE</span><h1>Projects</h1><p>Local projects survive browser refreshes because they are read from the jobs folder.</p></div><button class="ghost" id="refreshProjects">↻ Refresh</button></header><div class="project-grid" id="projectList"><div class="empty-state">Loading projects…</div></div><section class="restore-section"><div class="section-page-head compact-head"><div><span class="eyebrow">RECOVERY</span><h2>Recently deleted</h2></div><button class="ghost" id="refreshTrash">↻ Refresh</button></div><div class="trash-list" id="trashList"><div class="empty-state">No deleted projects.</div></div></section></section>
 <section id="editor" class="page-section secondary-section"><header class="section-page-head"><div><span class="eyebrow">REVIEW & EDITOR</span><h1>Editor</h1><p>Brand a finished Short locally without rerunning WhisperX, ClipsAI or Qwen. Drag overlays directly on the video.</p></div></header><div class="editor-layout"><div class="panel editor-video"><div class="editor-preview-frame" id="editorPreviewFrame"><video id="reviewVideo" controls playsinline hidden></video><div id="reviewVideoStatus" class="review-video-status" role="status" aria-live="polite" hidden><span id="reviewVideoSpinner" class="review-video-spinner" aria-hidden="true"></span><span id="reviewVideoStatusText"></span></div><div id="editorLogo" class="editor-overlay editor-logo"><img id="editorLogoImg" alt="Logo"></div><div id="editorText" class="editor-overlay editor-text">Your text</div><div id="editorDragHint">Drag logo/text · changes are applied to the exported edit</div></div><div id="reviewEmpty" class="empty-state">Select a generated Short from Projects or Create.</div></div><div class="panel editor-info"><span class="kicker">POST-RENDER BRANDING</span><h2 id="reviewTitle">No Short selected</h2><p id="reviewMeta">1080 × 1920 · local render</p><div id="editorClipSwitcher" class="editor-clip-switcher" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 14px;" hidden></div><div class="editor-metadata" id="editorMetadata" hidden><b id="editorMetaDescription"></b><small id="editorSelectionNote" class="selection-note" hidden></small><div id="editorMetaHashtags"></div><small id="editorMetaTags"></small></div><div class="editor-control-stack"><div class="camera-framing-box" style="background:rgba(255,255,255,0.03);border:1px solid rgba(190,176,159,0.18);border-radius:12px;padding:12px;margin:10px 0;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span style="font-size:0.88rem;font-weight:700;color:var(--warm,#d6b388);">📐 Camera Framing & Zoom</span><button type="button" id="resetFramingBtn" style="background:none;border:1px solid rgba(190,176,159,0.3);color:var(--text);padding:3px 8px;border-radius:6px;font-size:0.75rem;cursor:pointer;">Reset Auto</button></div><div class="two"><label>Pan Horizontal (X)<input id="editorPanX" type="range" min="-50" max="50" value="0"><output id="editorPanXOut">0%</output></label><label>Pan Vertical (Y)<input id="editorPanY" type="range" min="-50" max="50" value="0"><output id="editorPanYOut">0%</output></label></div><div class="two"><label>Zoom Scale<input id="editorZoom" type="range" min="100" max="250" value="100"><output id="editorZoomOut">1.0x</output></label><label id="splitRatioField" style="display:none;">Split Ratio<input id="editorSplitRatio" type="range" min="30" max="70" value="50"><output id="editorSplitRatioOut">50%</output></label></div></div><label class="toggle-row"><input type="checkbox" id="editorLogoEnabled"><span class="switch"></span><b>Logo</b></label><div class="editor-actions"><a class="ghost" id="reviewDownload" href="#" download>Download ↓</a><button class="secondary" id="reviewPublish" type="button" style="background:rgba(215,187,148,0.18);border:1px solid rgba(215,187,148,0.4);color:var(--text);border-radius:10px;padding:9px 18px;font-weight:600;cursor:pointer;"><span>🚀 Share / Publish</span></button><button class="primary" id="applyEditorBranding" type="button"><span>Apply to Finished Short</span></button></div><label class="upload-logo-button"><input type="file" id="editorLogoInput" accept="image/png,image/jpeg,image/webp" hidden><span>＋ Upload logo</span></label><div class="two"><label>Logo size<input id="editorLogoSize" type="range" min="3" max="20" value="8"></label><label>Opacity<input id="editorLogoOpacity" type="range" min="10" max="100" value="80"></label></div><label class="toggle-row compact"><input type="checkbox" id="editorLogoBgRemove"><span class="switch"></span><b>Remove logo background</b></label><label>BG key color<input id="editorLogoBgColor" type="color" value="#9B5CFF"></label><label class="toggle-row"><input type="checkbox" id="editorTextEnabled"><span class="switch"></span><b>Text</b></label><textarea id="editorTextValue" maxlength="100" placeholder="Text overlay"></textarea><label>Text size<input id="editorTextSize" type="number" min="3" max="12" value="6"></label><label>Text color<input id="editorTextColor" type="color" value="#FFFFFF"></label><label class="toggle-row compact"><input type="checkbox" id="editorTextBg" checked><span class="switch"></span><b>Text background</b></label><label>BG color<input id="editorTextBgColor" type="color" value="#000000"></label><div class="slider-row"><label>BG opacity <output id="editorTextBgOpacityOut">65%</output></label><input id="editorTextBgOpacity" type="range" min="0" max="100" value="65"></div></div><button class="primary big" id="applyEditorBrandingMain" disabled><span>Apply to Finished Short</span><b>→</b></button><a id="reviewDownloadMain" class="download" href="#" hidden download>Download Short ↓</a><button class="ghost full" id="editorToCreate">← Back to Create</button></div></div></section>
 <section id="assets" class="page-section secondary-section"><header class="section-page-head"><div><span class="eyebrow">LOCAL FILES</span><h1>Assets</h1><p>Browse source videos, final Shorts and metadata stored inside each project.</p></div><button class="ghost" id="refreshAssets">↻ Refresh</button></header><div class="asset-toolbar"><select id="assetProject"><option value="">Choose a project</option></select></div><div class="asset-list panel" id="assetList"><div class="empty-state">Choose a project to load assets.</div></div></section>
+
+<section id="beta" class="page-section secondary-section">
+  <header class="section-page-head">
+    <div>
+      <span class="eyebrow" style="color:var(--accent);display:flex;align-items:center;gap:6px;"><span class="nav-beta-tag" style="font-size:0.68rem;padding:2px 6px;">BETA</span> END-TO-END PIPELINE WORKSPACE</span>
+      <h1>Beta Testing Lab</h1>
+      <p>Upload any video, configure layout & AI overlays, run the real pipeline, and review/download finished multi-clips in one seamless testing flow.</p>
+    </div>
+  </header>
+
+  <div class="beta-workspace-layout" style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(360px,0.8fr);gap:24px;margin-top:20px;">
+    <!-- Left Column: Step 1 (Upload) & Step 2 (AI Config & Execution) -->
+    <div class="beta-controls-col" style="display:flex;flex-direction:column;gap:18px;">
+      
+      <!-- Step 1 Card: Video Source -->
+      <div class="panel beta-card" style="padding:20px;border-radius:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="display:inline-grid;place-items:center;width:24px;height:24px;border-radius:6px;background:rgba(255,255,255,0.08);color:#fff;font-size:0.75rem;font-weight:700;">01</span>
+            <strong style="font-size:1rem;color:#ffffff;">Source Footage</strong>
+          </div>
+          <span style="font-size:0.75rem;color:var(--muted-2);">MP4 / MOV / MKV / YouTube</span>
+        </div>
+        
+        <div class="beta-upload-drop" id="betaDropZone" style="border:1.5px dashed rgba(255,255,255,0.18);border-radius:12px;padding:24px;text-align:center;cursor:pointer;background:rgba(255,255,255,0.015);transition:border-color 0.2s,background 0.2s;">
+          <input type="file" id="betaFileInput" accept="video/mp4,video/quicktime,video/x-matroska,video/webm" hidden>
+          <div style="font-size:1.8rem;margin-bottom:6px;">🎬</div>
+          <b style="display:block;font-size:0.92rem;color:#ffffff;">Drop source video here or click to browse</b>
+          <small style="display:block;margin-top:4px;color:var(--muted-2);font-size:0.78rem;">Files stay 100% local inside project workspace</small>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-top:14px;">
+          <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
+          <span style="font-size:0.75rem;color:var(--muted-2);text-transform:uppercase;">or YouTube link</span>
+          <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <input type="url" id="betaYtUrl" placeholder="https://www.youtube.com/watch?v=..." style="flex:1;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.3);color:#fff;font-size:0.88rem;">
+          <button type="button" class="ghost" id="betaYtImportBtn" style="white-space:nowrap;padding:0 16px;">Fetch Link</button>
+        </div>
+        
+        <div id="betaSourceInfo" style="display:none;margin-top:14px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="color:#88c995;">✓</span>
+            <div><b id="betaSourceName" style="font-size:0.85rem;color:#fff;">video.mp4</b><small id="betaSourceMeta" style="display:block;font-size:0.75rem;color:var(--muted-2);">Ready</small></div>
+          </div>
+          <button type="button" id="betaClearSource" style="background:none;border:none;color:var(--muted-2);cursor:pointer;font-size:0.8rem;">Change</button>
+        </div>
+      </div>
+
+      <!-- Step 2 Card: Pipeline Settings & Real-Time Runner -->
+      <div class="panel beta-card" style="padding:20px;border-radius:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="display:inline-grid;place-items:center;width:24px;height:24px;border-radius:6px;background:rgba(255,255,255,0.08);color:#fff;font-size:0.75rem;font-weight:700;">02</span>
+            <strong style="font-size:1rem;color:#ffffff;">AI Pipeline & Feature Controls</strong>
+          </div>
+          <span style="font-size:0.75rem;color:#88c995;">● Ready</span>
+        </div>
+
+        <div class="two" style="gap:12px;">
+          <label>Target Shorts Count
+            <select id="betaClipsCount">
+              <option value="1">1 Short</option>
+              <option value="2" selected>2 Shorts</option>
+              <option value="3">3 Shorts</option>
+              <option value="4">4 Shorts</option>
+            </select>
+          </label>
+          <label>Composition Layout
+            <select id="betaLayout">
+              <option value="gaming_split" selected>Gaming Split (Gameplay Top + Webcam Bottom)</option>
+              <option value="normal">Normal 9:16 Vertical (Center Focus)</option>
+              <option value="two_person">2-Person Conversation Split</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- Premium Captions Toggle -->
+        <div style="margin-top:14px;padding:12px 14px;border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.02);">
+          <label class="toggle-row"><input type="checkbox" id="betaPremiumCaptions" checked><span class="switch"></span><b>✨ Premium Captions (Scale Pop & Action Cues)</b></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+            <label>Placement
+              <select id="betaCaptionPreset">
+                <option value="center_seam" selected>Center Seam (48%-52%)</option>
+                <option value="lower_safe">Lower Safe Band (72%-82%)</option>
+                <option value="top_safe">Top Safe Band</option>
+              </select>
+            </label>
+            <label>Accent Color
+              <select id="betaCaptionAccent">
+                <option value="gold_yellow" selected>Gold Yellow</option>
+                <option value="lime_green">Lime Green</option>
+                <option value="cyan_sky">Cyan Sky</option>
+                <option value="coral_red">Coral Red</option>
+                <option value="pink_lavender">Pink Lavender</option>
+              </select>
+            </label>
+          </div>
+          <div style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.05);">
+            <label class="toggle-row compact"><input type="checkbox" id="betaSituationalCues" checked><span class="switch"></span><b>Situational Action Cues (*ACTION CUE*)</b></label>
+          </div>
+        </div>
+
+        <!-- Transparent Watermark Toggle -->
+        <div style="margin-top:12px;padding:12px 14px;border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.02);">
+          <label class="toggle-row"><input type="checkbox" id="betaWatermarkEnabled" checked><span class="switch"></span><b>Add Watermark (Transparent Text)</b></label>
+          <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:10px;margin-top:8px;">
+            <label>Watermark Text<input type="text" id="betaWatermarkText" value="@ClipifyAI" maxlength="60"></label>
+            <label>Position
+              <select id="betaWatermarkPosition">
+                <option value="center" selected>Center</option>
+                <option value="top-left">Top-Left</option>
+                <option value="top-right">Top-Right</option>
+                <option value="lower-middle">Lower-Middle</option>
+                <option value="bottom-center">Bottom-Center</option>
+                <option value="bottom-right">Bottom-Right</option>
+              </select>
+            </label>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+            <div class="slider-row"><label>Opacity <output id="betaWmOpacityOut">35%</output></label><input id="betaWmOpacity" type="range" min="10" max="100" value="35"></div>
+            <div class="slider-row"><label>Rotation <output id="betaWmAngleOut">-20°</output></label><input id="betaWmAngle" type="range" min="-45" max="45" value="-20"></div>
+          </div>
+        </div>
+
+        <button type="button" class="primary big" id="betaRunPipelineBtn" style="width:100%;margin-top:18px;justify-content:center;padding:14px;font-size:1rem;">
+          <span>⚡ Run Beta AI Pipeline</span><b>→</b>
+        </button>
+
+        <!-- Live Progress & Log -->
+        <div id="betaProgressBox" style="display:none;margin-top:14px;padding:14px;border-radius:12px;background:#09090b;border:1px solid rgba(255,255,255,0.1);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <b id="betaStageText" style="font-size:0.85rem;color:#ffffff;">Starting pipeline...</b>
+            <span id="betaProgressPct" style="font-size:0.85rem;font-weight:700;color:var(--accent);">0%</span>
+          </div>
+          <div style="width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden;">
+            <div id="betaProgressBar" style="width:0%;height:100%;background:#ffffff;transition:width 0.25s ease;"></div>
+          </div>
+          <pre id="betaLog" style="margin-top:10px;max-height:120px;overflow-y:auto;font-size:0.72rem;color:rgba(255,255,255,0.6);font-family:monospace;white-space:pre-wrap;"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Step 3 (Review & Export) -->
+    <div class="beta-preview-col" style="display:flex;flex-direction:column;gap:18px;">
+      <div class="panel beta-card" style="padding:20px;border-radius:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="display:inline-grid;place-items:center;width:24px;height:24px;border-radius:6px;background:rgba(255,255,255,0.08);color:#fff;font-size:0.75rem;font-weight:700;">03</span>
+            <strong style="font-size:1rem;color:#ffffff;">Review & Multi-Clip Export</strong>
+          </div>
+          <span class="format-pill">1080 × 1920 · 9:16</span>
+        </div>
+
+        <div id="betaClipSwitcher" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <span style="font-size:0.78rem;color:var(--muted-2);">Renders will appear here after execution</span>
+        </div>
+
+        <div class="preview-frame" style="aspect-ratio:9/16;max-height:560px;margin:0 auto;position:relative;background:#050507;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.14);display:grid;place-items:center;">
+          <video id="betaResultVideo" controls playsinline style="width:100%;height:100%;object-fit:contain;display:none;"></video>
+          <div id="betaPlaceholder" style="text-align:center;padding:20px;color:var(--muted-2);">
+            <div style="font-size:2rem;margin-bottom:8px;">📱</div>
+            <b style="color:#ffffff;display:block;">Short Output Preview</b>
+            <small style="display:block;margin-top:4px;">Run pipeline above to inspect finished render</small>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <a id="betaDownloadBtn" class="primary" href="#" download style="flex:1;text-align:center;text-decoration:none;pointer-events:none;opacity:0.5;justify-content:center;padding:12px;">Download Short ↓</a>
+          <button type="button" class="ghost" id="betaOpenInEditor" style="flex:1;padding:12px;" disabled>Open in Editor</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 <div id="publishModal" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(5,8,13,0.85);backdrop-filter:blur(10px);z-index:9999;align-items:center;justify-content:center;padding:20px;">
   <div class="modal-card panel" style="background:var(--panel-strong,#12171e);border:1px solid var(--line-strong,rgba(190,176,159,0.32));border-radius:20px;max-width:640px;width:100%;box-shadow:0 30px 90px rgba(0,0,0,0.6);padding:28px;position:relative;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;">
@@ -267,5 +508,5 @@
 
 <footer>Clipify AI · local AI editing workspace · WhisperX + ClipsAI + Ollama + FFmpeg</footer>
 </main>
-  <script src="{{ url_for('static', filename='pipeline_status.js', v='4.0.4') }}"></script><script src="{{ url_for('static', filename='review_player.js', v='4.0.4') }}"></script><script src="{{ url_for('static', filename='app.js', v='4.0.4') }}"></script><script src="{{ url_for('static', filename='tour.js', v='4.0.4') }}"></script>
+  <script src="{{ url_for('static', filename='pipeline_status.js', v='4.0.5') }}"></script><script src="{{ url_for('static', filename='review_player.js', v='4.0.5') }}"></script><script src="{{ url_for('static', filename='app.js', v='4.0.5') }}"></script><script src="{{ url_for('static', filename='tour.js', v='4.0.5') }}"></script>
 </body></html>
