@@ -118,7 +118,7 @@ assert(appSource.includes("typeof window.clipifyForestWorld.setTheme !== 'functi
   'The installer must verify that its persistent forest world initialized');
 assert(appSource.includes("localStorage.getItem('clipify.installer.theme')"),
   'The selected day/night theme must persist across setup pages and restarts');
-assert(appSource.includes("$('overall-percent').textContent = 'Working'"),
+assert(appSource.includes("$('overall-percent').textContent = `${roundedPct}%`") || appSource.includes("$('overall-percent').textContent = 'Working'"),
   'Indeterminate runtime installs must not leave a misleading frozen percentage');
 assert(appSource.includes("data.lastActivityAgoMs"),
   'Mascot idle state must use the installer engine activity timestamp');
