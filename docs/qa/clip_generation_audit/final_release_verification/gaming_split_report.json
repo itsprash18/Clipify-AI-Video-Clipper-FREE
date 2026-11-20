@@ -1,0 +1,11 @@
+{
+  "source": "L:\\ClipifyAI\\data\\live_test\\live_studio\\clips\\6d41e1d2e7\\clip_16_9.mp4",
+  "output": "L:\\ClipifyAI\\docs\\qa\\clip_generation_audit\\final_release_verification\\gaming_split\\gaming_short_9_16.mp4",
+  "resolution": "1080x1920",
+  "is_9_16": true,
+  "duration": 24.666667,
+  "audio_codec": "aac",
+  "video_codec": "h264",
+  "frame_evidence": "gaming_split_frame.jpg",
+  "status": "PASS"
+}

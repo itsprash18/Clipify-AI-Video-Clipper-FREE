@@ -5946,7 +5946,7 @@ def process_single_video(
                     synthetic_clips.append(Clip(0.0, min(total_duration, target_dur), 0, 0))
                 if synthetic_clips:
                     raw_clips.extend(synthetic_clips)
-                    raw_clips = _dedupe_candidates(raw_clips, min_overlap_gap=10.0)
+                    raw_clips = _dedupe_candidates(raw_clips)
                     print(f"  [ClipsAI] Supplemented with {len(synthetic_clips)} timeline candidate(s); total now {len(raw_clips)}.")
             total_candidates = len(raw_clips)
         if total_candidates == 0:

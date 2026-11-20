@@ -1,0 +1,12 @@
+{
+  "installer_path": "L:\\ClipifyAI\\Clipify.AI.Setup.3.9.0.exe",
+  "size_bytes": 347520965,
+  "size_mb": 331.42,
+  "sha256": "1F6DAF2F4C8D53D0C53D2B2CF99AA0A5DCD63DC97818EE169ECFA88704F8B03A",
+  "payload_dir": "L:\\ClipifyAI\\build\\installer_app\\resources\\payload",
+  "essential_payload_verified": true,
+  "missing_items": [],
+  "preserves_user_projects": true,
+  "clean_environment_limitation": "Tested on production host Windows 11; unisolated registry sandbox not supported without VM",
+  "status": "PASS"
+}

@@ -1,0 +1,82 @@
+{
+  "short_01.mp4": {
+    "file": "short_01.mp4",
+    "title": "Zuckerberg's Vision \ud83d\udd25",
+    "duration": 47.589208,
+    "size_mb": 20.1,
+    "video_codec": "h264",
+    "resolution": "1080x1920",
+    "aspect_ratio": "1080:1920",
+    "is_9_16": true,
+    "fps": "24000/1001",
+    "audio_codec": "aac",
+    "audio_sample_rate": "44100",
+    "audio_channels": 2,
+    "frames": {
+      "begin": "short_01_begin.jpg",
+      "mid": "short_01_mid.jpg",
+      "end": "short_01_end.jpg"
+    },
+    "status": "PASS"
+  },
+  "short_02.mp4": {
+    "file": "short_02.mp4",
+    "title": "Next Major Platform? \ud83e\udd2f",
+    "duration": 43.877167,
+    "size_mb": 9.83,
+    "video_codec": "h264",
+    "resolution": "1080x1920",
+    "aspect_ratio": "1080:1920",
+    "is_9_16": true,
+    "fps": "24000/1001",
+    "audio_codec": "aac",
+    "audio_sample_rate": "44100",
+    "audio_channels": 2,
+    "frames": {
+      "begin": "short_02_begin.jpg",
+      "mid": "short_02_mid.jpg",
+      "end": "short_02_end.jpg"
+    },
+    "status": "PASS"
+  },
+  "short_03.mp4": {
+    "file": "short_03.mp4",
+    "title": "Hologram Display Glasses \ud83e\udd2f",
+    "duration": 53.970583,
+    "size_mb": 17.71,
+    "video_codec": "h264",
+    "resolution": "1080x1920",
+    "aspect_ratio": "1080:1920",
+    "is_9_16": true,
+    "fps": "24000/1001",
+    "audio_codec": "aac",
+    "audio_sample_rate": "44100",
+    "audio_channels": 2,
+    "frames": {
+      "begin": "short_03_begin.jpg",
+      "mid": "short_03_mid.jpg",
+      "end": "short_03_end.jpg"
+    },
+    "status": "PASS"
+  },
+  "short_04.mp4": {
+    "file": "short_04.mp4",
+    "title": "AI Changes Everything \ud83d\ude31",
+    "duration": 32.449083,
+    "size_mb": 7.54,
+    "video_codec": "h264",
+    "resolution": "1080x1920",
+    "aspect_ratio": "1080:1920",
+    "is_9_16": true,
+    "fps": "24000/1001",
+    "audio_codec": "aac",
+    "audio_sample_rate": "44100",
+    "audio_channels": 2,
+    "frames": {
+      "begin": "short_04_begin.jpg",
+      "mid": "short_04_mid.jpg",
+      "end": "short_04_end.jpg"
+    },
+    "status": "PASS"
+  }
+}

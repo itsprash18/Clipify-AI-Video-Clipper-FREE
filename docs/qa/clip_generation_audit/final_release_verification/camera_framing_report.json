@@ -1,0 +1,15 @@
+{
+  "test_input": "L:\\ClipifyAI\\output\\short_01.mp4",
+  "default_output": "L:\\ClipifyAI\\docs\\qa\\clip_generation_audit\\final_release_verification\\camera_controls\\short_auto_default.mp4",
+  "custom_output": "L:\\ClipifyAI\\docs\\qa\\clip_generation_audit\\final_release_verification\\camera_controls\\short_custom_framing.mp4",
+  "custom_framing": {
+    "pan_x": 15.0,
+    "pan_y": -10.0,
+    "zoom": 1.35
+  },
+  "custom_resolution": "1080x1920",
+  "custom_is_9_16": true,
+  "original_frame": "frame_01_original.jpg",
+  "custom_frame": "frame_01_custom_framed.jpg",
+  "status": "PASS"
+}
