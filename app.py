@@ -122,6 +122,8 @@ from narrate.tts import TTSUnavailable, available_voices, create_tts
 
 JOBS = USER_DATA_DIR / "jobs"
 JOBS.mkdir(parents=True, exist_ok=True)
+NARRATE_THUMBS = USER_DATA_DIR / "cache" / "narrate_thumbs"
+NARRATE_THUMBS.mkdir(parents=True, exist_ok=True)
 
 # main.py already reads .env, but this web process also discovers Ollama before
 # it starts the pipeline. Keep the two entry points on the same configuration.
@@ -1533,10 +1535,66 @@ def live_preview_frame():
     return ("", 204)
 
 
+def _generate_thumbnail_file(video_path: Path, thumb_path: Path) -> bool:
+    try:
+        from clipify.platform.binary_locator import get_ffmpeg_path
+        ff = get_ffmpeg_path()
+        if not ff or not video_path.exists():
+            return False
+
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+        thumb_tmp = thumb_path.with_suffix(".tmp.jpg")
+
+        # Extract 1 frame at 1s into video for an accurate preview
+        cmd = [
+            str(ff), "-y", "-ss", "1", "-i", str(video_path),
+            "-vframes", "1",
+            "-vf", "scale=360:640:force_original_aspect_ratio=decrease",
+            "-q:v", "4",
+            str(thumb_tmp)
+        ]
+        res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=8, creationflags=creationflags)
+        if res.returncode != 0 or not thumb_tmp.exists() or thumb_tmp.stat().st_size == 0:
+            cmd[3] = "0"
+            res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=8, creationflags=creationflags)
+
+        if res.returncode == 0 and thumb_tmp.exists() and thumb_tmp.stat().st_size > 0:
+            thumb_tmp.replace(thumb_path)
+            return True
+        if thumb_tmp.exists():
+            thumb_tmp.unlink(missing_ok=True)
+    except Exception:
+        pass
+    return False
+
+
+def _prewarm_narrate_thumbnails(videos: list[dict[str, Any]]) -> None:
+    """Pre-extract thumbnails in background for all clips in the library."""
+    try:
+        from concurrent.futures import ThreadPoolExecutor
+        def worker(v_info):
+            clip_id = v_info.get("id")
+            if not clip_id:
+                return
+            thumb_path = NARRATE_THUMBS / f"{clip_id}.jpg"
+            if thumb_path.exists() and thumb_path.stat().st_size > 500:
+                return
+            target = NARRATE._find_video(clip_id)
+            if target and target.exists():
+                _generate_thumbnail_file(target, thumb_path)
+
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            list(executor.map(worker, videos))
+    except Exception:
+        pass
+
+
 @app.get("/api/narrate/videos")
 def narrate_videos():
     videos = NARRATE.scan_videos()
     folders = NARRATE.library_folders()
+    if videos:
+        threading.Thread(target=_prewarm_narrate_thumbnails, args=(videos,), daemon=True).start()
     return jsonify({
         "videos": videos,
         "folder_exists": bool(folders),
@@ -1754,6 +1812,35 @@ def narrate_media(filename: str):
     if target is None:
         return jsonify({"error": "Narrate media not found."}), 404
     return send_from_directory(target.parent, target.name, as_attachment=False)
+
+
+@app.get("/api/narrate/thumbnail/<clip_id>")
+def narrate_thumbnail(clip_id: str):
+    """Ultra-fast lightweight JPEG thumbnail for clip cards in the narrate picker."""
+    clean_id = re.sub(r"[^a-zA-Z0-9_-]", "", clip_id).strip()
+    thumb_path = NARRATE_THUMBS / f"{clean_id}.jpg"
+    if thumb_path.exists() and thumb_path.stat().st_size > 500:
+        response = send_from_directory(thumb_path.parent, thumb_path.name, mimetype="image/jpeg")
+        response.headers["Cache-Control"] = "public, max-age=86400"
+        return response
+
+    target = NARRATE._find_video(clip_id)
+    if target is None:
+        # Check by filename/stem
+        for p in NARRATE._video_paths():
+            if p.name == clip_id or p.stem == clip_id or NARRATE.video_id(p) == clip_id:
+                target = p
+                break
+
+    if target and target.exists():
+        if _generate_thumbnail_file(target, thumb_path):
+            response = send_from_directory(thumb_path.parent, thumb_path.name, mimetype="image/jpeg")
+            response.headers["Cache-Control"] = "public, max-age=86400"
+            return response
+        # Fallback to direct media
+        return redirect(f"/api/narrate/media/{clip_id}")
+
+    return jsonify({"error": "Thumbnail not found"}), 404
 
 
 def _clean_ai_script(raw: str) -> str:
