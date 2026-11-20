@@ -2865,6 +2865,19 @@ function initAIModelManagement() {
     }
   });
 
+  const modelPresetSelect = $('#ollamaModelPresetSelect');
+  modelPresetSelect?.addEventListener('change', () => {
+    const val = modelPresetSelect.value;
+    if (val && val !== 'custom') {
+      if (ollamaInput) ollamaInput.value = val;
+    } else if (val === 'custom') {
+      if (ollamaInput) {
+        ollamaInput.value = '';
+        ollamaInput.focus();
+      }
+    }
+  });
+
   let pollInterval = null;
   btnDownloadOllama?.addEventListener('click', async () => {
     const model = ollamaInput?.value.trim();
@@ -3234,4 +3247,254 @@ function initBetaTestingSection() {
       window.location.hash = `#editor?video=${encodeURIComponent(url)}&title=${encodeURIComponent(filename)}`;
     };
   }
+
+  // --- Beta Top Subtabs (Narration vs Video Clipper) ---
+  const tabNarrate = $('#btnBetaTabNarrate');
+  const tabClipper = $('#btnBetaTabClipper');
+  const wsNarrate = $('#betaNarrateWorkspace');
+  const wsClipper = $('#betaClipperWorkspace');
+
+  function switchBetaTab(tab) {
+    if (tab === 'narrate') {
+      tabNarrate?.classList.add('active');
+      if (tabNarrate) { tabNarrate.style.background = '#ffffff'; tabNarrate.style.color = '#000000'; }
+      tabClipper?.classList.remove('active');
+      if (tabClipper) { tabClipper.style.background = 'rgba(255,255,255,0.06)'; tabClipper.style.color = '#ffffff'; }
+      if (wsNarrate) wsNarrate.style.display = 'grid';
+      if (wsClipper) wsClipper.style.display = 'none';
+      loadBetaNarrateResources();
+    } else {
+      tabClipper?.classList.add('active');
+      if (tabClipper) { tabClipper.style.background = '#ffffff'; tabClipper.style.color = '#000000'; }
+      tabNarrate?.classList.remove('active');
+      if (tabNarrate) { tabNarrate.style.background = 'rgba(255,255,255,0.06)'; tabNarrate.style.color = '#ffffff'; }
+      if (wsNarrate) wsNarrate.style.display = 'none';
+      if (wsClipper) wsClipper.style.display = 'grid';
+    }
+  }
+
+  tabNarrate?.addEventListener('click', () => switchBetaTab('narrate'));
+  tabClipper?.addEventListener('click', () => switchBetaTab('clipper'));
+
+  // --- Beta Narration Testing Suite ---
+  const narratePrompt = $('#betaNarratePrompt');
+  const narrateScript = $('#betaNarrateScript');
+  const btnGenScript = $('#btnBetaNarrateGenScript');
+  const btnRandomScript = $('#btnBetaNarrateRandom');
+  const wordCountOut = $('#betaNarrateWordCount');
+  const voiceSelect = $('#betaNarrateVoiceSelect');
+  const speedSelect = $('#betaNarrateSpeedSelect');
+  const btnAudition = $('#btnBetaAuditionVoice');
+  const voiceAudio = $('#betaVoiceAudio');
+  const videoSelect = $('#betaNarrateVideoSelect');
+  const captionPreset = $('#betaNarrateCaptionPreset');
+  const btnStartNarrate = $('#btnBetaStartNarrate');
+  const narrateProgBox = $('#betaNarrateProgressBox');
+  const narrateProgBar = $('#betaNarrateProgressBar');
+  const narrateProgPct = $('#betaNarrateProgressPct');
+  const narrateStageText = $('#betaNarrateStageText');
+  const narrateResultVideo = $('#betaNarrateResultVideo');
+  const narratePlaceholder = $('#betaNarratePlaceholder');
+  const narrateDownloadBtn = $('#betaNarrateDownloadBtn');
+
+  function updateWordCount() {
+    const text = narrateScript?.value.trim() || '';
+    const words = text ? text.split(/\s+/).length : 0;
+    const estSec = Math.round(words / 2.5);
+    const m = String(Math.floor(estSec / 60)).padStart(2, '0');
+    const s = String(estSec % 60).padStart(2, '0');
+    if (wordCountOut) wordCountOut.textContent = `${words} words · ~${m}:${s} est.`;
+  }
+  narrateScript?.addEventListener('input', updateWordCount);
+
+  let narrateResourcesLoaded = false;
+  async function loadBetaNarrateResources() {
+    if (narrateResourcesLoaded) return;
+    narrateResourcesLoaded = true;
+
+    // Load voices
+    try {
+      const vRes = await fetch('/api/narrate/voices');
+      const vData = await vRes.json();
+      if (vData.voices && vData.voices.length && voiceSelect) {
+        voiceSelect.innerHTML = '';
+        const kokoroGroup = document.createElement('optgroup');
+        kokoroGroup.label = 'Kokoro Neural Voices (Ultra-Realistic)';
+        const winGroup = document.createElement('optgroup');
+        winGroup.label = 'Windows System Voices';
+
+        vData.voices.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v.id;
+          opt.textContent = `${v.name} (${v.gender || 'Neural'} · ${v.provider || 'local'})`;
+          if (v.id === 'af_heart') opt.selected = true;
+          if (v.provider === 'kokoro') kokoroGroup.appendChild(opt);
+          else winGroup.appendChild(opt);
+        });
+
+        if (kokoroGroup.children.length) voiceSelect.appendChild(kokoroGroup);
+        if (winGroup.children.length) voiceSelect.appendChild(winGroup);
+      }
+    } catch (_) {}
+
+    // Load background clips
+    try {
+      const bRes = await fetch('/api/narrate/videos');
+      const bData = await bRes.json();
+      if (bData.videos && bData.videos.length && videoSelect) {
+        videoSelect.innerHTML = '';
+        bData.videos.forEach((vid, i) => {
+          const opt = document.createElement('option');
+          opt.value = vid.name || vid;
+          opt.textContent = `${vid.name || vid} (9:16 vertical)`;
+          if (i === 0) opt.selected = true;
+          videoSelect.appendChild(opt);
+        });
+      }
+    } catch (_) {}
+  }
+
+  // Audition voice
+  btnAudition?.addEventListener('click', async () => {
+    const voice = voiceSelect?.value || 'af_heart';
+    const speed = parseInt(speedSelect?.value || '0', 10);
+    btnAudition.disabled = true;
+    btnAudition.textContent = 'Auditioning...';
+    try {
+      const res = await fetch('/api/narrate/preview-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voice, speed })
+      });
+      const data = await res.json();
+      if (data.url && voiceAudio) {
+        voiceAudio.src = data.url;
+        voiceAudio.style.display = 'block';
+        voiceAudio.play().catch(() => {});
+      }
+    } catch (err) {
+      alert('Audition error: ' + err.message);
+    } finally {
+      btnAudition.disabled = false;
+      btnAudition.textContent = '▶ Audition Voice Sample';
+    }
+  });
+
+  // AI Script generation
+  btnGenScript?.addEventListener('click', async () => {
+    const prompt = narratePrompt?.value.trim();
+    if (!prompt) return alert('Enter a story prompt or idea first.');
+    btnGenScript.disabled = true;
+    btnGenScript.textContent = 'Writing...';
+    try {
+      const res = await fetch('/api/narrate/script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, duration: 30 })
+      });
+      const data = await res.json();
+      if (data.script && narrateScript) {
+        narrateScript.value = data.script;
+        updateWordCount();
+      } else {
+        alert(data.error || 'Failed to generate script.');
+      }
+    } catch (err) {
+      alert('Script generation error: ' + err.message);
+    } finally {
+      btnGenScript.disabled = false;
+      btnGenScript.textContent = '✨ Generate Script';
+    }
+  });
+
+  // Random Script
+  btnRandomScript?.addEventListener('click', async () => {
+    btnRandomScript.disabled = true;
+    try {
+      const res = await fetch('/api/narrate/random-script', { method: 'POST' });
+      const data = await res.json();
+      if (data.script && narrateScript) {
+        narrateScript.value = data.script;
+        updateWordCount();
+      }
+    } catch (_) {}
+    finally {
+      btnRandomScript.disabled = false;
+    }
+  });
+
+  // Start Narration Generation
+  let narratePoll = null;
+  btnStartNarrate?.addEventListener('click', async () => {
+    const script = narrateScript?.value.trim();
+    if (!script) return alert('Enter or generate a script first.');
+    const voice = voiceSelect?.value || 'af_heart';
+    const video = videoSelect?.value || '';
+    const speed = parseInt(speedSelect?.value || '0', 10);
+    const caption_mode = captionPreset?.value || 'sync-yellow';
+
+    btnStartNarrate.disabled = true;
+    if (narrateProgBox) narrateProgBox.style.display = 'block';
+    if (narrateProgBar) narrateProgBar.style.width = '10%';
+    if (narrateProgPct) narrateProgPct.textContent = '10%';
+    if (narrateStageText) narrateStageText.textContent = 'Starting voice synthesis...';
+
+    try {
+      const res = await fetch('/api/narrate/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ script, voice, video, speed, caption_mode })
+      });
+      const data = await res.json();
+      if (!data.ok || !data.job_id) {
+        throw new Error(data.error || 'Failed to start narration generation.');
+      }
+
+      const jobId = data.job_id;
+      narratePoll = setInterval(async () => {
+        try {
+          const sRes = await fetch(`/api/narrate/status/${jobId}`);
+          const sData = await sRes.json();
+          const pct = Math.min(100, Math.max(0, parseInt(sData.progress || 0)));
+          if (narrateProgBar) narrateProgBar.style.width = `${pct}%`;
+          if (narrateProgPct) narrateProgPct.textContent = `${pct}%`;
+          if (narrateStageText && sData.stage) narrateStageText.textContent = sData.stage;
+
+          if (sData.status === 'done') {
+            clearInterval(narratePoll);
+            btnStartNarrate.disabled = false;
+            if (narrateProgBar) narrateProgBar.style.width = '100%';
+            if (narrateProgPct) narrateProgPct.textContent = '100%';
+            if (narrateStageText) narrateStageText.textContent = 'Narration Complete!';
+
+            const outUrl = `/api/narrate/result-media/${jobId}/${encodeURIComponent(sData.output || 'narrated_short.mp4')}`;
+            if (narratePlaceholder) narratePlaceholder.style.display = 'none';
+            if (narrateResultVideo) {
+              narrateResultVideo.style.display = 'block';
+              narrateResultVideo.src = outUrl;
+              narrateResultVideo.load();
+              narrateResultVideo.play().catch(() => {});
+            }
+            if (narrateDownloadBtn) {
+              narrateDownloadBtn.href = `${outUrl}?download=1`;
+              narrateDownloadBtn.style.pointerEvents = 'auto';
+              narrateDownloadBtn.style.opacity = '1';
+            }
+          } else if (sData.status === 'error') {
+            clearInterval(narratePoll);
+            btnStartNarrate.disabled = false;
+            if (narrateStageText) narrateStageText.textContent = 'Narration failed: ' + (sData.error || 'Unknown error');
+            alert('Narration Error: ' + (sData.error || 'Generation failed'));
+          }
+        } catch (_) {}
+      }, 1000);
+    } catch (err) {
+      alert('Narration error: ' + err.message);
+      btnStartNarrate.disabled = false;
+      if (narrateProgBox) narrateProgBox.style.display = 'none';
+    }
+  });
+
+  // Pre-load narration resources on startup
+  loadBetaNarrateResources();
 }

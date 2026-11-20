@@ -7,7 +7,7 @@
 **100% Free · Private & Local · No Cloud Subscriptions · No Watermarks**
 
 <p align="center">
-  <a href="https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v3.9.0"><strong>Download v3.9.0 Release (Windows & Android) »</strong></a>
+  <a href="https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.5"><strong>Download v4.0.5 Release (Windows & Android) »</strong></a>
   <br>
   <a href="https://ai.projectclipzy.workers.dev/">Project Website</a> ·
   <a href="#-key-features">Key Features</a> ·
@@ -17,8 +17,8 @@
   <a href="#-local-ai-engine">Local AI Setup</a>
 </p>
 
-[![Release](https://img.shields.io/badge/release-v3.9.0-438d72?style=for-the-badge&logo=github)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v3.9.0)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Android-243b63?style=for-the-badge&logo=windows)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v3.9.0)
+[![Release](https://img.shields.io/badge/release-v4.0.5-438d72?style=for-the-badge&logo=github)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.5)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Android-243b63?style=for-the-badge&logo=windows)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.5)
 [![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-6366f1?style=for-the-badge)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-3776ab?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Ollama](https://img.shields.io/badge/AI%20Engine-Ollama%20%2F%20Qwen-000000?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.ai)
@@ -35,7 +35,7 @@ Everything runs on your computer—preserving **100% privacy**, with **zero mont
 
 ---
 
-## 📥 Download (v3.9.0)
+## 📥 Download (v4.0.5)
 
 > [!IMPORTANT]
 > **🛡️ Why Windows SmartScreen / Antivirus Flags New Releases (False Positive Explanation)**:
@@ -46,20 +46,17 @@ Everything runs on your computer—preserving **100% privacy**, with **zero mont
 > 1. Click **"More info"** on the Windows SmartScreen blue dialog.
 > 2. Click the **"Run anyway"** button.
 >
-> **Alternative Fix:** Right-click `Clipify.AI.Setup.3.9.0.exe` → **Properties** → Check **"Unblock"** at bottom → Click **OK**.
+> **Alternative Fix:** Right-click `Clipify.AI.Setup.4.0.5.exe` → **Properties** → Check **"Unblock"** at bottom → Click **OK**.
 
 | Package | Platform | Version | Size | Download |
 | :--- | :---: | :---: | :---: | :--- |
-| **`Clipify.AI.Setup.3.9.0.exe`** | Windows 10/11 (64-bit) | `v3.9.0` | **331.4 MB** | [**Download Windows Installer (x64)**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.9.0/Clipify.AI.Setup.3.9.0.exe) |
+| **`Clipify.AI.Setup.4.0.5.exe`** | Windows 10/11 (64-bit) | `v4.0.5` | **331.4 MB** | [**Download Windows Installer (x64)**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v4.0.5/Clipify.AI.Setup.4.0.5.exe) |
 | **`Clipify AI (beta).apk`** | Android 8.0+ (ARM64/x86) | `v3.9.0` | **13.8 MB** | [**Download Android APK (beta)**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.9.0/Clipify.AI.beta.apk) |
 
 #### Verify SHA-256 integrity:
 ```powershell
-Get-FileHash ".\Clipify.AI.Setup.3.9.0.exe" -Algorithm SHA256
-# SHA-256: 1F6DAF2F4C8D53D0C53D2B2CF99AA0A5DCD63DC97818EE169ECFA88704F8B03A
-
-Get-FileHash ".\Clipify AI (beta).apk" -Algorithm SHA256
-# SHA-256: e1580152557b84b03f9777fcaf5403400414a671e9adcf66bb9c48f0fb9e21bb
+Get-FileHash ".\Clipify.AI.Setup.4.0.5.exe" -Algorithm SHA256
+# SHA-256: 3F13235D6DF92034371A503D0E304F4753073A50C6E87ECFB9D75E2D5A6D73B0
 ```
 
 ---
@@ -94,10 +91,29 @@ Get-FileHash ".\Clipify AI (beta).apk" -Algorithm SHA256
 - **Post-Render Watermarking & Branding**: Overlay custom logos, adjust opacity and scale, or strip transparent backgrounds automatically with built-in chroma-keying.
 - **One-Click Share & Export**: Instant download or export directly from your local project library.
 
-### 6. 🎙️ Narrate Studio (Faceless Shorts Generator)
+### 6. 🎙️ Narrate Studio (Faceless Shorts Generator) [BETA]
 - **AI Story & Script Generation**: Turn any idea into a viral script using local LLMs with custom storytelling prompts.
 - **Dual Voice Engines**: Kokoro Neural TTS and Windows SAPI TTS with sub-2ms audio preview caching.
 - **Curated Background Footage**: Pick from clean stock backgrounds and render a complete faceless short in seconds.
+
+### 7. ✨ "Premium Caption" Mode (Exact Motion Grammar of Viral Shorts)
+- **Scale-In Pop Animation**: ASS scale transform (`{\fscx85\fscy85\t(0,75,\fscx108\fscy108)\t(75,140,\fscx100\fscy100)}`) with bold dark borders and soft shadows.
+- **Dynamic Situational / Scene-Action Cues**: Automatically detects pauses and transcript emotion spikes to inject uppercase action cues (e.g. `*REACTS*`, `*LOOKS CLOSER*`, `*SHOCKED*`, `*GAMEPLAY INTENSIFIES*`) with an independent sub-toggle.
+- **Vertical Safe Zone Presets**: Center Seam (`MarginV: 920` for split layouts), Lower Safe Band (`MarginV: 300` for single vertical), and Top Safe Band.
+- **Punchy Dialogue Beats**: Formatted into rapid 1–4 word beats in ALL CAPS.
+
+### 8. 💧 "Add Watermark" Mode (Transparent Text Overlay)
+- **Coexists With Custom Text & Logo**: Dedicated transparent text watermark running concurrently with standard banners and logos.
+- **Complete Control Set**: Opacity slider (0% to 100%, default 35%), rotation angle slider (`-45°` to `+45°`, default `-20°`), position presets, font size, and color picker.
+- **Pixel-Accurate Parity**: Interactive UI preview matches FFmpeg PIL RGBA composite output.
+
+### 9. ☁️ Free Hugging Face Cloud AI & Available Models Dropdown
+- **Zero Local RAM Required**: Connect for free to Hugging Face Serverless Inference API with pre-configured models (`Qwen/Qwen2.5-7B-Instruct`, `Llama-3.2-3B`, `Mistral-7B`, `Gemma-2-9B`).
+- **Available Models Dropdown**: Quick dropdown selector to browse, select, and pull popular local Ollama models (`qwen2.5:3b`, `llama3.2:3b`, `deepseek-r1`, etc.) without typing.
+
+### 10. 🧪 All-in-One Beta Testing Lab
+- **AI Narration Testing Studio**: Generate scripts, audition Kokoro neural voices, select 9:16 background gameplay footage, and render narrated shorts directly from the sidebar.
+- **Video Clipping & Overlay Testing**: Upload local files or paste YouTube links, adjust layout & watermarks, monitor live SSE progress and terminal logs, and export multi-clips with zero setup.
 
 ---
 
