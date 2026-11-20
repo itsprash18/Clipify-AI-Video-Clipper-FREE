@@ -2550,6 +2550,10 @@ if(create) create.onclick=start;
 
 function navigateTo(id){
   const target = id || 'create';
+  if(target === 'models'){
+    if(window.openModelHub) window.openModelHub();
+    return;
+  }
   if(location.hash.slice(1) !== target){
     location.hash = target;
   }
@@ -2654,8 +2658,15 @@ window.addEventListener(
   }
 );
 
-try { window.dispatchEvent(new Event('hashchange')); } catch(e){ console.warn(e); }
-try { navigateTo('create'); } catch(e){ console.warn(e); }
+const initialHash = (location.hash.slice(1) || '').split('?')[0];
+if (initialHash && document.getElementById(initialHash)) {
+  try { navigateTo(initialHash); } catch(e){ console.warn(e); }
+} else if (initialHash === 'models') {
+  if (window.openModelHub) window.openModelHub();
+} else {
+  try { window.dispatchEvent(new Event('hashchange')); } catch(e){ console.warn(e); }
+  try { navigateTo('create'); } catch(e){ console.warn(e); }
+}
 try { loadOptions(); } catch(e){ console.warn(e); }
 try { loadProjects(); } catch(e){ console.warn(e); }
 try { loadTrash(); } catch(e){ console.warn(e); }
