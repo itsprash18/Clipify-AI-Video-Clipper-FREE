@@ -133,6 +133,7 @@
       </button>
       <span class="titlebar-sep" aria-hidden="true"></span>
       <button id="btn-minimize" class="titlebar-btn" title="Minimise" aria-label="Minimise">&#8211;</button>
+      <button id="btn-maximize" class="titlebar-btn" title="Maximize" aria-label="Maximize">&#9633;</button>
       <button id="btn-close" class="titlebar-btn titlebar-close" title="Close" aria-label="Close">&times;</button>
     </div>
   </div>
@@ -163,7 +164,7 @@
           Your selected videos and projects stay on this computer.
         </p>
         <div class="hero-meta">
-          <span class="pill" id="welcome-version">v3.1.0</span>
+          <span class="pill" id="welcome-version">v4.0.4</span>
           <span class="pill">Runs on your PC</span>
           <span class="pill" id="welcome-os">Windows</span>
         </div>
@@ -183,7 +184,16 @@
 
       <div class="models-layout">
         <div class="models-main">
-          <div class="notice notice-soft">
+          <div class="model-provider-tabs" style="display:flex;gap:8px;margin-bottom:12px;">
+            <button type="button" class="btn btn-ghost provider-tab active" id="tab-provider-local" style="flex:1;border:1px solid var(--forest-sage);background:rgba(126,156,119,0.15);">🖥 Local Models (Ollama)</button>
+            <button type="button" class="btn btn-ghost provider-tab" id="tab-provider-cloud" style="flex:1;border:1px solid rgba(255,255,255,0.15);">☁ Free Hugging Face API (0 GB RAM)</button>
+          </div>
+          <div id="cloud-provider-card" class="notice notice-good" style="display:none;margin-bottom:12px;">
+            <strong>☁ Free Cloud Inference Selected</strong>
+            <p style="margin:4px 0 0;font-size:12px;opacity:0.9;">No multi-gigabyte model downloads or local RAM needed! Works on any PC using free Hugging Face API. You can enter a free token below or configure it later in Settings.</p>
+            <input type="password" id="installer-hf-token" class="field-input" placeholder="Hugging Face Token (hf_...) — Optional" style="margin-top:8px;width:100%;font-size:12px;padding:6px 10px;" />
+          </div>
+          <div class="notice notice-soft" id="model-reco-wrap">
             <strong id="model-reco">Qwen3 8B is recommended for most users.</strong>
             <span>You can select any model, or none at all.</span>
           </div>
@@ -478,11 +488,17 @@
       </div>
       <div class="music-row">
         <button class="music-btn" id="btn-music-prev" data-test="music-prev" title="Previous track" aria-label="Previous track">&#9198;</button>
+        <button class="music-btn music-jump" id="btn-music-back10" title="Back 10s" aria-label="Back 10 seconds">&#8630;10s</button>
         <button class="music-btn music-play" id="btn-music-play" data-test="music-play" title="Play" aria-label="Play or pause">&#9654;</button>
+        <button class="music-btn music-jump" id="btn-music-fwd10" title="Forward 10s" aria-label="Forward 10 seconds">10s&#8631;</button>
         <button class="music-btn" id="btn-music-next" data-test="music-next" title="Skip to next track" aria-label="Skip to next track">&#9197;</button>
         <input class="music-seek" id="music-seek" data-test="music-seek" type="range" min="0" max="1000" value="0" aria-label="Seek" />
         <span class="music-time" id="music-time" data-test="music-time">00:00 / 00:00</span>
         <button class="music-btn" id="btn-music-mute" data-test="music-mute" title="Mute" aria-label="Mute or unmute">&#128266;</button>
+        <div class="music-volume-box" title="Volume slider">
+          <input class="music-volume" id="music-volume" data-test="music-volume" type="range" min="0" max="100" value="80" aria-label="Volume" />
+          <span class="music-volume-val" id="music-volume-value">80%</span>
+        </div>
       </div>
     </div>
   </div>

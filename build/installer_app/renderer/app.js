@@ -1458,6 +1458,7 @@ const $ = (id) => {
       if (document.hidden && state.game) state.game.pause();
     });
     $('btn-minimize').addEventListener('click', () => api.window('minimize'));
+    $('btn-maximize')?.addEventListener('click', () => api.window('maximize'));
     $('btn-close').addEventListener('click', () => api.window('close'));
 
     $('btn-get-started').addEventListener('click', async () => {
@@ -1639,18 +1640,69 @@ const $ = (id) => {
     $('btn-music-mute').addEventListener('click', () => music.toggleMute());
     $('btn-music-next').addEventListener('click', () => music.next());
     $('btn-music-prev').addEventListener('click', () => music.prev());
+    $('btn-music-back10')?.addEventListener('click', () => {
+      if (music.audio && Number.isFinite(music.audio.duration)) {
+        music.audio.currentTime = Math.max(0, music.audio.currentTime - 10);
+        music.paintTime();
+      }
+    });
+    $('btn-music-fwd10')?.addEventListener('click', () => {
+      if (music.audio && Number.isFinite(music.audio.duration)) {
+        music.audio.currentTime = Math.min(music.audio.duration, music.audio.currentTime + 10);
+        music.paintTime();
+      }
+    });
+    const volSlider = $('music-volume');
+    if (volSlider) {
+      volSlider.addEventListener('input', () => {
+        const v = Number(volSlider.value) / 100;
+        music.setVolume(v);
+        if (music.muted && v > 0) music.toggleMute();
+        const label = $('music-volume-value');
+        if (label) label.textContent = `${Math.round(v * 100)}%`;
+      });
+    }
     // Seek is driven by the range input itself; scrubbing is held so the
     // timeupdate handler does not fight the user's drag.
     const seek = $('music-seek');
     if (seek) {
       seek.addEventListener('pointerdown', () => { music.seeking = true; });
       seek.addEventListener('input', () => music.seekTo(Number(seek.value) / 1000));
-      const release = () => { music.seeking = false; };
+      const release = () => {
+        music.seeking = false;
+        music.seekTo(Number(seek.value) / 1000);
+        music.paintTime();
+      };
       seek.addEventListener('pointerup', release);
-      seek.addEventListener('change', () => { music.seekTo(Number(seek.value) / 1000); release(); });
+      seek.addEventListener('change', release);
       seek.addEventListener('pointercancel', release);
     }
-    // The compact player has no separate volume slider; muting controls level.
+    $('tab-provider-local')?.addEventListener('click', () => {
+      $('tab-provider-local').classList.add('active');
+      $('tab-provider-local').style.borderColor = 'var(--forest-sage)';
+      $('tab-provider-local').style.background = 'rgba(126,156,119,0.15)';
+      $('tab-provider-cloud').classList.remove('active');
+      $('tab-provider-cloud').style.borderColor = 'rgba(255,255,255,0.15)';
+      $('tab-provider-cloud').style.background = 'transparent';
+      $('cloud-provider-card').style.display = 'none';
+      $('model-grid').style.display = 'grid';
+      $('model-reco-wrap').style.display = 'block';
+      state.aiProvider = 'ollama';
+    });
+    $('tab-provider-cloud')?.addEventListener('click', () => {
+      $('tab-provider-cloud').classList.add('active');
+      $('tab-provider-cloud').style.borderColor = 'var(--forest-sage)';
+      $('tab-provider-cloud').style.background = 'rgba(126,156,119,0.15)';
+      $('tab-provider-local').classList.remove('active');
+      $('tab-provider-local').style.borderColor = 'rgba(255,255,255,0.15)';
+      $('tab-provider-local').style.background = 'transparent';
+      $('cloud-provider-card').style.display = 'block';
+      $('model-grid').style.display = 'none';
+      $('model-reco-wrap').style.display = 'none';
+      state.selected = new Set();
+      state.aiProvider = 'huggingface';
+      renderSummary();
+    });
     $('btn-github').addEventListener('click', () => api.openExternal('https://github.com/sherlock-dev-ai'));
 
     // --- pre-download warning popup ---------------------------------------

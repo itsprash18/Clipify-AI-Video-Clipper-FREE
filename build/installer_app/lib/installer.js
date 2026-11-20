@@ -699,12 +699,20 @@ class Installer extends EventEmitter {
             let done = 0;
             fs.mkdirSync(path.dirname(destination), { recursive: true });
             const out = fs.createWriteStream(destination);
+            let stallTimer = setTimeout(() => {
+              request.destroy(new Error('download stalled (no data for 60s)'));
+            }, 60000);
             response.on('data', (chunk) => {
+              clearTimeout(stallTimer);
+              stallTimer = setTimeout(() => {
+                request.destroy(new Error('download stalled (no data for 60s)'));
+              }, 60000);
               done += chunk.length;
               if (onProgress) onProgress(done, total);
             });
             response.pipe(out);
             out.on('finish', () => {
+              clearTimeout(stallTimer);
               out.close(() => {
                 if (total > 0 && done < total) {
                   reject(new Error(`Download truncated: expected ${total} bytes, received ${done}`));
@@ -713,11 +721,18 @@ class Installer extends EventEmitter {
                 }
               });
             });
-            out.on('error', reject);
+            out.on('error', (err) => {
+              clearTimeout(stallTimer);
+              reject(err);
+            });
+            response.on('error', (err) => {
+              clearTimeout(stallTimer);
+              reject(err);
+            });
           }
         );
         request.on('error', reject);
-        request.setTimeout(90000, () => request.destroy(new Error('download timed out')));
+        request.setTimeout(60000, () => request.destroy(new Error('download connection timed out')));
       };
       get(url, 5);
     });
@@ -1114,6 +1129,7 @@ class Installer extends EventEmitter {
     }
 
     const pipArgs = ['-m', 'pip', 'install', '--disable-pip-version-check', '--progress-bar', 'on'];
+    pipArgs.push('--extra-index-url', 'https://download.pytorch.org/whl/cpu');
     if (fs.existsSync(wheelsDir)) {
       pipArgs.push('--find-links', wheelsDir);
     }
@@ -1218,6 +1234,7 @@ class Installer extends EventEmitter {
       }
 
       const retryArgs = ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-cache-dir', '--progress-bar', 'on'];
+      retryArgs.push('--extra-index-url', 'https://download.pytorch.org/whl/cpu');
       if (fs.existsSync(wheelsDir)) {
         retryArgs.push('--find-links', wheelsDir);
       }

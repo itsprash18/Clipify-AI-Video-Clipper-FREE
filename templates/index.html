@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Clipify AI</title><link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png', v='20261018-3') }}"><link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='20261118-4') }}"><link rel="stylesheet" href="{{ url_for('static', filename='studio.css', v='20260922-3') }}"><link rel="stylesheet" href="{{ url_for('static', filename='tour.css', v='20261113-1') }}">
+  <title>Clipify AI</title><link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png', v='4.0.4') }}"><link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='4.0.4') }}"><link rel="stylesheet" href="{{ url_for('static', filename='studio.css', v='4.0.4') }}"><link rel="stylesheet" href="{{ url_for('static', filename='tour.css', v='4.0.4') }}">
 </head>
 <body>
 <div class="aurora aurora-one"></div><div class="aurora aurora-two"></div><div class="aurora aurora-three"></div><div class="noise"></div>
@@ -86,6 +86,58 @@
         <div class="section-head"><div><span class="kicker">02</span><h2>AI & Generation Settings</h2></div><span class="hint">Local editorial control</span></div>
         <div class="control-grid three"><label class="model-field"><span>AI model</span><div class="model-picker"><select id="modelSelect" disabled><option>Checking local models…</option></select><button type="button" class="mini-refresh" id="refreshModelsBtn" aria-label="Refresh available models">↻</button><button type="button" class="mini-search" id="scanModelsBtn" title="Auto-search PC for installed Ollama models" style="display:none;">🔍 Search PC</button></div></label><label>Caption font<select id="fontSelect"><option selected>Montserrat Extra Bold</option><option>Arial</option><option>Arial Black</option><option>Segoe UI</option><option>Segoe UI Black</option><option>Impact</option><option>Tahoma</option><option>Trebuchet MS</option><option>Verdana</option><option>Calibri</option><option>Aptos</option><option>Comic Sans MS</option><option>Georgia</option></select></label><label>Number of Shorts<select id="clips"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></label></div>
         <p class="field-error" id="modelError" role="alert" hidden></p>
+
+        <!-- AI Engine & Cloud Model Management Section -->
+        <div class="ai-provider-card" id="aiProviderCard">
+          <div class="provider-header-row">
+            <div>
+              <span class="kicker">INFERENCE ENGINE</span>
+              <strong style="display:block;font-size:0.92rem;color:#ffffff;margin-top:2px;">AI Model & Cloud Integration</strong>
+            </div>
+            <div class="provider-tabs">
+              <button type="button" class="prov-tab active" id="provTabOllama" data-prov="ollama">🖥 Local Ollama</button>
+              <button type="button" class="prov-tab" id="provTabHuggingFace" data-prov="huggingface">☁ Free Hugging Face API</button>
+            </div>
+          </div>
+          <div class="hf-config-panel" id="hfConfigPanel" style="display:none;margin-top:14px;">
+            <div class="two">
+              <label>Free Hugging Face Model
+                <select id="hfModelSelect">
+                  <option value="Qwen/Qwen2.5-7B-Instruct" selected>Qwen 2.5 7B Instruct (Recommended - Free)</option>
+                  <option value="meta-llama/Llama-3.2-3B-Instruct">Meta Llama 3.2 3B Instruct (Ultra-Fast)</option>
+                  <option value="mistralai/Mistral-7B-Instruct-v0.3">Mistral 7B Instruct v0.3</option>
+                  <option value="google/gemma-2-9b-it">Google Gemma 2 9B IT</option>
+                </select>
+              </label>
+              <label>Hugging Face API Token
+                <div class="token-input-row" style="display:flex;gap:8px;">
+                  <input type="password" id="hfTokenInput" placeholder="hf_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" style="flex:1;" />
+                  <button type="button" class="ghost" id="btnVerifyHfToken" style="padding:0 12px;font-size:0.8rem;white-space:nowrap;">Verify Token</button>
+                </div>
+              </label>
+            </div>
+            <div class="hf-token-status" style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:0.75rem;color:rgba(255,255,255,0.5);">
+              <span id="hfStatusMsg">Free Serverless Inference router — 0 GB local RAM required.</span>
+              <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener noreferrer" style="color:#ffffff;text-decoration:underline;">Get free token ↗</a>
+            </div>
+          </div>
+          <div class="ollama-download-row" id="ollamaDownloadRow" style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:0.8rem;color:rgba(255,255,255,0.7);font-weight:600;">Download Local Model</span>
+              <small style="font-size:0.72rem;color:rgba(255,255,255,0.4);">Pulls directly via Ollama</small>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="ollamaDownloadInput" placeholder="e.g. qwen2.5:3b, llama3.2:3b, mistral:7b" style="flex:1;" />
+              <button type="button" class="ghost" id="btnDownloadOllama" style="padding:0 14px;font-size:0.8rem;white-space:nowrap;">⬇ Pull Model</button>
+            </div>
+            <div id="modelDlProgress" style="display:none;margin-top:8px;">
+              <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
+                <div id="dlProgressBar" style="height:100%;width:0%;background:#ffffff;transition:width 0.2s ease;"></div>
+              </div>
+              <small id="dlStatusText" style="display:block;margin-top:4px;font-size:0.72rem;color:rgba(255,255,255,0.6);">Starting...</small>
+            </div>
+          </div>
+        </div>
         <div class="duration-row"><label>Min length<select id="minDuration"><option selected>25</option><option>30</option><option>35</option><option>40</option><option>45</option><option>50</option><option>55</option><option>60</option></select></label><label>Max length<select id="maxDuration"><option>25</option><option>30</option><option>35</option><option>40</option><option>45</option><option>50</option><option>55</option><option selected>60</option></select></label></div>
         <div class="duration-note" id="durationNote">Recommended: 25–60 seconds. Qwen can refine boundaries inside candidates.</div>
         <div class="split-toggle-row">
@@ -215,5 +267,5 @@
 
 <footer>Clipify AI · local AI editing workspace · WhisperX + ClipsAI + Ollama + FFmpeg</footer>
 </main>
-  <script src="{{ url_for('static', filename='pipeline_status.js', v='20261113-1') }}"></script><script src="{{ url_for('static', filename='review_player.js', v='20261113-1') }}"></script><script src="{{ url_for('static', filename='app.js', v='20261113-1') }}"></script><script src="{{ url_for('static', filename='tour.js', v='20261113-1') }}"></script>
+  <script src="{{ url_for('static', filename='pipeline_status.js', v='4.0.4') }}"></script><script src="{{ url_for('static', filename='review_player.js', v='4.0.4') }}"></script><script src="{{ url_for('static', filename='app.js', v='4.0.4') }}"></script><script src="{{ url_for('static', filename='tour.js', v='4.0.4') }}"></script>
 </body></html>

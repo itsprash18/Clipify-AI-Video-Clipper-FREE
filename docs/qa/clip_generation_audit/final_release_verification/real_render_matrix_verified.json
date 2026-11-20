@@ -1,0 +1,696 @@
+{
+  "tier_3": {
+    "requested_count": 3,
+    "render_jobs_started": 3,
+    "render_jobs_completed": 3,
+    "exported_mp4_count": 3,
+    "total_render_time_sec": 321.66,
+    "all_decodes_clean": true,
+    "clips": [
+      {
+        "file": "short_01.mp4",
+        "title": "AI Glasses Displayless vs Heads Up \ud83d\ude31",
+        "size_bytes": 18571700,
+        "size_mb": 17.71,
+        "duration": 53.970583,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 521.87,
+          "end": 575.8
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.53
+        },
+        "frames": {
+          "begin": "short_01_begin.jpg",
+          "mid": "short_01_mid.jpg",
+          "end": "short_01_end.jpg"
+        }
+      },
+      {
+        "file": "short_02.mp4",
+        "title": "Next Major Platform \ud83e\udd2f",
+        "size_bytes": 10308102,
+        "size_mb": 9.83,
+        "duration": 43.877167,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 238.0,
+          "end": 281.84
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.12
+        },
+        "frames": {
+          "begin": "short_02_begin.jpg",
+          "mid": "short_02_mid.jpg",
+          "end": "short_02_end.jpg"
+        }
+      },
+      {
+        "file": "short_03.mp4",
+        "title": "Future Scrabble with Mom \ud83d\ude31",
+        "size_bytes": 19182739,
+        "size_mb": 18.29,
+        "duration": 52.677625,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 783.32,
+          "end": 835.94
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.61
+        },
+        "frames": {
+          "begin": "short_03_begin.jpg",
+          "mid": "short_03_mid.jpg",
+          "end": "short_03_end.jpg"
+        }
+      }
+    ],
+    "status": "PASS"
+  },
+  "tier_5": {
+    "requested_count": 5,
+    "render_jobs_started": 5,
+    "render_jobs_completed": 5,
+    "exported_mp4_count": 5,
+    "total_render_time_sec": 431.27,
+    "all_decodes_clean": true,
+    "clips": [
+      {
+        "file": "short_01.mp4",
+        "title": "Next Major Platform \ud83e\udd2f",
+        "size_bytes": 10308102,
+        "size_mb": 9.83,
+        "duration": 43.877167,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 238.0,
+          "end": 281.84
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.22
+        },
+        "frames": {
+          "begin": "short_01_begin.jpg",
+          "mid": "short_01_mid.jpg",
+          "end": "short_01_end.jpg"
+        }
+      },
+      {
+        "file": "short_02.mp4",
+        "title": "Mark Zuckerberg on the Future \ud83d\ude31",
+        "size_bytes": 21077378,
+        "size_mb": 20.1,
+        "duration": 47.589208,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 25.95,
+          "end": 73.5
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.38
+        },
+        "frames": {
+          "begin": "short_02_begin.jpg",
+          "mid": "short_02_mid.jpg",
+          "end": "short_02_end.jpg"
+        }
+      },
+      {
+        "file": "short_03.mp4",
+        "title": "Hologram Display Glasses \ud83d\ude31",
+        "size_bytes": 18571700,
+        "size_mb": 17.71,
+        "duration": 53.970583,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 521.87,
+          "end": 575.8
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.45
+        },
+        "frames": {
+          "begin": "short_03_begin.jpg",
+          "mid": "short_03_mid.jpg",
+          "end": "short_03_end.jpg"
+        }
+      },
+      {
+        "file": "short_04.mp4",
+        "title": "AI Use Cases & The Future Of",
+        "size_bytes": 14511369,
+        "size_mb": 13.84,
+        "duration": 46.504792,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 1465.09,
+          "end": 1511.55
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.39
+        },
+        "frames": {
+          "begin": "short_04_begin.jpg",
+          "mid": "short_04_mid.jpg",
+          "end": "short_04_end.jpg"
+        }
+      },
+      {
+        "file": "short_05.mp4",
+        "title": "AI Changes Every Field \ud83d\ude31",
+        "size_bytes": 7909531,
+        "size_mb": 7.54,
+        "duration": 32.449083,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 2093.75,
+          "end": 2126.14
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 0.95
+        },
+        "frames": {
+          "begin": "short_05_begin.jpg",
+          "mid": "short_05_mid.jpg",
+          "end": "short_05_end.jpg"
+        }
+      }
+    ],
+    "status": "PASS"
+  },
+  "tier_7": {
+    "requested_count": 7,
+    "render_jobs_started": 7,
+    "render_jobs_completed": 7,
+    "exported_mp4_count": 7,
+    "total_render_time_sec": 521.8,
+    "all_decodes_clean": true,
+    "clips": [
+      {
+        "file": "short_01.mp4",
+        "title": "AI Glasses Displayless vs Heads Up \ud83d\ude31",
+        "size_bytes": 18571700,
+        "size_mb": 17.71,
+        "duration": 53.970583,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 521.87,
+          "end": 575.8
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.29
+        },
+        "frames": {
+          "begin": "short_01_begin.jpg",
+          "mid": "short_01_mid.jpg",
+          "end": "short_01_end.jpg"
+        }
+      },
+      {
+        "file": "short_02.mp4",
+        "title": "Next Big Computing Platform \ud83d\ude31",
+        "size_bytes": 10308102,
+        "size_mb": 9.83,
+        "duration": 43.877167,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 238.0,
+          "end": 281.84
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.07
+        },
+        "frames": {
+          "begin": "short_02_begin.jpg",
+          "mid": "short_02_mid.jpg",
+          "end": "short_02_end.jpg"
+        }
+      },
+      {
+        "file": "short_03.mp4",
+        "title": "Mark Zuckerberg's Vision \ud83d\ude31",
+        "size_bytes": 21077378,
+        "size_mb": 20.1,
+        "duration": 47.589208,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 25.95,
+          "end": 73.5
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.09
+        },
+        "frames": {
+          "begin": "short_03_begin.jpg",
+          "mid": "short_03_mid.jpg",
+          "end": "short_03_end.jpg"
+        }
+      },
+      {
+        "file": "short_04.mp4",
+        "title": "Future Scrabble with Mom \ud83d\ude31",
+        "size_bytes": 19182739,
+        "size_mb": 18.29,
+        "duration": 52.677625,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 783.32,
+          "end": 835.94
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.34
+        },
+        "frames": {
+          "begin": "short_04_begin.jpg",
+          "mid": "short_04_mid.jpg",
+          "end": "short_04_end.jpg"
+        }
+      },
+      {
+        "file": "short_05.mp4",
+        "title": "AI Impact Explained \ud83d\ude31",
+        "size_bytes": 7909531,
+        "size_mb": 7.54,
+        "duration": 32.449083,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 2093.75,
+          "end": 2126.14
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 0.79
+        },
+        "frames": {
+          "begin": "short_05_begin.jpg",
+          "mid": "short_05_mid.jpg",
+          "end": "short_05_end.jpg"
+        }
+      },
+      {
+        "file": "short_06.mp4",
+        "title": "Open Sourced? Here's the Reasonable Debate \ud83d\ude31",
+        "size_bytes": 11677379,
+        "size_mb": 11.14,
+        "duration": 47.79775,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 2338.28,
+          "end": 2386.02
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.12
+        },
+        "frames": {
+          "begin": "short_06_begin.jpg",
+          "mid": "short_06_mid.jpg",
+          "end": "short_06_end.jpg"
+        }
+      },
+      {
+        "file": "short_07.mp4",
+        "title": "Testing Open Source? \ud83e\udd2f",
+        "size_bytes": 7963682,
+        "size_mb": 7.59,
+        "duration": 28.236542,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 2608.73,
+          "end": 2636.89
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 0.73
+        },
+        "frames": {
+          "begin": "short_07_begin.jpg",
+          "mid": "short_07_mid.jpg",
+          "end": "short_07_end.jpg"
+        }
+      }
+    ],
+    "status": "PASS"
+  },
+  "tier_10": {
+    "requested_count": 10,
+    "render_jobs_started": 10,
+    "render_jobs_completed": 10,
+    "exported_mp4_count": 10,
+    "total_render_time_sec": 631.66,
+    "all_decodes_clean": true,
+    "clips": [
+      {
+        "file": "short_01.mp4",
+        "title": "AI Glasses Displayless vs Heads Up \ud83d\ude31",
+        "size_bytes": 18571700,
+        "size_mb": 17.71,
+        "duration": 53.970583,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 521.87,
+          "end": 575.8
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.32
+        },
+        "frames": {
+          "begin": "short_01_begin.jpg",
+          "mid": "short_01_mid.jpg",
+          "end": "short_01_end.jpg"
+        }
+      },
+      {
+        "file": "short_02.mp4",
+        "title": "Next Big Computing Platform \ud83d\ude31",
+        "size_bytes": 10308102,
+        "size_mb": 9.83,
+        "duration": 43.877167,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 238.0,
+          "end": 281.84
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.04
+        },
+        "frames": {
+          "begin": "short_02_begin.jpg",
+          "mid": "short_02_mid.jpg",
+          "end": "short_02_end.jpg"
+        }
+      },
+      {
+        "file": "short_03.mp4",
+        "title": "Future Scrabble with Mom \ud83d\ude31",
+        "size_bytes": 19182739,
+        "size_mb": 18.29,
+        "duration": 52.677625,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 783.32,
+          "end": 835.94
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.63
+        },
+        "frames": {
+          "begin": "short_03_begin.jpg",
+          "mid": "short_03_mid.jpg",
+          "end": "short_03_end.jpg"
+        }
+      },
+      {
+        "file": "short_04.mp4",
+        "title": "AI Changes Everything \ud83d\ude31",
+        "size_bytes": 7909531,
+        "size_mb": 7.54,
+        "duration": 32.449083,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 2093.75,
+          "end": 2126.14
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 0.97
+        },
+        "frames": {
+          "begin": "short_04_begin.jpg",
+          "mid": "short_04_mid.jpg",
+          "end": "short_04_end.jpg"
+        }
+      },
+      {
+        "file": "short_05.mp4",
+        "title": "Mark Zuckerberg's Vision \ud83d\ude31",
+        "size_bytes": 21077378,
+        "size_mb": 20.1,
+        "duration": 47.589208,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 25.95,
+          "end": 73.5
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.31
+        },
+        "frames": {
+          "begin": "short_05_begin.jpg",
+          "mid": "short_05_mid.jpg",
+          "end": "short_05_end.jpg"
+        }
+      },
+      {
+        "file": "short_06.mp4",
+        "title": "Open Sourced? Here's the Reasonable Debate \ud83d\ude31",
+        "size_bytes": 11677379,
+        "size_mb": 11.14,
+        "duration": 47.79775,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 2338.28,
+          "end": 2386.02
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.41
+        },
+        "frames": {
+          "begin": "short_06_begin.jpg",
+          "mid": "short_06_mid.jpg",
+          "end": "short_06_end.jpg"
+        }
+      },
+      {
+        "file": "short_07.mp4",
+        "title": "Learning About the Brain \ud83e\udd2f",
+        "size_bytes": 10272643,
+        "size_mb": 9.8,
+        "duration": 36.995292,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 1176.91,
+          "end": 1213.87
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.04
+        },
+        "frames": {
+          "begin": "short_07_begin.jpg",
+          "mid": "short_07_mid.jpg",
+          "end": "short_07_end.jpg"
+        }
+      },
+      {
+        "file": "short_08.mp4",
+        "title": "AI Use Cases & Language Learning \ud83d\ude31",
+        "size_bytes": 14511369,
+        "size_mb": 13.84,
+        "duration": 46.504792,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 1465.09,
+          "end": 1511.55
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.35
+        },
+        "frames": {
+          "begin": "short_08_begin.jpg",
+          "mid": "short_08_mid.jpg",
+          "end": "short_08_end.jpg"
+        }
+      },
+      {
+        "file": "short_09.mp4",
+        "title": "Presence in VR \ud83d\ude33",
+        "size_bytes": 8869725,
+        "size_mb": 8.46,
+        "duration": 35.410375,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 686.35,
+          "end": 721.68
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 1.18
+        },
+        "frames": {
+          "begin": "short_09_begin.jpg",
+          "mid": "short_09_mid.jpg",
+          "end": "short_09_end.jpg"
+        }
+      },
+      {
+        "file": "short_10.mp4",
+        "title": "Open Source Future Ques \ud83d\ude31",
+        "size_bytes": 7963682,
+        "size_mb": 7.59,
+        "duration": 28.236542,
+        "resolution": "1080x1920",
+        "is_9_16": true,
+        "video_codec": "h264",
+        "audio_codec": "aac",
+        "timestamps": {
+          "start": 2608.73,
+          "end": 2636.89
+        },
+        "decode_test": {
+          "decode_success": true,
+          "returncode": 0,
+          "errors": "",
+          "decode_time_sec": 0.73
+        },
+        "frames": {
+          "begin": "short_10_begin.jpg",
+          "mid": "short_10_mid.jpg",
+          "end": "short_10_end.jpg"
+        }
+      }
+    ],
+    "status": "PASS"
+  }
+}

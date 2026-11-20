@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Clipify AI · Live Studio</title>
-<link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png', v='20261018-3') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='20261118-4') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='live.css', v='20261119-1') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='tour.css', v='20261118-1') }}">
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png', v='4.0.4') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='4.0.4') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='live.css', v='4.0.4') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='tour.css', v='4.0.4') }}">
 </head>
 <body class="tweak-theme">
 <div class="noise"></div>
@@ -411,10 +411,10 @@
             <div>
               <label for="bgStyleSelect">Canvas Background</label>
               <select id="bgStyleSelect">
-                <option value="soft_blur" selected>Soft Ambient Blur</option>
-                <option value="heavy_blur">Heavy Cinematic Blur</option>
-                <option value="solid_black">Solid Black Canvas</option>
-                <option value="custom_color">Custom Brand Color</option>
+                <option value="soft_blur" selected>Soft Ambient</option>
+                <option value="heavy_blur">Heavy Blur</option>
+                <option value="solid_black">Solid Black</option>
+                <option value="custom_color">Custom Color</option>
               </select>
             </div>
             <div id="bgColorWrapper" style="display:none;">
@@ -472,26 +472,26 @@
 
           <div class="pref-grid-two" style="margin-top:12px;">
             <div>
-              <label for="prefTargetClips">Target Number of Shorts</label>
+              <label for="prefTargetClips">Target Shorts</label>
               <select id="prefTargetClips">
                 <option value="1">1 Short</option>
                 <option value="2">2 Shorts</option>
                 <option value="3">3 Shorts</option>
-                <option value="4" selected>4 Shorts (Recommended)</option>
+                <option value="4" selected>4 Shorts (Default)</option>
                 <option value="5">5 Shorts</option>
                 <option value="6">6 Shorts</option>
                 <option value="8">8 Shorts</option>
                 <option value="10">10 Shorts</option>
-                <option value="auto">Auto (Continuous)</option>
+                <option value="auto">Auto Stream</option>
               </select>
             </div>
             <div>
-              <label for="bufferWindowSelect">Rolling Buffer Window</label>
+              <label for="bufferWindowSelect">Rolling Buffer</label>
               <select id="bufferWindowSelect">
-                <option value="5">5 Minutes</option>
-                <option value="10" selected>10 Minutes</option>
-                <option value="15">15 Minutes</option>
-                <option value="20">20 Minutes</option>
+                <option value="5">5 Mins</option>
+                <option value="10" selected>10 Mins</option>
+                <option value="15">15 Mins</option>
+                <option value="20">20 Mins</option>
               </select>
             </div>
           </div>
@@ -727,7 +727,7 @@
   </div>
 </div>
 
-<script src="{{ url_for('static', filename='live.js', v='20261119-1') }}"></script>
-<script src="{{ url_for('static', filename='tour.js', v='20261118-1') }}"></script>
+<script src="{{ url_for('static', filename='live.js', v='4.0.4') }}"></script>
+<script src="{{ url_for('static', filename='tour.js', v='4.0.4') }}"></script>
 </body>
 </html>

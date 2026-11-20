@@ -2681,6 +2681,171 @@ def scan_models():
     return jsonify(payload), (200 if recovered_models else 404)
 
 
+_AI_CONFIG_PATH = USER_DATA_DIR / "settings" / "ai_model_config.json"
+_ollama_download_state = {"active": False, "model": "", "percent": 0, "status": "idle", "error": ""}
+
+def _load_ai_config() -> dict:
+    default_cfg = {
+        "provider": os.getenv("CLIPPEDAI_AI_PROVIDER", "ollama"),
+        "hf_token": os.getenv("HF_TOKEN", ""),
+        "hf_model": os.getenv("CLIPPEDAI_HF_MODEL", "Qwen/Qwen2.5-7B-Instruct"),
+        "ollama_model": os.getenv("OLLAMA_MODEL", "qwen2.5:3b"),
+    }
+    try:
+        if _AI_CONFIG_PATH.exists():
+            with open(_AI_CONFIG_PATH, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                default_cfg.update(saved)
+    except Exception as exc:
+        logger.warning(f"Failed to read ai_model_config: {exc}")
+    return default_cfg
+
+def _save_ai_config(cfg: dict) -> None:
+    try:
+        _AI_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(_AI_CONFIG_PATH, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2)
+        if cfg.get("provider"):
+            os.environ["CLIPPEDAI_AI_PROVIDER"] = cfg["provider"]
+        if cfg.get("hf_token"):
+            os.environ["HF_TOKEN"] = cfg["hf_token"]
+        if cfg.get("hf_model"):
+            os.environ["CLIPPEDAI_HF_MODEL"] = cfg["hf_model"]
+        if cfg.get("ollama_model"):
+            os.environ["OLLAMA_MODEL"] = cfg["ollama_model"]
+    except Exception as exc:
+        logger.warning(f"Failed to write ai_model_config: {exc}")
+
+@app.get("/api/models/config")
+def get_model_config():
+    cfg = _load_ai_config()
+    installed, _ = _discover_ollama_models()
+    hf_token = cfg.get("hf_token", "")
+    masked = (f"hf_...{hf_token[-4:]}" if len(hf_token) > 8 else ("hf_configured" if hf_token else ""))
+    return jsonify({
+        "ok": True,
+        "provider": cfg.get("provider", "ollama"),
+        "hf_token_configured": bool(hf_token),
+        "hf_token_masked": masked,
+        "hf_model": cfg.get("hf_model", "Qwen/Qwen2.5-7B-Instruct"),
+        "available_hf_models": [
+            {"id": "Qwen/Qwen2.5-7B-Instruct", "name": "Qwen 2.5 7B Instruct (Recommended - Fast & Free)", "recommended": True},
+            {"id": "meta-llama/Llama-3.2-3B-Instruct", "name": "Meta Llama 3.2 3B Instruct (Ultra-Fast - Free)", "recommended": False},
+            {"id": "mistralai/Mistral-7B-Instruct-v0.3", "name": "Mistral 7B Instruct v0.3 (Free)", "recommended": False},
+            {"id": "google/gemma-2-9b-it", "name": "Google Gemma 2 9B IT (Free)", "recommended": False}
+        ],
+        "ollama_models": installed,
+        "default_ollama_model": _default_model(installed)
+    })
+
+@app.post("/api/models/config")
+def update_model_config():
+    payload = request.get_json(silent=True) or {}
+    cfg = _load_ai_config()
+    if "provider" in payload and payload["provider"] in ("ollama", "huggingface", "heuristic"):
+        cfg["provider"] = payload["provider"]
+    if "hf_token" in payload and payload["hf_token"] and not payload["hf_token"].startswith("hf_..."):
+        cfg["hf_token"] = payload["hf_token"].strip()
+    if "hf_model" in payload and payload["hf_model"]:
+        cfg["hf_model"] = payload["hf_model"].strip()
+    if "ollama_model" in payload and payload["ollama_model"]:
+        cfg["ollama_model"] = payload["ollama_model"].strip()
+    _save_ai_config(cfg)
+    return jsonify({"ok": True, "config": cfg})
+
+@app.post("/api/models/huggingface/verify")
+def verify_hf_token():
+    payload = request.get_json(silent=True) or {}
+    token = payload.get("token", "").strip()
+    if not token or token.startswith("hf_..."):
+        cfg = _load_ai_config()
+        token = cfg.get("hf_token", "")
+    if not token:
+        return jsonify({"ok": False, "error": "No Hugging Face token provided."}), 400
+    try:
+        req = urllib.request.Request(
+            "https://huggingface.co/api/whoami-v2",
+            headers={"Authorization": f"Bearer {token}", "User-Agent": "ClipifyAI/4.0.4"}
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            user_name = data.get("name", "User")
+            user_type = data.get("type", "user")
+            cfg = _load_ai_config()
+            cfg["hf_token"] = token
+            _save_ai_config(cfg)
+            return jsonify({"ok": True, "name": user_name, "type": user_type})
+    except urllib.error.HTTPError as exc:
+        if exc.code == 401:
+            return jsonify({"ok": False, "error": "Invalid Hugging Face token. Please check your token at huggingface.co/settings/tokens."}), 401
+        return jsonify({"ok": False, "error": f"Hugging Face API returned error {exc.code}"}), exc.code
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"Connection to Hugging Face failed: {exc}"}), 500
+
+@app.post("/api/models/ollama/download")
+def download_ollama_model():
+    payload = request.get_json(silent=True) or {}
+    model_name = payload.get("model", "").strip()
+    if not model_name:
+        return jsonify({"ok": False, "error": "Model name is required (e.g. qwen2.5:3b)"}), 400
+    if _ollama_download_state["active"]:
+        return jsonify({"ok": False, "error": f"Another download is already in progress ({_ollama_download_state['model']})"}), 409
+
+    def _pull_thread():
+        _ollama_download_state["active"] = True
+        _ollama_download_state["model"] = model_name
+        _ollama_download_state["percent"] = 0
+        _ollama_download_state["status"] = "Starting download..."
+        _ollama_download_state["error"] = ""
+        try:
+            exe = shutil.which("ollama")
+            if not exe:
+                for candidate in [
+                    Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Ollama" / "ollama.exe",
+                    Path("C:/Program Files/Ollama/ollama.exe"),
+                    Path("C:/Users") / os.environ.get("USERNAME", "") / "AppData/Local/Programs/Ollama/ollama.exe"
+                ]:
+                    if candidate.exists():
+                        exe = str(candidate)
+                        break
+            if not exe:
+                _ollama_download_state["error"] = "Ollama executable not found on PC."
+                _ollama_download_state["status"] = "Failed"
+                return
+            proc = subprocess.Popen([exe, "pull", model_name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace")
+            for line in proc.stdout:
+                line_str = line.strip()
+                if "%" in line_str:
+                    m = re.search(r"(\d{1,3})%", line_str)
+                    if m:
+                        _ollama_download_state["percent"] = int(m.group(1))
+                        _ollama_download_state["status"] = f"Downloading {model_name} ({m.group(1)}%)"
+                elif "verifying" in line_str.lower():
+                    _ollama_download_state["status"] = "Verifying checksums..."
+                elif "writing manifest" in line_str.lower():
+                    _ollama_download_state["status"] = "Writing manifest..."
+            proc.wait()
+            if proc.returncode == 0:
+                _ollama_download_state["percent"] = 100
+                _ollama_download_state["status"] = "Completed successfully!"
+            else:
+                _ollama_download_state["error"] = f"Download failed with exit code {proc.returncode}"
+                _ollama_download_state["status"] = "Failed"
+        except Exception as exc:
+            _ollama_download_state["error"] = str(exc)
+            _ollama_download_state["status"] = "Failed"
+        finally:
+            _ollama_download_state["active"] = False
+
+    t = threading.Thread(target=_pull_thread, daemon=True)
+    t.start()
+    return jsonify({"ok": True, "message": f"Download of {model_name} started."})
+
+@app.get("/api/models/ollama/download-status")
+def get_ollama_download_status():
+    return jsonify({"ok": True, **_ollama_download_state})
+
+
 @app.get("/api/fonts")
 def fonts():
     # Curated names are intentionally limited to fonts that ASS/DirectWrite can resolve on normal Windows installs,

@@ -261,13 +261,6 @@
     cardEl.style.left = `${left}px`;
   }
 
-  // Expose API
+  // Expose API - only runs when explicitly triggered by the user via the sidebar button
   window.startClipifyTour = () => startTour(true);
-
-  // Auto-run on first load
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      startTour(false);
-    }, 150);
-  });
 })();

@@ -764,6 +764,70 @@ def ffmpeg_ass_filter(ass_path: str) -> str:
     return "ass='" + ass_esc + "':fontsdir='" + fonts_esc + "'"
 
 
+def call_huggingface_router(
+    messages: List[Dict[str, str]],
+    task_name: str = "general",
+    timeout: Optional[int] = 45,
+    max_retries: int = 1,
+) -> Optional[str]:
+    """Call Hugging Face Free Serverless Router API."""
+    token = os.getenv("HF_TOKEN", "").strip()
+    model = os.getenv("CLIPPEDAI_HF_MODEL", "Qwen/Qwen2.5-7B-Instruct").strip()
+    if not token:
+        try:
+            cfg_path = os.path.join(ROOT, "settings", "ai_model_config.json")
+            if os.path.exists(cfg_path):
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                    token = cfg.get("hf_token", "").strip()
+                    if cfg.get("hf_model"):
+                        model = cfg.get("hf_model").strip()
+        except Exception:
+            pass
+    if not token:
+        return None
+
+    url = "https://router.huggingface.co/hf-inference/v1/chat/completions"
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.2,
+        "max_tokens": 1500,
+    }
+    data_bytes = json.dumps(payload).encode("utf-8")
+
+    for attempt in range(max_retries + 1):
+        t0 = time.time()
+        tag = "" if attempt == 0 else f" (retry {attempt}/{max_retries})"
+        print(f"[HuggingFace] Calling {model} [{task_name}]{tag}...")
+        try:
+            req = urllib.request.Request(
+                url,
+                data=data_bytes,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                    "User-Agent": "ClipifyAI/4.0.4",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=timeout or 45) as resp:
+                raw = resp.read().decode("utf-8", errors="replace")
+                parsed = json.loads(raw)
+                choices = parsed.get("choices", [])
+                if choices and "message" in choices[0]:
+                    content = choices[0]["message"].get("content", "")
+                    dur = time.time() - t0
+                    preview = content[:100].replace("\n", " ") if isinstance(content, str) else ""
+                    print(f"[HuggingFace] OK [{task_name}] ({dur:.1f}s) preview: {preview}...")
+                    return content
+        except Exception as exc:
+            print(f"[HuggingFace] Call failed [{task_name}]: {exc}")
+            if attempt < max_retries:
+                time.sleep(1.0)
+    return None
+
+
 def call_ollama(
     messages: List[Dict[str, str]],
     task_name: str = "general",
@@ -771,11 +835,26 @@ def call_ollama(
     timeout: Optional[int] = None,
     max_retries: int = 1,
 ) -> Optional[str]:
-    """Call local Ollama chat API with qwen3:8b.
+    """Call AI LLM API (Ollama or Hugging Face Free Cloud).
 
     Returns raw content string on success, None on total failure.
     Does not raise exceptions.
     """
+    ai_provider = os.getenv("CLIPPEDAI_AI_PROVIDER", "").strip().lower()
+    if not ai_provider:
+        try:
+            cfg_path = os.path.join(ROOT, "settings", "ai_model_config.json")
+            if os.path.exists(cfg_path):
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    ai_provider = json.load(f).get("provider", "ollama").strip().lower()
+        except Exception:
+            ai_provider = "ollama"
+
+    if ai_provider == "huggingface":
+        hf_res = call_huggingface_router(messages, task_name=task_name, timeout=timeout, max_retries=max_retries)
+        if hf_res:
+            return hf_res
+
     global OLLAMA_MODEL
     if not OLLAMA_MODEL or str(OLLAMA_MODEL).lower() in ("none", "null", "heuristic", "builtin"):
         return None
@@ -6168,12 +6247,12 @@ def process_single_video(
             trim_cmd = [
                 FFMPEG_BIN, "-hide_banner", "-y",
                 "-ss", f"{clip.start_time:.3f}",
-                "-t", f"{dur:.3f}",
                 "-i", input_path,
-                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "18",
+                "-t", f"{dur:.3f}",
+                "-filter_complex", "[0:v]setpts=PTS-STARTPTS[v];[0:a]asetpts=PTS-STARTPTS[a]",
+                "-map", "[v]", "-map", "[a]",
+                "-c:v", "libx264", "-preset", "fast", "-crf", "18",
                 "-c:a", "aac", "-b:a", "192k",
-                "-avoid_negative_ts", "make_zero",
-                "-async", "1",
                 trimmed_path,
             ]
             trim_res = _run_hidden(trim_cmd, check=False, capture_output=True, text=True, errors="replace")

@@ -215,6 +215,7 @@ nav a.active {
 }
 
 .page-section { max-width: 1360px; }
+#create { display: block; opacity: 1; visibility: visible; }
 
 .topbar {
   display: flex;

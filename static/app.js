@@ -54,7 +54,7 @@ function startTypewriter(){
 
 startTypewriter();
 
-modelSelect.addEventListener('change',()=>{state.model=modelSelect.value});
+modelSelect?.addEventListener('change',()=>{state.model=modelSelect.value});
 
 refreshModelsBtn?.addEventListener('click', async () => {
   try {
@@ -142,19 +142,19 @@ function setFile(file){
   $('#previewMeta').textContent=`${file.name} · ${formatBytes(file.size)}`
 }
 
-input.addEventListener('change',e=>e.target.files[0]&&setFile(e.target.files[0]));
+input?.addEventListener('change',e=>e.target.files[0]&&setFile(e.target.files[0]));
 
-['dragenter','dragover'].forEach(x=>drop.addEventListener(x,e=>{
+['dragenter','dragover'].forEach(x=>drop?.addEventListener(x,e=>{
   e.preventDefault();
   drop.classList.add('drag')
 }));
 
-['dragleave','drop'].forEach(x=>drop.addEventListener(x,e=>{
+['dragleave','drop'].forEach(x=>drop?.addEventListener(x,e=>{
   e.preventDefault();
   drop.classList.remove('drag')
 }));
 
-drop.addEventListener('drop',e=>{
+drop?.addEventListener('drop',e=>{
   const f=e.dataTransfer.files[0];
   if(f&&f.type.startsWith('video/'))setFile(f)
 });
@@ -374,9 +374,9 @@ function syncDuration(){
     `Recommended: ${min}–${max} seconds. Qwen can refine boundaries inside candidates.`;
 }
 
-minDuration.addEventListener('change',syncDuration);
-maxDuration.addEventListener('change',syncDuration);
-syncDuration();
+minDuration?.addEventListener('change',syncDuration);
+maxDuration?.addEventListener('change',syncDuration);
+if(minDuration&&maxDuration) syncDuration();
 
 function syncRange(id,out){
 
@@ -2424,7 +2424,7 @@ $('#newBtn')
     location.hash='create';
   };
 
-create.onclick=start;
+if(create) create.onclick=start;
 
 function navigateTo(id){
   const target = id || 'create';
@@ -2499,15 +2499,13 @@ window.addEventListener(
   }
 );
 
-window.dispatchEvent(
-  new Event('hashchange')
-);
-
-loadOptions();
-loadProjects();
-loadTrash();
-updatePreview();
-editorPreviewUpdate();
+try { window.dispatchEvent(new Event('hashchange')); } catch(e){ console.warn(e); }
+try { navigateTo('create'); } catch(e){ console.warn(e); }
+try { loadOptions(); } catch(e){ console.warn(e); }
+try { loadProjects(); } catch(e){ console.warn(e); }
+try { loadTrash(); } catch(e){ console.warn(e); }
+try { updatePreview(); } catch(e){ console.warn(e); }
+try { editorPreviewUpdate(); } catch(e){ console.warn(e); }
 
 const revealSections = $$('.page-section');
 if ('IntersectionObserver' in window) {
@@ -2660,3 +2658,174 @@ function initSocialPublishing() {
   });
 }
 initSocialPublishing();
+
+
+// --- AI Model & Cloud Integration (Hugging Face + Ollama) ---
+function initAIModelManagement() {
+  const tabOllama = $('#provTabOllama');
+  const tabHf = $('#provTabHuggingFace');
+  const hfPanel = $('#hfConfigPanel');
+  const ollamaRow = $('#ollamaDownloadRow');
+  const hfTokenInput = $('#hfTokenInput');
+  const hfModelSelect = $('#hfModelSelect');
+  const btnVerifyHf = $('#btnVerifyHfToken');
+  const hfStatusMsg = $('#hfStatusMsg');
+  const btnDownloadOllama = $('#btnDownloadOllama');
+  const ollamaInput = $('#ollamaDownloadInput');
+  const dlProgress = $('#modelDlProgress');
+  const dlBar = $('#dlProgressBar');
+  const dlText = $('#dlStatusText');
+
+  let currentProvider = 'ollama';
+
+  async function loadConfig() {
+    try {
+      const res = await fetch('/api/models/config');
+      const data = await res.json();
+      if (data.ok) {
+        currentProvider = data.provider || 'ollama';
+        if (hfModelSelect && data.hf_model) hfModelSelect.value = data.hf_model;
+        if (hfTokenInput && data.hf_token_masked) hfTokenInput.value = data.hf_token_masked;
+        updateUI();
+      }
+    } catch (_) {}
+  }
+
+  function updateUI() {
+    if (currentProvider === 'huggingface') {
+      tabHf?.classList.add('active');
+      tabOllama?.classList.remove('active');
+      if (hfPanel) hfPanel.style.display = 'block';
+      if (ollamaRow) ollamaRow.style.display = 'none';
+      if ($('#healthText')) $('#healthText').textContent = 'Hugging Face API (Cloud)';
+      if ($('#statusPill')) $('#statusPill').innerHTML = '<span></span> HF Cloud Mode';
+    } else {
+      tabOllama?.classList.add('active');
+      tabHf?.classList.remove('active');
+      if (hfPanel) hfPanel.style.display = 'none';
+      if (ollamaRow) ollamaRow.style.display = 'block';
+    }
+  }
+
+  tabOllama?.addEventListener('click', async () => {
+    currentProvider = 'ollama';
+    updateUI();
+    try {
+      await fetch('/api/models/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'ollama' })
+      });
+      loadOptions();
+    } catch (_) {}
+  });
+
+  tabHf?.addEventListener('click', async () => {
+    currentProvider = 'huggingface';
+    updateUI();
+    try {
+      await fetch('/api/models/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'huggingface' })
+      });
+    } catch (_) {}
+  });
+
+  hfModelSelect?.addEventListener('change', async () => {
+    try {
+      await fetch('/api/models/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hf_model: hfModelSelect.value })
+      });
+    } catch (_) {}
+  });
+
+  btnVerifyHf?.addEventListener('click', async () => {
+    const token = hfTokenInput?.value.trim();
+    if (!token) {
+      if (hfStatusMsg) hfStatusMsg.textContent = 'Please paste a valid Hugging Face token (starts with hf_).';
+      return;
+    }
+    btnVerifyHf.disabled = true;
+    btnVerifyHf.textContent = 'Verifying…';
+    if (hfStatusMsg) hfStatusMsg.textContent = 'Connecting to Hugging Face API…';
+    try {
+      const res = await fetch('/api/models/huggingface/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        if (hfStatusMsg) {
+          hfStatusMsg.innerHTML = `<span style="color:#4ade80;">✓ Verified & Connected as <b>${data.name}</b> (${data.type})</span>`;
+        }
+        if ($('#healthDot')) $('#healthDot').classList.add('online');
+        if ($('#healthText')) $('#healthText').textContent = 'Hugging Face API connected';
+      } else {
+        if (hfStatusMsg) {
+          hfStatusMsg.innerHTML = `<span style="color:#ef4444;">✗ ${data.error || 'Invalid token'}</span>`;
+        }
+      }
+    } catch (err) {
+      if (hfStatusMsg) hfStatusMsg.innerHTML = `<span style="color:#ef4444;">✗ Error: ${err.message}</span>`;
+    } finally {
+      btnVerifyHf.disabled = false;
+      btnVerifyHf.textContent = 'Verify Token';
+    }
+  });
+
+  let pollInterval = null;
+  btnDownloadOllama?.addEventListener('click', async () => {
+    const model = ollamaInput?.value.trim();
+    if (!model) {
+      alert('Please enter an Ollama model tag (e.g. qwen2.5:3b, llama3.2:3b).');
+      return;
+    }
+    btnDownloadOllama.disabled = true;
+    if (dlProgress) dlProgress.style.display = 'block';
+    if (dlBar) dlBar.style.width = '0%';
+    if (dlText) dlText.textContent = `Requesting pull of ${model}…`;
+
+    try {
+      const res = await fetch('/api/models/ollama/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model })
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || 'Failed to start download.');
+        btnDownloadOllama.disabled = false;
+        return;
+      }
+      pollInterval = setInterval(async () => {
+        try {
+          const sRes = await fetch('/api/models/ollama/download-status');
+          const sData = await sRes.json();
+          if (dlBar) dlBar.style.width = `${sData.percent || 0}%`;
+          if (dlText) dlText.textContent = sData.status || 'Downloading…';
+          if (!sData.active) {
+            clearInterval(pollInterval);
+            btnDownloadOllama.disabled = false;
+            if (sData.percent === 100) {
+              await loadOptions();
+              if (ollamaInput) ollamaInput.value = '';
+            } else if (sData.error) {
+              alert(sData.error);
+            }
+          }
+        } catch (_) {}
+      }, 1200);
+    } catch (err) {
+      alert('Error initiating model pull: ' + err.message);
+      btnDownloadOllama.disabled = false;
+    }
+  });
+
+  loadConfig();
+}
+
+initAIModelManagement();

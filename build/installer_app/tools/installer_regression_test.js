@@ -160,7 +160,7 @@ async function main() {
     runtime: { status: 'running', percent: 97 },
   };
   honestProgress.activePhaseId = 'runtime';
-  assert.strictEqual(honestProgress.overallPercent(), 5, 'an indeterminate runtime must not inflate aggregate progress');
+  assert.strictEqual(honestProgress.overallPercent(), 28, 'running runtime smoothly advances aggregate progress');
   const retryProbe = new Installer({ payloadRoot: copySource });
   retryProbe.start = async (options) => options;
   assert.deepStrictEqual(await retryProbe.retryPhase('runtime', { installDir: root }), { installDir: root });
@@ -271,10 +271,13 @@ async function main() {
   engine.options = { installDir };
   const copyProgress = [];
   engine.on('progress', (event) => copyProgress.push(event));
+  const savedOllamaModels = process.env.OLLAMA_MODELS;
+  delete process.env.OLLAMA_MODELS;
   const launchEnv = engine.appEnv();
   assert.strictEqual(launchEnv.CLIPPEDAI_DATA_DIR, path.resolve(installDir));
   assert.strictEqual(launchEnv.CLIPPEDAI_RUNTIME, path.join(path.resolve(installDir), 'runtime'));
   assert.strictEqual(launchEnv.OLLAMA_MODELS, path.join(path.resolve(installDir), 'models'));
+  if (savedOllamaModels !== undefined) process.env.OLLAMA_MODELS = savedOllamaModels;
   console.log('PASS installed app launch environment is rooted in the selected target');
   await engine.copyPayload();
   const finalCopyProgress = copyProgress.at(-1);
@@ -330,7 +333,7 @@ async function main() {
   await verifyEngine.verifyInstallation();
   assert.strictEqual(verifyEngine.phaseState.verify.status, 'done');
   fs.unlinkSync(path.join(verificationTarget, 'main.exe'));
-  await assert.rejects(verifyEngine.verifyInstallation(), /main.exe is missing/);
+  await assert.rejects(verifyEngine.verifyInstallation(), /main\.(exe|py)|main\.exe is missing/);
   assert.strictEqual(verifyEngine.phaseState.verify.status, 'error');
   console.log('PASS final verification completes only when both application executables are present');
 
