@@ -1,50 +1,73 @@
 /**
  * Clipify AI - Interactive Guided Onboarding Tour
+ * Features walkthrough for all 9 core sidebar sections
  */
 (function() {
   const TOUR_STORAGE_KEY = 'clipify_tour_completed';
 
   const TOUR_STEPS = [
     {
-      target: '#dropzone',
-      title: '1. Create & Import',
-      desc: 'Drop your long-form video file or paste a YouTube link. Clipify AI prepares footage instantly for AI-powered clipping.',
-      pos: 'bottom'
-    },
-    {
-      target: '.mode-strip',
-      title: '2. Smart AI Modes & Split Screen',
-      desc: 'Pick your editing style (Viral Hooks, Flow, Highlights, Gaming). Enable Split-Screen for podcast framing with two face tracking panels.',
-      pos: 'bottom'
-    },
-    {
-      target: 'a[href="/narrate"]',
-      title: '3. Voice & Narrate Studio',
-      desc: 'Generate voiceovers and narrated AI stories using high-quality local offline text-to-speech models with 0 subscription fees.',
+      target: '#navCreateLink',
+      section: 'create',
+      title: '1. Create: Smart AI Video Clipper',
+      desc: 'The core editing studio. Upload long-form videos (MP4, MKV, MOV, WEBM) or paste YouTube links. Pick from 4 AI editing modes (Viral Hooks, Flow, Highlights, Gaming), enable Split-Screen for podcast framing, choose caption fonts, and render high-retention 9:16 Shorts powered by local WhisperX + Ollama.',
       pos: 'right'
     },
     {
-      target: 'a[href="/live"]',
-      title: '4. Live Studio (Brand New!)',
-      desc: 'Connect live streams from YouTube Live, TikTok Live, or OBS Studio. Clipify AI transcribes speech in real time and automatically creates viral 9:16 Shorts while the stream is still running!',
+      target: '#navNarrateLink',
+      title: '2. Narrate: Script-to-Short Voice Studio',
+      desc: 'Generate viral voiceover stories completely offline with zero API costs. Write your own storytelling script or let AI brainstorm one, select offline text-to-speech voices, and pair it with licensed vertical gameplay backgrounds (GTA 5 Stunts, Minecraft Parkour).',
       pos: 'right'
     },
     {
-      target: 'a[data-nav="projects"]',
-      title: '5. Workspace & Saved Projects',
-      desc: 'All generated Shorts, clips, transcripts and assets are saved locally. Review, download, or re-edit them anytime.',
+      target: '#navLiveLink',
+      title: '3. Live Studio: Real-Time Stream Clipping',
+      desc: 'Connect live broadcasts from YouTube Live, TikTok Live, Twitch, or OBS Studio via RTMP. Clipify AI transcribes speech in real time, automatically identifies viral climax moments, and produces ready-to-publish vertical Shorts while the stream is still broadcasting.',
       pos: 'right'
     },
     {
-      target: 'a[data-nav="editor"]',
-      title: '6. Editor & Social MCP',
-      desc: 'Customize subtitles, add logo watermarks, and export or publish your finished Shorts directly.',
+      target: '#navProjectsLink',
+      section: 'projects',
+      title: '4. Projects: Workspace & Clip History',
+      desc: 'All rendered Shorts, video slices, transcripts, and metadata are saved permanently in your local workspace. Preview finished cuts, copy AI-generated titles and hashtags, export clips, or restore deleted projects from the recycle bin.',
+      pos: 'right'
+    },
+    {
+      target: '#navEditorLink',
+      section: 'editor',
+      title: '5. Editor: Post-Render Video Studio',
+      desc: 'Brand your finished videos without re-running AI pipelines. Fine-tune 9:16 vertical camera framing with pan (X/Y) & zoom, customize text typography, and upload watermarks or logos with instant background removal via chroma keying.',
+      pos: 'right'
+    },
+    {
+      target: '#navBetaLink',
+      section: 'beta',
+      title: '6. Beta Features: Experimental Suite',
+      desc: 'Test preview features before they hit production: Premium Caption Mode with scale-pop motion graphics, situational *ACTION CUES*, real-time GPU/CPU pipeline profiling, and all-in-one AI narration testing.',
+      pos: 'right'
+    },
+    {
+      target: '#navModelsLink',
+      title: '7. Models: Local Hub & Cloud Inference',
+      desc: 'Explore 12 curated open-weight AI models (Qwen 2.5, DeepSeek R1, Llama 3.3, Mistral, Gemma 2, Phi 4). Download models with live progress bars, delete unused models to free up disk storage, or connect Hugging Face Serverless Cloud (0 GB RAM required).',
+      pos: 'right'
+    },
+    {
+      target: '#navUpdateLink',
+      title: '8. Update: One-Click In-Place Updater',
+      desc: 'Stay on the cutting edge with one click. Check GitHub for new releases and apply instant in-place updates without needing to re-download or re-run heavy setup installers.',
+      pos: 'right'
+    },
+    {
+      target: '#sidebarCreatureCard',
+      title: '9. Forest Runner: Mascot & Offline Mini Game',
+      desc: 'Meet our confused running mascot! Click it anytime to open the Forest Runner mini-game popup. Jump over woodland obstacles and set high scores while waiting for your AI clips to render.',
       pos: 'right'
     },
     {
       isFinal: true,
       title: 'Support Clipify AI & Follow ⭐',
-      desc: 'Clipify AI is built 100% free, local, and unrestricted so everyone can create viral Shorts without paying subscriptions. Please star the repository and follow @sherlock-dev-ai on GitHub to support free open-source AI!'
+      desc: 'Clipify AI is built 100% free, private, and local so creators never have to pay expensive monthly subscriptions. Please star the repository and follow @sherlock-dev-ai on GitHub to support free open-source software!'
     }
   ];
 
@@ -138,6 +161,10 @@
       return;
     }
 
+    if (step.section && typeof window.navigateTo === 'function') {
+      try { window.navigateTo(step.section); } catch(e){}
+    }
+
     const targetEl = document.querySelector(step.target);
     if (!targetEl) {
       nextStep();
@@ -161,7 +188,7 @@
     // Card content
     cardEl.innerHTML = `
       <div class="tour-card-header">
-        <span class="tour-step-badge">Step ${currentStepIndex + 1} of ${TOUR_STEPS.length - 1}</span>
+        <span class="tour-step-badge">Feature ${currentStepIndex + 1} of ${TOUR_STEPS.length - 1}</span>
         <button class="tour-skip-btn" type="button" aria-label="Skip tour">Skip</button>
       </div>
       <h3 class="tour-title">${step.title}</h3>
@@ -222,7 +249,7 @@
     cardEl.innerHTML = `
       <div class="tour-github-card">
         <div class="tour-avatar-wrap">
-          <img class="tour-avatar-img" src="/static/author-avatar.png" alt="Sherlock Dev AI" onerror="this.src='/static/icon.png'">
+          <img class="tour-avatar-img" src="/static/icon.png" alt="Clipify AI" onerror="this.src='/static/icon.png'">
           <div class="tour-star-badge" aria-hidden="true">★</div>
         </div>
         <h3 class="tour-title" style="font-size:1.4rem;margin-bottom:8px;">${step.title}</h3>
@@ -235,7 +262,7 @@
             <span>👤 Follow Dev</span>
           </a>
         </div>
-        <button class="tour-finish-btn" type="button">Let's Clip Some Videos →</button>
+        <button class="tour-finish-btn" type="button">Let's Create Some Shorts →</button>
       </div>
     `;
 
@@ -261,6 +288,6 @@
     cardEl.style.left = `${left}px`;
   }
 
-  // Expose API - only runs when explicitly triggered by the user via the sidebar button
+  // Expose API
   window.startClipifyTour = () => startTour(true);
 })();

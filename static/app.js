@@ -2554,6 +2554,14 @@ function navigateTo(id){
     if(window.openModelHub) window.openModelHub();
     return;
   }
+  if(target === 'update'){
+    if(window.openClipifyUpdate) window.openClipifyUpdate();
+    return;
+  }
+  if(target === 'guide'){
+    if(window.startClipifyTour) window.startClipifyTour();
+    return;
+  }
   if(location.hash.slice(1) !== target){
     location.hash = target;
   }
@@ -2572,6 +2580,11 @@ function navigateTo(id){
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
+
+$('#navGuideLink')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  if (window.startClipifyTour) window.startClipifyTour();
+});
 
 $('#previewReview')?.addEventListener('click', (e) => {
   e.preventDefault();

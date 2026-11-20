@@ -14,8 +14,10 @@
     const btnExecute = document.getElementById('btnExecuteUpdate');
     const btnView = document.getElementById('btnViewRelease');
     const modalTitle = document.getElementById('updateModalTitle');
+    const navUpdateLink = document.getElementById('navUpdateLink');
+    const navVersionTag = document.getElementById('navVersionTag');
 
-    if (!card || !btn) return;
+    if (!card && !btn && !navUpdateLink) return;
 
     let updateState = {
       checked: false,
@@ -59,28 +61,40 @@
         };
 
         if (badge) badge.textContent = data.current_version || 'v4.0.5';
+        if (navVersionTag) navVersionTag.textContent = data.current_version || 'v4.0.5';
 
         if (updateState.updateAvailable) {
-          card.classList.add('has-update');
+          if (card) card.classList.add('has-update');
+          if (navVersionTag) {
+            navVersionTag.textContent = 'Update';
+            navVersionTag.style.background = '#22c55e';
+            navVersionTag.style.color = '#052e16';
+          }
           if (statusMsg) statusMsg.textContent = `New: ${updateState.latestVersion}`;
-          btn.innerHTML = '<span class="btn-update-icon">⚡</span> Update';
-          btn.disabled = false;
+          if (btn) {
+            btn.innerHTML = '<span class="btn-update-icon">⚡</span> Update';
+            btn.disabled = false;
+          }
           if (!silent) {
             openModalWithRelease(updateState);
           }
         } else {
-          card.classList.remove('has-update');
+          if (card) card.classList.remove('has-update');
           if (statusMsg) statusMsg.textContent = 'Up to date ✓';
-          btn.innerHTML = '<span class="btn-update-icon">↻</span> Update';
-          btn.disabled = false;
+          if (btn) {
+            btn.innerHTML = '<span class="btn-update-icon">↻</span> Update';
+            btn.disabled = false;
+          }
           if (!silent) {
             openModalUpToDate(updateState);
           }
         }
       } catch (err) {
         if (statusMsg) statusMsg.textContent = 'Offline';
-        btn.innerHTML = '<span class="btn-update-icon">↻</span> Retry';
-        btn.disabled = false;
+        if (btn) {
+          btn.innerHTML = '<span class="btn-update-icon">↻</span> Retry';
+          btn.disabled = false;
+        }
         if (!silent) {
           alert('Could not check for updates: ' + err.message);
         }
@@ -185,13 +199,36 @@
       }
     }
 
-    btn.addEventListener('click', () => {
+    if (btn) {
+      btn.addEventListener('click', () => {
+        if (updateState.checked && updateState.updateAvailable) {
+          openModalWithRelease(updateState);
+        } else {
+          checkUpdate(false);
+        }
+      });
+    }
+
+    if (navUpdateLink) {
+      navUpdateLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (updateState.checked && updateState.updateAvailable) {
+          openModalWithRelease(updateState);
+        } else {
+          openModalUpToDate(updateState);
+          checkUpdate(true);
+        }
+      });
+    }
+
+    window.openClipifyUpdate = () => {
       if (updateState.checked && updateState.updateAvailable) {
         openModalWithRelease(updateState);
       } else {
-        checkUpdate(false);
+        openModalUpToDate(updateState);
+        checkUpdate(true);
       }
-    });
+    };
 
     btnExecute?.addEventListener('click', applyUpdate);
 
