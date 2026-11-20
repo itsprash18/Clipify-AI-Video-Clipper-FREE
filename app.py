@@ -958,7 +958,7 @@ def _pipeline_command(input_dir: Path) -> list[str]:
 
 
 def run_job(
-job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, max_duration: int, branding: dict[str, Any], split_screen: bool = False, fast_whisper: bool = True) -> None:
+job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, max_duration: int, branding: dict[str, Any], split_screen: bool = False, fast_whisper: bool = True, gaming_split: bool = True) -> None:
     with jobs_lock:
         job = jobs[job_id]
         job["status"] = "running"
@@ -1009,6 +1009,7 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
         "CLIPPEDAI_TEXT_X": str(branding.get("text_x", 50)),
         "CLIPPEDAI_TEXT_Y": str(branding.get("text_y", 75)),
         "CLIPPEDAI_SPLIT_SCREEN": "1" if split_screen else "0",
+        "CLIPPEDAI_GAMING_SPLIT": "1" if gaming_split else "0",
         "CLIPPEDAI_FAST_WHISPER": "1" if fast_whisper else "0",
         "TRANSCRIPTION_MODEL": os.getenv("TRANSCRIPTION_MODEL", "tiny" if fast_whisper else ("medium" if _is_cuda_available() else "base")),
         "CLIPPEDAI_ALLOW_FALLBACK": "1",
@@ -2221,6 +2222,7 @@ def start():
             payload["branding"] = {}
     data = payload or {}
     split_screen = str(data.get("split_screen", data.get("splitScreen", "0"))).strip().lower() in {"1", "true", "yes", "on"}
+    gaming_split = str(data.get("gaming_split", data.get("gamingSplit", "1"))).strip().lower() in {"1", "true", "yes", "on"}
     fast_whisper = str(data.get("fast_whisper", data.get("fastWhisper", "1"))).strip().lower() in {"1", "true", "yes", "on"}
     job_id = str(data.get("job_id", ""))
     mode = str(data.get("mode", "viral")).lower()
@@ -2350,9 +2352,10 @@ def start():
     with jobs_lock:
         jobs[job_id]["branding"] = branding
         jobs[job_id]["split_screen"] = split_screen
+        jobs[job_id]["gaming_split"] = gaming_split
         jobs[job_id]["fast_whisper"] = fast_whisper
-    threading.Thread(target=run_job, args=(job_id, mode, clips, model, font, min_duration, max_duration, branding, split_screen, fast_whisper), daemon=True).start()
-    return jsonify({"ok": True, "job_id": job_id, "model": model, "font": font, "min_duration": min_duration, "max_duration": max_duration, "branding": branding, "split_screen": split_screen, "fast_whisper": fast_whisper})
+    threading.Thread(target=run_job, args=(job_id, mode, clips, model, font, min_duration, max_duration, branding, split_screen, fast_whisper, gaming_split), daemon=True).start()
+    return jsonify({"ok": True, "job_id": job_id, "model": model, "font": font, "min_duration": min_duration, "max_duration": max_duration, "branding": branding, "split_screen": split_screen, "gaming_split": gaming_split, "fast_whisper": fast_whisper})
 
 
 

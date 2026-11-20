@@ -337,12 +337,15 @@
             </label>
           </div>
 
-          <div class="pref-row">
+          <div class="pref-row highlight-pref-row" style="background: rgba(0, 230, 153, 0.08); border: 1px solid rgba(0, 230, 153, 0.28); border-radius: 12px; padding: 12px 14px; margin: 10px 0;">
             <div>
-              <b>Gaming Split-Screen Layout</b>
-              <small>58% gameplay on top + 42% reaction webcam on bottom</small>
+              <b style="color: #00e699; font-size: 14px;">🎮 Gaming Split-Screen Layout</b>
+              <small style="display: block; color: var(--text-muted, #ccc); margin-top: 4px;">
+                <b>ENABLED:</b> Whole gameplay on top + Streamer webcam on bottom.<br>
+                <b>DISABLED:</b> 2-person conversation split (1 user on top + other user on bottom).
+              </small>
             </div>
-            <label class="tweak-toggle">
+            <label class="tweak-toggle" style="margin-left: 12px;">
               <input type="checkbox" id="toggleGamingLayout" checked>
               <span class="tweak-switch"></span>
             </label>

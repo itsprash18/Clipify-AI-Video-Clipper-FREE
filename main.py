@@ -5130,8 +5130,16 @@ def _compose_dual_person_split(source_path: str, output_path: str,
             return False
 
     if centroids is None:
-        print("  [Framing] Dual-person split requires two visually separable people; fewer than two found.")
-        return False
+        print("  [Framing] Dual-person split: framing left speaker (top) and right speaker (bottom).")
+        divider = panel_h - 2
+        vf = (f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase,setsar=1,split=2[a][b];"
+              f"[a]crop={target_w}:{panel_h}:0:(in_h-{panel_h})/2,setsar=1[p1];"
+              f"[b]crop={target_w}:{panel_h}:(in_w-{target_w}):(in_h-{panel_h})/2,setsar=1[p2];"
+              f"[p1][p2]vstack=inputs=2,"
+              f"drawbox=x=0:y={divider}:w={target_w}:h=4:color=black@0.55:t=fill[v]")
+        top_note = "left speaker (top), right speaker (bottom)"
+        top_kf = []
+        bottom_kf = []
     else:
         # Each panel now runs the full tracking pipeline against its own person,
         # so framing, loss handling and the face clamp behave exactly as they do
@@ -5275,6 +5283,95 @@ def _split_screen_enabled() -> bool:
     return os.getenv("CLIPPEDAI_SPLIT_SCREEN", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _gaming_split_enabled() -> bool:
+    return os.getenv("CLIPPEDAI_GAMING_SPLIT", "1").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _compose_gaming_split_layout(source_path: str, output_path: str,
+                                 target_w: int = 1080, target_h: int = 1920) -> bool:
+    """Build a gaming split-screen layout:
+    Top panel: Whole gameplay (scaled/center-cropped without webcam obstruction).
+    Bottom panel: Streamer reaction camera / facecam centered at the bottom.
+    """
+    game_h = 1080
+    cam_h = target_h - game_h  # 840
+    if game_h % 2 != 0:
+        game_h += 1
+    if cam_h % 2 != 0:
+        cam_h += 1
+
+    try:
+        # Check for persistent corner facecam box via ContentAnalyzer
+        facecam_box = None
+        try:
+            from live.content_analyzer import ContentAnalyzer
+            analyzer = ContentAnalyzer()
+            profile = analyzer.analyze(Path(source_path), sample_count=4)
+            facecam_box = profile.facecam_box
+        except Exception:
+            facecam_box = None
+
+        if facecam_box:
+            cx, cy, cw, ch = float(facecam_box["x"]), float(facecam_box["y"]), float(facecam_box["w"]), float(facecam_box["h"])
+            cw = max(0.14, min(0.24, cw))
+            ch = max(0.16, min(0.28, ch))
+            cx = max(0.0, min(1.0 - cw, cx))
+            cy = max(0.0, min(1.0 - ch, cy))
+            cam_crop = (
+                f"crop=w='trunc(iw*{cw:.4f}/2)*2':h='trunc(ih*{ch:.4f}/2)*2':"
+                f"x='trunc(iw*{cx:.4f}/2)*2':y='trunc(ih*{cy:.4f}/2)*2',"
+                f"scale={target_w}:{cam_h}:force_original_aspect_ratio=increase,crop={target_w}:{cam_h}"
+            )
+        else:
+            # Person-detection trajectory for streamer camera
+            points, info = _detect_person_trajectory(source_path, target_w, cam_h, zoom=1.6)
+            scaled_w = int(round(info.get("scaled_w") or target_w))
+            scaled_h = int(round(info.get("scaled_h") or cam_h))
+            keyframes = info.get("keyframes", [])
+            if not keyframes:
+                cam_x = "(in_w-out_w)/2"
+                cam_y = "(in_h-out_h)/3"
+            else:
+                cam_x = _camera_expression(keyframes, "x", max_kf=30)
+                cam_y = _camera_expression(keyframes, "y", max_kf=30)
+            cam_crop = (
+                f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase,setsar=1,"
+                f"crop={target_w}:{cam_h}:{cam_x}:{cam_y},setsar=1"
+            )
+
+        divider = game_h - 2
+        # Top panel: Whole gameplay (16:9 gameplay center-cropped to 1080x1080 without black sidebars)
+        gameplay_crop = (
+            f"scale={target_w}:{game_h}:force_original_aspect_ratio=increase,"
+            f"crop={target_w}:{game_h}:(in_w-out_w)/2:(in_h-out_h)/2,setsar=1"
+        )
+
+        vf = (
+            f"split=2[in_game][in_cam];"
+            f"[in_game]{gameplay_crop}[p_game];"
+            f"[in_cam]{cam_crop}[p_cam];"
+            f"[p_game][p_cam]vstack=inputs=2,drawbox=x=0:y={divider}:w={target_w}:h=4:color=black@0.65:t=fill[v]"
+        )
+
+        cmd = [
+            FFMPEG_BIN, "-i", source_path, "-filter_complex", vf,
+            "-map", "[v]", "-map", "0:a?",
+            "-c:v", "libx264", "-preset", "fast", "-crf", "22",
+            "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
+            "-movflags", "+faststart", "-y", output_path
+        ]
+        res = _run_hidden(cmd, capture_output=True, text=True)
+        if res.returncode != 0:
+            return False
+        ok = os.path.isfile(output_path) and os.path.getsize(output_path) > 1024
+        if ok:
+            print(f"  [Framing] Gaming split layout rendered successfully: Gameplay top (1080x{game_h}) + Facecam bottom (1080x{cam_h}).")
+        return ok
+    except Exception as exc:
+        print(f"  [Framing] Gaming split layout error: {exc}")
+        return False
+
+
 def _validate_camera_render(input_path: str, output_path: str,
                             target_w: int, target_h: int) -> bool:
     """Reject a camera render that is incomplete or has lost its media streams."""
@@ -5365,16 +5462,25 @@ def resize_to_vertical_with_zoom(input_path: str, output_path: str, zoom_factor:
     and the framing quality does not.
     """
     split_screen = _split_screen_enabled()
+    gaming_split = _gaming_split_enabled()
 
     if split_screen:
-        # Tier 1: Try dual-person split layout (one speaker on top, other speaker on bottom)
-        try:
-            if _compose_dual_person_split(input_path, output_path, target_w, target_h):
-                if _validate_camera_render(input_path, output_path, target_w, target_h):
-                    return True
-            print("  [Framing] Dual-person split not applicable (requires 2 distinct people); falling back to standard framing.")
-        except Exception as exc:
-            print(f"  [Framing] Dual split skipped ({type(exc).__name__}: {exc}); falling back to standard framing.")
+        if gaming_split:
+            # Whole gameplay on top + Streamer webcam on bottom
+            try:
+                if _compose_gaming_split_layout(input_path, output_path, target_w, target_h):
+                    if _validate_camera_render(input_path, output_path, target_w, target_h):
+                        return True
+            except Exception as exc:
+                print(f"  [Framing] Gaming split skipped ({type(exc).__name__}: {exc})")
+        else:
+            # 1 user on top + other user on bottom (Dual-person split)
+            try:
+                if _compose_dual_person_split(input_path, output_path, target_w, target_h):
+                    if _validate_camera_render(input_path, output_path, target_w, target_h):
+                        return True
+            except Exception as exc:
+                print(f"  [Framing] Dual split skipped ({type(exc).__name__}: {exc}); falling back to standard framing.")
 
         # If 2 distinct people are not present in this shot, fall through to the
         # standard non-split framing (which is working 100% fine) rather than duplicating

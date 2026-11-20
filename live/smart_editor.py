@@ -189,13 +189,13 @@ class SmartEditor:
             layout = "gaming_split"
             facecam_detected = True
             badges.append("🎮 Gaming Split")
+        elif auto_edit_enabled and not gaming_layout_enabled:
+            layout = "podcast_split"
+            badges.append("🎙️ Two-Person Split")
         elif auto_edit_enabled and face_track_enabled and profile.mode == "talking_head":
             layout = "talking_head"
             face_tracked = True
             badges.append("👤 Face Tracked")
-        elif auto_edit_enabled and profile.mode == "podcast" and profile.faces_detected >= 2:
-            layout = "podcast_split"
-            badges.append("🎙️ Podcast Split")
         else:
             layout = "blurred_frame"
             badges.append("✨ Smart Fit")
@@ -437,9 +437,16 @@ class SmartEditor:
             )
             return filters
 
-        elif layout == "podcast_split" and profile.faces_detected >= 2:
-            cx1 = max(0.0, min(1.0 - 0.45, profile.primary_face_x - 0.225))
-            cx2 = max(0.0, min(1.0 - 0.45, (profile.secondary_face_x or 0.72) - 0.225))
+        elif layout == "podcast_split":
+            if profile.faces_detected >= 2 and profile.primary_face_x is not None:
+                cx1 = max(0.0, min(1.0 - 0.45, profile.primary_face_x - 0.225))
+                cx2 = max(0.0, min(1.0 - 0.45, (profile.secondary_face_x or 0.72) - 0.225))
+            elif profile.primary_face_x is not None:
+                cx1 = max(0.0, min(1.0 - 0.45, profile.primary_face_x - 0.225))
+                cx2 = 0.05 if cx1 > 0.40 else 0.55
+            else:
+                cx1 = 0.05
+                cx2 = 0.55
 
             filters = (
                 f"{bg_stream};"
