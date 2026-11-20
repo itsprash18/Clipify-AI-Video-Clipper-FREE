@@ -27,6 +27,10 @@
 
 ---
 
+Instgram group chat for Clipify user for discussing new features and sharing clips
+
+https://ig.me/j/AQj1lYCWh_iV_S7J/
+
 ## ⚡ What is Clipify AI?
 
 **Clipify AI** is an open-source, full-stack desktop alternative to expensive cloud platforms like OpusClip, Munch, and Submagic. It brings state-of-the-art AI video clipping, real-time livestream monitoring, face-tracking vertical crop, Hormozi-style animated word subtitles, and an AI narration generation studio directly onto your local machine.
