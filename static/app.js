@@ -1241,10 +1241,10 @@ function selectedBranding(){
       +($('#watermarkTextY')?.value || 50),
 
     premium_captions:
-      $('#premiumCaptionsToggle')?.checked ?? true,
+      $('#premiumCaptionsToggle')?.checked ?? false,
 
     situational_cues:
-      $('#situationalCuesToggle')?.checked ?? true,
+      $('#situationalCuesToggle')?.checked ?? false,
 
     caption_preset:
       $('#captionPresetSelect')?.value || 'center_seam',
