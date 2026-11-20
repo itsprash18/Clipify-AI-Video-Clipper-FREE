@@ -403,7 +403,7 @@ def progress_for_line(line: str, current: int, current_stage: str = "") -> tuple
         if m:
             pct = float(m.group(1))
             scaled = 10 + int((pct / 100.0) * 19)
-            return max(current, min(29, scaled)), "Transcribing audio", f"Transcribing audio ({pct:.0f}% completed)"
+            return max(current, min(29, scaled)), "Transcribing audio", f"Transcribing audio: {pct:.0f}% of speech processed"
         return max(current, 10), "Transcribing audio", text
     if "transcribing video" in low or "starting transcription" in low:
         return max(current, 10), "Transcribing audio", text
@@ -1256,19 +1256,34 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
                 cur_prog = job.get("progress", 0)
                 if elapsed >= 3:
                     detail = f"{detail.split(' · ')[0]} · stage time {elapsed}s"
-                if stage == "Transcribing audio" and cur_prog >= 10 and cur_prog < 29:
+                if stage == "Transcribing audio" and cur_prog >= 10 and cur_prog < 30:
                     m, s = divmod(elapsed, 60)
                     dur = float(job.get("video_duration") or 0.0)
-                    if dur > 0:
-                        dm, ds = divmod(int(dur), 60)
-                        est_total = max(30, int(dur * 0.20))
+                    dm, ds = divmod(int(dur), 60) if dur > 0 else (0, 0)
+                    dur_str = f" · {dm}m {ds}s video" if dur > 0 else ""
+                    speech_pct = job.get("speech_progress")
+                    if speech_pct is not None:
+                        speech_pct = float(speech_pct)
+                        step_prog = min(29, 10 + int((speech_pct / 100.0) * 19))
+                        cur_prog = max(cur_prog, step_prog)
+                        job["progress"] = cur_prog
+                        if elapsed > 4 and speech_pct > 1.0:
+                            rate = speech_pct / max(1, elapsed)
+                            rem_s = int((100.0 - speech_pct) / max(0.01, rate))
+                            rm, rs = divmod(rem_s, 60)
+                            eta_str = f" · ~{rm}m {rs}s remaining" if rm > 0 else f" · ~{rs}s remaining"
+                        else:
+                            eta_str = ""
+                        detail = f"Transcribing audio: {speech_pct:.0f}% of speech processed ({m}m {s}s elapsed{dur_str}{eta_str})"
+                    elif dur > 0:
+                        est_total = max(30, int(dur * 0.40))
                         pct_chunk = min(99, max(1, int((elapsed / max(1, est_total)) * 100)))
                         rem_s = max(5, est_total - elapsed)
                         rm, rs = divmod(rem_s, 60)
                         step_prog = min(28, 10 + int((pct_chunk / 100.0) * 18))
                         cur_prog = max(cur_prog, step_prog)
                         job["progress"] = cur_prog
-                        detail = f"Transcribing audio: ~{pct_chunk}% ({m}m {s}s elapsed · {dm}m {ds}s video · ~{rm}m remaining)"
+                        detail = f"Transcribing audio: ~{pct_chunk}% ({m}m {s}s elapsed{dur_str} · ~{rm}m remaining)"
                     else:
                         step_prog = min(28, 10 + int(elapsed / 25))
                         cur_prog = max(cur_prog, step_prog)
@@ -1277,7 +1292,7 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
                         if "%" in last_detail:
                             detail = f"{last_detail.split(' · ')[0]} · {m}m {s}s elapsed"
                         else:
-                            detail = f"Transcribing audio ({m}m {s}s elapsed · processing speech)"
+                            detail = f"Transcribing audio ({m}m {s}s elapsed · analyzing speech)"
                 job["detail"] = detail
             emit(job_id, "progress", {
                 "progress": job.get("progress", 0),
@@ -1312,6 +1327,12 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
                     with jobs_lock:
                         if job_id in jobs:
                             jobs[job_id]["video_duration"] = float(m_dur.group(1))
+            if "transcription progress:" in line.lower():
+                m_prog = re.search(r"transcription progress:\s*([\d\.]+)%", line.lower())
+                if m_prog:
+                    with jobs_lock:
+                        if job_id in jobs:
+                            jobs[job_id]["speech_progress"] = float(m_prog.group(1))
             progress, stage, detail = progress_for_line(line, progress, stage)
             with jobs_lock:
                 if job_id in jobs:
