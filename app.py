@@ -1225,14 +1225,26 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
                     detail = f"{detail.split(' · ')[0]} · stage time {elapsed}s"
                 if stage == "Transcribing audio" and cur_prog >= 10 and cur_prog < 29:
                     m, s = divmod(elapsed, 60)
-                    step_prog = min(28, 10 + int(elapsed / 25))
-                    cur_prog = max(cur_prog, step_prog)
-                    job["progress"] = cur_prog
-                    last_detail = job.get("detail", "")
-                    if "%" in last_detail:
-                        detail = f"{last_detail.split(' · ')[0]} · {m}m {s}s elapsed"
+                    dur = float(job.get("video_duration") or 0.0)
+                    if dur > 0:
+                        dm, ds = divmod(int(dur), 60)
+                        est_total = max(30, int(dur * 0.20))
+                        pct_chunk = min(99, max(1, int((elapsed / max(1, est_total)) * 100)))
+                        rem_s = max(5, est_total - elapsed)
+                        rm, rs = divmod(rem_s, 60)
+                        step_prog = min(28, 10 + int((pct_chunk / 100.0) * 18))
+                        cur_prog = max(cur_prog, step_prog)
+                        job["progress"] = cur_prog
+                        detail = f"Transcribing audio: ~{pct_chunk}% ({m}m {s}s elapsed · {dm}m {ds}s video · ~{rm}m remaining)"
                     else:
-                        detail = f"Transcribing audio ({m}m {s}s elapsed · processing speech)"
+                        step_prog = min(28, 10 + int(elapsed / 25))
+                        cur_prog = max(cur_prog, step_prog)
+                        job["progress"] = cur_prog
+                        last_detail = job.get("detail", "")
+                        if "%" in last_detail:
+                            detail = f"{last_detail.split(' · ')[0]} · {m}m {s}s elapsed"
+                        else:
+                            detail = f"Transcribing audio ({m}m {s}s elapsed · processing speech)"
                 job["detail"] = detail
             emit(job_id, "progress", {
                 "progress": job.get("progress", 0),
@@ -1261,6 +1273,12 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
                 recent_lines.append(line)
                 if len(recent_lines) > 12:
                     recent_lines.pop(0)
+            if "video duration:" in line.lower():
+                m_dur = re.search(r"video duration:\s*([\d\.]+)", line.lower())
+                if m_dur:
+                    with jobs_lock:
+                        if job_id in jobs:
+                            jobs[job_id]["video_duration"] = float(m_dur.group(1))
             progress, stage, detail = progress_for_line(line, progress, stage)
             with jobs_lock:
                 if job_id in jobs:

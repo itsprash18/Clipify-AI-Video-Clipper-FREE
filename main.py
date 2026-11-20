@@ -1401,11 +1401,16 @@ def create_transcriber(model_size: str) -> "Transcriber":
         fast_env = os.getenv("CLIPPEDAI_FAST_WHISPER", "1").strip().lower() in {"1", "true", "yes", "on"}
         if kwargs["device"] == "cpu":
             cpu_count = os.cpu_count() or 4
-            kwargs["threads"] = int(os.getenv("WHISPERX_THREADS", str(max(4, cpu_count) if fast_env else 4)))
-        user_lang = os.getenv("WHISPERX_LANGUAGE")
-        if user_lang is None and fast_env:
-            user_lang = "en"
-        if user_lang and ("language" not in kwargs or kwargs["language"] is None):
+            kwargs["threads"] = int(os.getenv("WHISPERX_THREADS", str(max(4, cpu_count))))
+            # Accelerate CPU Whisper inference by using greedy decoding and single temperature
+            asr_opts = dict(kwargs.get("asr_options") or {})
+            asr_opts.setdefault("beam_size", int(os.getenv("WHISPERX_BEAM_SIZE", "1")))
+            asr_opts.setdefault("best_of", int(os.getenv("WHISPERX_BEST_OF", "1")))
+            asr_opts.setdefault("patience", 1)
+            asr_opts.setdefault("temperatures", [0.0])
+            kwargs["asr_options"] = asr_opts
+        user_lang = os.getenv("WHISPERX_LANGUAGE", "en")
+        if "language" not in kwargs or kwargs["language"] is None:
             kwargs["language"] = user_lang
 
         # Check local HuggingFace cache to prevent ProtocolError/ConnectionResetError (10054)
