@@ -5918,8 +5918,9 @@ def process_single_video(
             print(f"  [ClipsAI] Added {added_prefixes} sentence-aligned shorter candidate(s).")
         total_candidates = len(raw_clips)
         print(f"  [ClipsAI] {total_candidates} candidate clip(s) detected.")
-        if total_candidates == 0:
-            print("  [ClipsAI] 0 candidates found from transcription; creating duration-based sliding window candidate clips...")
+        min_required_candidates = max(max_clips * 2, 10)
+        if total_candidates < min_required_candidates:
+            print(f"  [ClipsAI] Candidate pool ({total_candidates}) below target ({min_required_candidates}); adding timeline sliding-window candidates...")
             from clipsai import Clip
             try:
                 probe_cmd = [FFPROBE_BIN, "-v", "quiet", "-show_entries", "format=duration", "-of", "csv=p=0", input_path]
@@ -5927,19 +5928,27 @@ def process_single_video(
             except Exception:
                 total_duration = 60.0
             target_dur = max(MIN_CLIP_DURATION, min(MAX_CLIP_DURATION, 35.0))
-            step = max(15.0, target_dur * 0.75)
-            curr = 0.0
-            synthetic_clips = []
-            while curr + MIN_CLIP_DURATION <= total_duration:
-                clip_end = min(curr + target_dur, total_duration)
-                if clip_end - curr >= MIN_CLIP_DURATION:
-                    synthetic_clips.append(Clip(curr, clip_end, 0, 0))
-                curr += step
-            if not synthetic_clips and total_duration >= 5.0:
-                synthetic_clips.append(Clip(0.0, min(total_duration, target_dur), 0, 0))
-            raw_clips = synthetic_clips
+            if total_duration >= MIN_CLIP_DURATION:
+                existing_spans = [(float(c.start_time), float(c.end_time)) for c in raw_clips]
+                available_space = max(1.0, total_duration - target_dur)
+                step = max(15.0, min(available_space / max(1, min_required_candidates - total_candidates + 1), 45.0))
+                curr = 0.0
+                synthetic_clips = []
+                while curr + MIN_CLIP_DURATION <= total_duration and (len(raw_clips) + len(synthetic_clips)) < min_required_candidates * 2:
+                    clip_end = min(curr + target_dur, total_duration)
+                    if clip_end - curr >= MIN_CLIP_DURATION:
+                        too_close = any(abs(curr - s[0]) < 14.0 for s in existing_spans)
+                        if not too_close:
+                            synthetic_clips.append(Clip(curr, clip_end, 0, 0))
+                            existing_spans.append((curr, clip_end))
+                    curr += step
+                if not synthetic_clips and not raw_clips and total_duration >= 5.0:
+                    synthetic_clips.append(Clip(0.0, min(total_duration, target_dur), 0, 0))
+                if synthetic_clips:
+                    raw_clips.extend(synthetic_clips)
+                    raw_clips = _dedupe_candidates(raw_clips, min_overlap_gap=10.0)
+                    print(f"  [ClipsAI] Supplemented with {len(synthetic_clips)} timeline candidate(s); total now {len(raw_clips)}.")
             total_candidates = len(raw_clips)
-            print(f"  [ClipsAI] Created {total_candidates} fallback candidate clip(s) based on video timeline.")
         if total_candidates == 0:
             print(f"  [SKIP] Video duration is too short for requested minimum clip duration.")
             return created
@@ -6056,6 +6065,19 @@ def process_single_video(
             if dur < MIN_CLIP_DURATION - 0.5 or dur > MAX_CLIP_DURATION + 0.5:
                 print(f"     → rejected after trimming (dur={dur:.1f}s outside [{MIN_CLIP_DURATION}, {MAX_CLIP_DURATION}]).")
                 continue
+
+            # Verify no significant overlap with already selected moments
+            c3_start, c3_end = float(c3.start_time), float(c3.end_time)
+            overlap = any(
+                abs(c3_start - float(s[0].start_time)) < 15.0 or
+                (c3_start < float(s[0].end_time) and c3_end > float(s[0].start_time) and
+                 (min(c3_end, float(s[0].end_time)) - max(c3_start, float(s[0].start_time))) > 8.0)
+                for s in selected_final
+            )
+            if overlap:
+                print(f"     → skip: overlaps with an already selected Short.")
+                continue
+
             print(f"  [OK] Selected candidate "
                   f"(t={c3.start_time:.1f}-{c3.end_time:.1f}s, dur={dur:.1f}s, selection score={final_score:.0f})")
             selected_final.append((c3, final_score, meta))
@@ -6063,18 +6085,42 @@ def process_single_video(
             print(f"     → skip due to error during boundary enforcement: {type(e).__name__}: {e}")
             continue
 
-    if len(selected_final) < max_clips:
-        existing_starts = [float(item[0].start_time) for item in selected_final]
-        for _, clip, final_score, meta in ranked:
+    # Recovery Pass 1: Examine original_ranked (all evaluated candidates before gating filters)
+    if len(selected_final) < max_clips and 'original_ranked' in locals() and original_ranked:
+        existing_spans = [(float(item[0].start_time), float(item[0].end_time)) for item in selected_final]
+        for _, clip, final_score, meta in original_ranked:
             if len(selected_final) >= max_clips:
                 break
-            if any(abs(float(clip.start_time) - start) < 12.0 for start in existing_starts):
+            c_start, c_end = float(clip.start_time), float(clip.end_time)
+            if any(abs(c_start - s[0]) < 15.0 or (c_start < s[1] and c_end > s[0] and (min(c_end, s[1]) - max(c_start, s[0])) > 8.0) for s in existing_spans):
                 continue
-            duration = float(clip.end_time - clip.start_time)
-            if MIN_CLIP_DURATION <= duration <= MAX_CLIP_DURATION:
-                selected_final.append((clip, final_score, meta))
-                existing_starts.append(float(clip.start_time))
-                print(f"  [Recovery] Added candidate at {clip.start_time:.1f}s to reach requested count")
+            try:
+                c1 = adjust_clip_boundaries_to_sentences(clip, transcription, verbose=False)
+                c2 = enforce_duration_bounds(c1, transcription, verbose=False)
+                c3 = trim_leading_trailing_silence_conservative(c2, transcription) if c2 else None
+                if c3:
+                    dur = c3.end_time - c3.start_time
+                    if MIN_CLIP_DURATION - 0.5 <= dur <= MAX_CLIP_DURATION + 0.5:
+                        selected_final.append((c3, final_score, meta))
+                        existing_spans.append((float(c3.start_time), float(c3.end_time)))
+                        print(f"  [Recovery-1] Added candidate at {c3.start_time:.1f}s (dur={dur:.1f}s) to reach requested count")
+            except Exception:
+                pass
+
+    # Recovery Pass 2: Examine all pre-scored candidates from raw_clips
+    if len(selected_final) < max_clips and 'pre_scored' in locals() and pre_scored:
+        existing_spans = [(float(item[0].start_time), float(item[0].end_time)) for item in selected_final]
+        for clip, score in pre_scored:
+            if len(selected_final) >= max_clips:
+                break
+            c_start, c_end = float(clip.start_time), float(clip.end_time)
+            if any(abs(c_start - s[0]) < 15.0 or (c_start < s[1] and c_end > s[0] and (min(c_end, s[1]) - max(c_start, s[0])) > 8.0) for s in existing_spans):
+                continue
+            dur = c_end - c_start
+            if MIN_CLIP_DURATION - 1.0 <= dur <= MAX_CLIP_DURATION + 1.0:
+                selected_final.append((clip, score, {"decision": "recovery", "ai_valid": False, "reason": "Timeline candidate"}))
+                existing_spans.append((c_start, c_end))
+                print(f"  [Recovery-2] Added timeline candidate at {c_start:.1f}s (dur={dur:.1f}s) to reach requested count")
 
     print(f"  [Selection] Requested {max_clips}; selected {len(selected_final)} valid Short(s).")
 

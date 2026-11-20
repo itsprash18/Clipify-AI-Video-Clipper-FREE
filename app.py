@@ -426,18 +426,43 @@ def progress_for_line(line: str, current: int, current_stage: str = "") -> tuple
         return max(current, 64), "Selecting final moments", text
     if "rejected by qwen" in low or "checking candidate" in low:
         return max(current, 63), "Validating selected moments", text
+    if not hasattr(progress_for_line, "_clip_context"):
+        progress_for_line._clip_context = {"cur": 1, "total": 1}
+    if "[start]" in low or "processing video" in low:
+        progress_for_line._clip_context = {"cur": 1, "total": 1}
+
+    m_clip = re.search(r"\[(\d+)/(\d+)\]\s+rendering short\s+#(\d+)", low)
+    if m_clip:
+        c_cur = int(m_clip.group(1))
+        c_tot = max(1, int(m_clip.group(2)))
+        progress_for_line._clip_context = {"cur": c_cur, "total": c_tot}
+        base_pct = 65 + int((c_cur - 1) / c_tot * 33)
+        return max(current, base_pct), f"Rendering Short {c_cur} of {c_tot}", f"Starting render for Short #{m_clip.group(3)}"
+
+    ctx = progress_for_line._clip_context
+    cur_c, tot_c = ctx["cur"], ctx["total"]
+    clip_base = 65 + (cur_c - 1) / tot_c * 33.0
+    clip_step = 33.0 / tot_c
+
     if "[1/5] trim" in low:
-        return max(current, 67), "Cutting the source clip", text
+        pct = int(clip_base + 0.15 * clip_step)
+        return max(current, pct), f"Rendering Short {cur_c} of {tot_c} (1/5: Trim)", text
     if "[2/5] resize" in low:
-        return max(current, 73), "Creating 9:16 composition", text
+        pct = int(clip_base + 0.35 * clip_step)
+        return max(current, pct), f"Rendering Short {cur_c} of {tot_c} (2/5: Vertical Reframe)", text
     if "[3/5] render dynamic" in low or "[captions]" in low:
-        return max(current, 78), "Rendering dynamic captions", text
+        pct = int(clip_base + 0.60 * clip_step)
+        return max(current, pct), f"Rendering Short {cur_c} of {tot_c} (3/5: Dynamic Captions)", text
     if "[4/5] generating" in low or "[title]" in low:
-        return max(current, 92), "Generating Short title", text
+        pct = int(clip_base + 0.85 * clip_step)
+        return max(current, pct), f"Rendering Short {cur_c} of {tot_c} (4/5: AI Title)", text
     if "[5/5] saved" in low or "metadata" in low:
-        return max(current, 96), "Saving Short metadata", text
+        pct = int(clip_base + 0.95 * clip_step)
+        return max(current, pct), f"Rendering Short {cur_c} of {tot_c} (5/5: Metadata)", text
     if "[done]" in low:
-        return max(current, 98), "Short rendered", text
+        pct = int(clip_base + 1.00 * clip_step)
+        stage_name = f"Short {cur_c} of {tot_c} complete" if cur_c < tot_c else "All Shorts rendered"
+        return max(current, pct), stage_name, text
     if "success!" in low:
         return 100, "All Shorts completed", text
     if "[fatal]" in low or "[error]" in low:
@@ -855,17 +880,38 @@ def _ffmpeg_filter_path(path_value: str) -> str:
 
 
 def apply_branding_to_file(input_video: str, output_video: str, branding: dict[str, Any], font_name: str = "Arial") -> None:
-    """Apply logo/text branding to an already-rendered Short without rerunning AI."""
+    """Apply logo/text branding and camera/framing adjustments to an already-rendered Short without rerunning AI."""
     ffmpeg = _ffmpeg_path()
     logo = _resolve_logo(str(branding.get("logo_path", ""))) if branding.get("logo_enabled") else None
     text = str(branding.get("text", "")).strip() if branding.get("text_enabled") else ""
-    if not logo and not text:
+    framing = branding.get("framing") if isinstance(branding.get("framing"), dict) else {}
+    pan_x = max(-50.0, min(50.0, float(framing.get("pan_x", 0.0))))
+    pan_y = max(-50.0, min(50.0, float(framing.get("pan_y", 0.0))))
+    zoom = max(1.0, min(2.5, float(framing.get("zoom", 1.0))))
+    has_framing = (abs(pan_x) > 0.01 or abs(pan_y) > 0.01 or zoom > 1.01)
+
+    if not logo and not text and not has_framing:
         shutil.copy2(input_video, output_video)
         return
 
     filters: list[str] = []
     inputs = ["-i", input_video]
     current = "0:v"
+
+    if has_framing:
+        crop_w = max(320, min(1080, int(1080 / zoom)))
+        crop_h = max(568, min(1920, int(1920 / zoom)))
+        # Make dimensions even
+        crop_w -= (crop_w % 2)
+        crop_h -= (crop_h % 2)
+        center_x = (1080 - crop_w) / 2.0
+        center_y = (1920 - crop_h) / 2.0
+        offset_x = (pan_x / 50.0) * center_x
+        offset_y = (pan_y / 50.0) * center_y
+        x_pos = max(0, min(1080 - crop_w, int(center_x + offset_x)))
+        y_pos = max(0, min(1920 - crop_h, int(center_y + offset_y)))
+        filters.append(f"[{current}]crop={crop_w}:{crop_h}:{x_pos}:{y_pos},scale=1080:1920:flags=lanczos[vframed]")
+        current = "vframed"
     if logo:
         inputs += ["-i", logo]
         size = max(3, min(20, int(branding.get("logo_size", 8))))
@@ -2406,6 +2452,12 @@ def apply_branding(job_id: str):
         "text_margin": max(20, min(500, int(b.get("text_margin", 110)))),
         "text_x": max(0, min(100, float(b.get("text_x", 50)))),
         "text_y": max(0, min(100, float(b.get("text_y", 75)))),
+    }
+    framing_raw = data.get("framing") if isinstance(data.get("framing"), dict) else (b.get("framing") if isinstance(b.get("framing"), dict) else {})
+    branding["framing"] = {
+        "pan_x": max(-50.0, min(50.0, float(framing_raw.get("pan_x", 0.0)))),
+        "pan_y": max(-50.0, min(50.0, float(framing_raw.get("pan_y", 0.0)))),
+        "zoom": max(1.0, min(2.5, float(framing_raw.get("zoom", 1.0)))),
     }
     if branding["logo_position"] not in BRANDING_POSITIONS:
         branding["logo_position"] = "top-right"

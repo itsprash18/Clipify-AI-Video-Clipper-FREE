@@ -1476,7 +1476,8 @@ async function loadJobResult(jobId){
 
       await selectReview(jobId, outputs[0]);
 
-      $('#editor')?.scrollIntoView({
+      // Present all generated clips in the results view
+      $('#results')?.scrollIntoView({
         behavior:'smooth',
         block:'start'
       });
@@ -1784,7 +1785,48 @@ async function loadResults(outputs, jobId = state.jobId){
     setTimeout(()=>$('#featuredVideo')?.focus({preventScroll:true}), 450);
   }
 
+  updateEditorClipSwitcher();
   create.disabled=false;
+}
+
+function updateEditorClipSwitcher(){
+  const switcher=$('#editorClipSwitcher');
+  if(!switcher) return;
+  if(!state.outputs || state.outputs.length<=1){
+    switcher.hidden=true;
+    switcher.innerHTML='';
+    return;
+  }
+  switcher.hidden=false;
+  switcher.innerHTML=state.outputs.map((out, idx)=>{
+    const active=(out===state.reviewFile || (!state.reviewFile && idx===0));
+    return `<button type="button" class="editor-short-pill ${active ? 'active' : ''}" data-file="${out}" style="background:${active ? 'rgba(215,187,148,0.28)' : 'rgba(255,255,255,0.06)'};border:1px solid ${active ? 'var(--warm,#d6b388)' : 'rgba(190,176,159,0.3)'};color:var(--text);padding:6px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;">Short #${idx + 1}</button>`;
+  }).join('');
+  switcher.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const f=btn.dataset.file;
+      if(f) selectReview(state.jobId, f);
+    });
+  });
+}
+
+function updateEditorFramingPreview(){
+  const panX=+$('#editorPanX')?.value||0;
+  const panY=+$('#editorPanY')?.value||0;
+  const zoom=(+$('#editorZoom')?.value||100)/100;
+  if($('#editorPanXOut')) $('#editorPanXOut').textContent=(panX>=0?`+${panX}%`:`${panX}%`);
+  if($('#editorPanYOut')) $('#editorPanYOut').textContent=(panY>=0?`+${panY}%`:`${panY}%`);
+  if($('#editorZoomOut')) $('#editorZoomOut').textContent=`${zoom.toFixed(1)}x`;
+
+  const video=$('#reviewVideo');
+  if(video){
+    if(panX===0 && panY===0 && zoom===1){
+      video.style.transform='none';
+    }else{
+      video.style.transform=`scale(${zoom}) translate(${panX*0.3}%, ${panY*0.3}%)`;
+      video.style.transformOrigin='center center';
+    }
+  }
 }
 
 async function selectReview(job,file){
@@ -1799,6 +1841,14 @@ async function selectReview(job,file){
 
   $('#reviewMeta').textContent=
     '1080 × 1920 · local render · post-render branding available';
+
+  // Reset framing preview controls to automatic defaults
+  if($('#editorPanX')) $('#editorPanX').value=0;
+  if($('#editorPanY')) $('#editorPanY').value=0;
+  if($('#editorZoom')) $('#editorZoom').value=100;
+  if($('#editorSplitRatio')) $('#editorSplitRatio').value=50;
+  updateEditorFramingPreview();
+  updateEditorClipSwitcher();
 
   // The editor renders its primary actions twice (panel + footer). Both copies
   // must be wired, otherwise the visible one stays a dead href="#".
@@ -1966,7 +2016,14 @@ async function applyEditorBranding(){
       +$('#editorText').dataset.x||50,
 
     text_y:
-      +$('#editorText').dataset.y||75
+      +$('#editorText').dataset.y||75,
+
+    framing: {
+      pan_x: +$('#editorPanX')?.value || 0,
+      pan_y: +$('#editorPanY')?.value || 0,
+      zoom: (+$('#editorZoom')?.value || 100) / 100,
+      split_ratio: +$('#editorSplitRatio')?.value || 50
+    }
   };
 
   try{
@@ -2095,6 +2152,18 @@ async function applyEditorBranding(){
 }
 
 editorApplyButtons().forEach(btn=>btn.addEventListener('click',applyEditorBranding));
+
+['#editorPanX', '#editorPanY', '#editorZoom', '#editorSplitRatio'].forEach(sel=>{
+  $(sel)?.addEventListener('input', updateEditorFramingPreview);
+});
+
+$('#resetFramingBtn')?.addEventListener('click', ()=>{
+  if($('#editorPanX')) $('#editorPanX').value = 0;
+  if($('#editorPanY')) $('#editorPanY').value = 0;
+  if($('#editorZoom')) $('#editorZoom').value = 100;
+  if($('#editorSplitRatio')) $('#editorSplitRatio').value = 50;
+  updateEditorFramingPreview();
+});
 
 async function loadProjects(){
 
@@ -2401,7 +2470,8 @@ $('#openOutput2')?.addEventListener('click', (e) => {
 window.addEventListener(
   'hashchange',
   ()=>{
-    const raw = location.hash.slice(1) || 'create';
+    const urlParams = new URLSearchParams(location.search);
+    const raw = location.hash.slice(1) || urlParams.get('section') || 'create';
     const id = raw.split('?')[0];
     navigateTo(id);
 
