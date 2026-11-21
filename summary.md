@@ -1,10 +1,11 @@
 # Clipify AI — Complete Project Architecture, Development & Release Summary
 
-> **Current Version**: `4.0.5`  
+> **Current Version**: `4.0.6`  
 > **Repository**: `sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE`  
-> **Release Tag**: [`v4.0.5`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.5)  
+> **Release Tag**: [`v4.0.6`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.6)  
 > **Production Installers**:
-> - `installer/Clipify.AI.Setup.4.0.5.exe` (Version 4.0.5 — SHA-256: `3F13235D6DF92034371A503D0E304F4753073A50C6E87ECFB9D75E2D5A6D73B0`)
+> - `installer/Clipify.AI.Setup.4.0.6.exe` (Version 4.0.6 — SHA-256: `4BCE503A9D51B3C42C1E4B38FA9DDBC2A3A2C22F34B20575F7A74F57E863CE78`)
+> - `installer/Clipify.AI.Setup.4.0.5.exe` (Preserved intact — SHA-256: `3F13235D6DF92034371A503D0E304F4753073A50C6E87ECFB9D75E2D5A6D73B0`)
 > - `installer/Clipify.AI.Setup.4.0.4.exe` (Preserved intact — SHA-256: `7A652BC40AB00F22C21F21238EDA832E12586BC86D7AFF91AFDCD18D126FEAC4`)
 
 ---
@@ -154,6 +155,50 @@ flowchart TD
   2. Added `--no-input` and `--timeout 60` to pip invocation commands to prevent indefinitely stalled sockets.
   3. Replaced false `WARN` alerts with reassuring `INFO` status updates (*"Downloading & verifying AI runtime packages — download in progress..."*) while child processes are active, and widened the quiet threshold to 3 minutes.
 
+### 10. Whisper Caption Hallucination & Degenerate Repetition Loops
+- **Root Cause**: During low-audio segments, background game audio (e.g. car engines, gunshots), or whispered speech, Faster-Whisper's default greedy decoding loop with `condition_on_previous_text=True` fell into degenerate hallucination cycles, repeating phrases (such as *"Thank you for watching"*, or individual words) 100+ times across a clip. Furthermore, stale cached transcriptions were reused without verifying sentence sanity.
+- **Fix**:
+  1. Configured transcription decoding parameters: `condition_on_previous_text=False`, `repetition_penalty=1.2`, and `no_repeat_ngram_size=3`.
+  2. Implemented an automated text deduplication sanitizer for Advanced SubStation Alpha (`.ass`) generation that collapses consecutive identical tokens and filters out degenerate loop artifacts.
+  3. Added corrupted transcript cache detection that discards and re-transcribes any run exhibiting repetitive word frequency anomaly (>15 consecutive identical tokens).
+
+### 11. Beta Testing Lab YouTube Import & SSE Streaming Freeze at 3%
+- **Root Cause**:
+  1. API Response Contract Mismatch: `app.py` returned `{"ok": True, "job_id": ...}` for YouTube import jobs, but `static/app.js` checked `if (data.success && data.jobId)` and `jobId = data.jobId || data.id`, leaving the job ID undefined and failing to initialize client tracking.
+  2. Server-Sent Events (SSE) field mismatch: `app.py`'s `emit()` helper sends `{"kind": kind, "message": message, "progress": ...}`. The frontend event listener was checking strictly `if (data.type === 'progress')`, which was always `undefined`. The UI progress bar was permanently frozen at 3% ("Uploading / Preparing workspace...").
+- **Fix**:
+  1. Updated `static/app.js` to accept `data.ok || data.success` and read `data.job_id || data.jobId || data.id`.
+  2. Standardized SSE payload processing in `app.js` to inspect `data.kind || data.type`, handling progress, status messages, and logs seamlessly.
+  3. Added a continuous 1.5s background polling fallback (`/api/status/${jobId}`) ensuring smooth, uninterrupted progress tracking even if SSE network transport drops.
+
+### 12. AI Narrate Background Clip Thumbnails Broken (Missing Images)
+- **Root Cause**: In the Narrate library view, video preview thumbnails rendered as broken browser image icons (`x`). The thumbnail extraction endpoint (`/api/narrate/thumbnail`) relied on an unbundled `ffmpeg` call that failed to resolve the bundled binary path on packaged Windows installations, resulting in 500 errors and missing image responses.
+- **Fix**:
+  1. Implemented a robust multi-path binary resolver `_ffmpeg_path()` that checks the application's bundled `ffmpeg/bin/ffmpeg.exe`, runtime directory, and system `PATH`.
+  2. Added an automatic fallback SVG vector thumbnail generator that produces sleek dark-mode stylized video slate cards on the fly if extraction ever fails.
+  3. Implemented a disk cache (`thumbnails/` directory) with eager pre-generation so thumbnails load instantaneously without CPU lag.
+
+### 13. Normal Clipping Long Video Alignment Freeze at 100% Transcribe (29% Progress)
+- **Root Cause**: During batch clipping of 30+ minute videos, Whisper speech transcription reaches 100% (at 29% overall pipeline progress). Then, `clipsai.transcribe` invokes `whisperx.align` (wav2vec2 phoneme alignment), which on CPU takes 6–10 minutes. During this computation, zero stdout was printed and the status heartbeat continually repeated `100% speech processed (5m 22s elapsed · 34m 50s video · ~0s remaining)` at 29% progress, leading users to believe the process was deadlocked.
+- **Fix**:
+  1. In `main.py`, inserted immediate explicit log output when speech decoding completes: `[Align] Speech decoding completed (100%). Aligning word timestamps with audio...`.
+  2. In `app.py`, updated `progress_for_line()` and the worker heartbeat: when transcription hits >= 99.5%, stage transitions to `"Aligning word timestamps"` (progress advances to 30%), detail updates to `"Aligning word timestamps with speech (phoneme matching)..."`, and an active timer displays elapsed alignment time to reassure the user.
+
+### 14. Interactive Draggable Split-Screen Resizer & Live Result Time Display
+- **Root Cause**: In Beta Testing and Gaming layout preview, split-screen ratios were previously fixed at 50/50 (1080x960 top, 1080x960 bottom). Users requested the ability to interactively adjust the split boundary (e.g. give 65% height to gameplay and 35% to facecam) directly within the preview, as well as see the exact result clip duration and cut timestamps.
+- **Fix**:
+  1. Built an interactive draggable middle divider bar (`#betaSplitHandle`) overlaid on the 9:16 video preview frame displaying live ratio badge `⇕ Top 50% · Bottom 50%`.
+  2. Implemented pointer and touch dragging with safe clamping between 30% and 70%, bidirectionally synchronized with a range slider (`#betaSplitRatioSlider`).
+  3. Threaded `split_ratio` through `/api/start` and backend environment (`CLIPPEDAI_SPLIT_RATIO`), dynamically computing top video crop height (`target_h * ratio / 100`) and bottom camera crop height in `_compose_gaming_split_layout()` with even-pixel alignment.
+  4. Added precise result time and cut range displays across all UI cards and players: `⏱️ Result Time: M:SS (XXs duration) · 📍 Cut: M:SS – M:SS · 📐 1080×1920`.
+
+### 15. Mascot Creature & Ground Placard ("Need Help?" / Support)
+- **Root Cause**: The installer and application mini-game/status area lacked visual character personality and clear in-context support entry points for first-time users.
+- **Fix**:
+  1. Integrated the custom green animated creature mascot directly into the ground level of the animated mini-game area, anchored above the turf.
+  2. Mounted an overhead floating placard reading `"Need help?"` / `"Support"` above the creature's head that responds to hover and click events.
+  3. Linked the placard directly to the built-in Help & Support modal / documentation, creating an intuitive in-app assistance affordance.
+
 ---
 
 ## 5. Verification Evidence & Artifacts
@@ -166,6 +211,11 @@ flowchart TD
 | **Gaming Split-Screen** | FFmpeg 1080x1920 render | `gaming_split_rendered.mp4` (1080x1920 @ 60fps) |
 | **Speed GTA 6 Test 1** | Real-world YouTube video processing | `short_01.mp4` (10.52 MB), `short_02.mp4` (14.54 MB), `speed_gta6_test1_frame2s.jpg`, `speed_gta6_test1_frame6s.jpg`, `speed_gta6_test1_frame11s.jpg` |
 | **Speed GTA 6 Test 2** | Coexistence test: Lower Safe Captions + Watermark + Add Text | `short_01.mp4` (12.20 MB), `speed_gta6_test2_frame2s.jpg` (`*SHOCKED*` cue), `speed_gta6_test2_frame6s.jpg` (`@ClipifyAI` watermark + text banner), `speed_gta6_test2_frame12s.jpg` |
+| **Beta AI Pipeline (v4.0.6)** | YouTube processing (`kR8bhkVAgBY`) | `short_01.mp4` (26.7s, 10.5 MB), `short_02.mp4` (56.7s, 14.5 MB), `test_clip_frame_3s.jpg` (`*PAYS ATTENTION*`), `test_clip_frame_10s.jpg`, `test_clip2_frame_10s.jpg`, `test_clip2_frame_25s.jpg` |
+| **Draggable Split Screen** | Interactive drag test & frame capture | `verified_beta_split_screen_preview.png`, `verified_beta_split_crop.png` (30% to 70% bounds) |
+| **AI Narrate Thumbnails** | Image grid rendering audit | `verified_narrate_thumbnails_fixed.png`, `verified_narrate_full_grid.png`, `verified_narrate_clip_grid_crisp.png` |
+| **Mascot Support Placard** | Live DOM and visual verification | `verified_live_app_minigame_area.png`, `verified_final_live_monster_needhelp.png` |
+| **Long Video Alignment** | 35-min video transcription benchmark | `[Align]` log emission + live transition to `"Aligning word timestamps"` (30%) |
 | **Installer Regression** | Node.js regression suite | 15/15 tests PASS (`installer_regression_test.js`) |
 | **Installer Python Extraction**| Multi-path & native tar fallback | Resolved `powershell.exe ENOENT` and verified clean extraction |
 
@@ -176,7 +226,11 @@ flowchart TD
 - **Branch**: `feature/cross-platform` (all commits pushed to `origin`).
 - **Release Version 4.0.4** (Preserved intact):
   - Tag: [`v4.0.4`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.4)
-  - Installer: `installer/Clipify.AI.Setup.4.0.4.exe`
-- **Release Version 4.0.5** (Latest):
+  - Installer: `installer/Clipify.AI.Setup.4.0.4.exe` (SHA-256: `7A652BC40AB00F22C21F21238EDA832E12586BC86D7AFF91AFDCD18D126FEAC4`)
+- **Release Version 4.0.5** (Preserved intact):
   - Tag: [`v4.0.5`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.5)
-  - Installer: `installer/Clipify.AI.Setup.4.0.5.exe` and root `Clipify.AI.Setup.4.0.5.exe`
+  - Installer: `installer/Clipify.AI.Setup.4.0.5.exe` (SHA-256: `3F13235D6DF92034371A503D0E304F4753073A50C6E87ECFB9D75E2D5A6D73B0`)
+- **Release Version 4.0.6** (Latest):
+  - Tag: [`v4.0.6`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.6)
+  - Installer: `installer/Clipify.AI.Setup.4.0.6.exe` (SHA-256: `4BCE503A9D51B3C42C1E4B38FA9DDBC2A3A2C22F34B20575F7A74F57E863CE78`, Size: 347,615,301 bytes)
+  - Key Inclusions: Draggable Split-Screen Resizer (30%-70%), Live Result Time Display (`M:SS`), Whisper Phoneme Alignment Live Feedback (`[Align]`), SSE 3% Freeze Resolution + Status Polling Fallback, AI Narrate Thumbnail Vector & Multi-Path Fix, Anti-Hallucination Caption Inference Tuning, and Ground Mascot Support Placard.
