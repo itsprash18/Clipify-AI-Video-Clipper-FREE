@@ -62,7 +62,14 @@ refreshModelsBtn?.addEventListener('click', async () => {
       refreshModelsBtn.disabled = true;
       refreshModelsBtn.textContent = '…';
     }
+    // Deep PC scan & auto-recover unmounted or offline Ollama models
+    try {
+      await fetch('/api/models/scan', { method: 'POST', cache: 'no-store' });
+    } catch (_) {}
     await loadOptions();
+    if (window.refreshModelHub) {
+      await window.refreshModelHub();
+    }
   } finally {
     if (refreshModelsBtn) {
       refreshModelsBtn.disabled = false;
@@ -1019,7 +1026,20 @@ async function loadOptions() {
 
     const d = await r.json();
 
-    const models = d.models || [];
+    let models = d.models || [];
+
+    if (!models.length) {
+      try {
+        const scanRes = await fetch('/api/models/scan', { method: 'POST', cache: 'no-store' });
+        if (scanRes.ok) {
+          const scanData = await scanRes.json();
+          if (scanData.ok && scanData.models && scanData.models.length) {
+            models = scanData.models;
+            d.default_model = scanData.default || models[0];
+          }
+        }
+      } catch (_) {}
+    }
 
     modelSelect.innerHTML = '';
 

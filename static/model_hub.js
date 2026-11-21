@@ -209,6 +209,19 @@
       installedModels = [];
     }
 
+    if (!installedModels.length) {
+      try {
+        const scanRes = await fetch('/api/models/scan', { method: 'POST', cache: 'no-store' });
+        if (scanRes.ok) {
+          const scanData = await scanRes.json();
+          if (scanData.ok && scanData.models && scanData.models.length) {
+            installedModels = scanData.models.map(m => typeof m === 'string' ? { name: m, size: '' } : m);
+            if (scanData.default) defaultModel = scanData.default;
+          }
+        }
+      } catch (_) {}
+    }
+
     updateUI();
   }
 
@@ -221,7 +234,7 @@
     if (!installedModels.length) {
       const opt = document.createElement('option');
       opt.value = '';
-      opt.textContent = '⚠️ No Ollama models installed — Open Model Hub';
+      opt.textContent = '⚠️ No Ollama models found — Click ↻ to scan PC or open Hub';
       modelSelect.appendChild(opt);
       modelSelect.disabled = false;
       return;

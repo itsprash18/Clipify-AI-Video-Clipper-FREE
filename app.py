@@ -522,50 +522,173 @@ def _ollama_candidates() -> list[str]:
     return candidates
 
 
-def _try_start_ollama() -> None:
-    """Best-effort local Ollama startup; never blocks the web app."""
-    global _OLLAMA_AUTOSTART_ATTEMPTED
-    if _OLLAMA_AUTOSTART_ATTEMPTED:
-        return
-    _OLLAMA_AUTOSTART_ATTEMPTED = True
-    if any(str(x).startswith(("http://127.0.0.1", "http://localhost")) for x in _ollama_candidates()):
-        try:
-            binary = shutil.which("ollama") or shutil.which("ollama.exe")
-            if binary:
-                creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-                env = os.environ.copy()
-                if not env.get("OLLAMA_MODELS"):
-                    # Check Windows User Environment in registry if not in current process
+def _find_ollama_exe() -> str | None:
+    """Find ollama executable across PATH, standard Windows install locations, user profiles, and registry."""
+    # 1. PATH lookup
+    binary = shutil.which("ollama") or shutil.which("ollama.exe")
+    if binary and os.path.isfile(binary):
+        return binary
+
+    # 2. Well-known Windows paths
+    candidates = [
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "Ollama", "ollama.exe"),
+        os.path.join(os.path.expanduser("~"), "AppData", "Local", "Programs", "Ollama", "ollama.exe"),
+        os.path.join(os.environ.get("ProgramFiles", r"C:\Program Files"), "Ollama", "ollama.exe"),
+        os.path.join(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"), "Ollama", "ollama.exe"),
+        os.path.join(os.environ.get("SystemDrive", "C:"), r"\Program Files\Ollama\ollama.exe"),
+        os.path.join(os.environ.get("SystemDrive", "C:"), r"\Program Files (x86)\Ollama\ollama.exe"),
+        str(ROOT / "ollama.exe"),
+        str(ROOT / "tools" / "ollama.exe"),
+    ]
+    for c in candidates:
+        if c and os.path.isfile(c):
+            return c
+
+    # 3. Windows Registry lookup
+    try:
+        import winreg
+        for root_key in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+            for subkey in (
+                r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Ollama",
+                r"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Ollama",
+                r"Software\Ollama",
+            ):
+                try:
+                    with winreg.OpenKey(root_key, subkey, 0, winreg.KEY_READ) as k:
+                        for val_name in ("InstallLocation", "Path", "InstallDir", "DisplayIcon"):
+                            try:
+                                val, _ = winreg.QueryValueEx(k, val_name)
+                                if val:
+                                    p = str(val).strip('"')
+                                    if p.lower().endswith(".exe") and os.path.isfile(p):
+                                        return p
+                                    exe_p = os.path.join(p, "ollama.exe")
+                                    if os.path.isfile(exe_p):
+                                        return exe_p
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    # 4. Search all user profiles under SystemDrive:\Users
+    try:
+        users_dir = os.path.join(os.environ.get("SystemDrive", "C:"), r"\Users")
+        if os.path.isdir(users_dir):
+            for u in os.listdir(users_dir):
+                cand = os.path.join(users_dir, u, "AppData", "Local", "Programs", "Ollama", "ollama.exe")
+                if os.path.isfile(cand):
+                    return cand
+    except Exception:
+        pass
+
+    return None
+
+
+def _scan_store_manifests(store_dir: str) -> list[dict]:
+    """Inspect an Ollama store directory directly on disk and parse all installed models with sizes."""
+    models = []
+    seen = set()
+    for sub in ("manifests", "manifests-v2"):
+        base = os.path.join(store_dir, sub)
+        if not os.path.isdir(base):
+            continue
+        for root, _, files in os.walk(base):
+            for f in files:
+                mf = os.path.join(root, f)
+                rel = os.path.relpath(mf, base).replace("\\", "/")
+                parts = [p for p in rel.split("/") if p]
+                if len(parts) >= 2:
+                    tag = parts[-1]
+                    model = parts[-2]
+                    if len(parts) >= 3 and parts[-3] not in ("library", "registry.ollama.ai", "ollama.com"):
+                        full_name = f"{parts[-3]}/{model}:{tag}"
+                    else:
+                        full_name = f"{model}:{tag}"
+
+                    if full_name in seen:
+                        continue
+                    seen.add(full_name)
+
+                    size_bytes = 0
                     try:
-                        import winreg
-                        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ) as rk:
-                            reg_models, _ = winreg.QueryValueEx(rk, "OLLAMA_MODELS")
-                            if reg_models:
-                                env["OLLAMA_MODELS"] = reg_models
+                        with open(mf, "r", encoding="utf-8") as fp:
+                            data = json.load(fp)
+                            layers = data.get("layers", [])
+                            size_bytes = sum(l.get("size", 0) for l in layers if isinstance(l, dict))
                     except Exception:
                         pass
-                subprocess.Popen([binary, "serve"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                 stdin=subprocess.DEVNULL, creationflags=creationflags,
-                                 start_new_session=True)
-                print("[Ollama] Server was not reachable; attempted local auto-start with models env.")
-        except Exception as exc:
-            print(f"[Ollama] Auto-start skipped: {type(exc).__name__}: {exc}")
+
+                    size_str = f"{size_bytes / (1024**3):.1f} GB" if size_bytes > 0 else ""
+                    models.append({"name": full_name, "size": size_str, "bytes": size_bytes, "store": store_dir})
+    return models
+
+
+def _read_models_from_all_stores() -> list[dict]:
+    """Scan all local stores and return a unified list of detected installed models."""
+    stores = _scan_for_local_ollama_model_stores()
+    all_models: list[dict] = []
+    seen_names = set()
+    for s in stores:
+        for m in _scan_store_manifests(s):
+            if m["name"] not in seen_names:
+                seen_names.add(m["name"])
+                all_models.append(m)
+    return all_models
+
+
+def _try_start_ollama(models_dir: str | None = None, force: bool = False) -> bool:
+    """Best-effort local Ollama startup; never blocks the web app."""
+    global _OLLAMA_AUTOSTART_ATTEMPTED
+    if _OLLAMA_AUTOSTART_ATTEMPTED and not force:
+        return False
+    _OLLAMA_AUTOSTART_ATTEMPTED = True
+
+    binary = _find_ollama_exe()
+    if not binary:
+        print("[Ollama] Auto-start skipped: ollama executable not found on PC.")
+        return False
+
+    creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    env = os.environ.copy()
+
+    if not models_dir:
+        models_dir = env.get("OLLAMA_MODELS")
+        if not models_dir:
+            stores = _scan_for_local_ollama_model_stores()
+            if stores:
+                models_dir = stores[0]
+
+    if models_dir:
+        env["OLLAMA_MODELS"] = models_dir
+        os.environ["OLLAMA_MODELS"] = models_dir
+
+    try:
+        subprocess.Popen([binary, "serve"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         stdin=subprocess.DEVNULL, creationflags=creationflags, start_new_session=True)
+        print(f"[Ollama] Auto-started 'ollama serve' via {binary} (models: {models_dir or 'default'})")
+        return True
+    except Exception as exc:
+        print(f"[Ollama] Auto-start failed: {type(exc).__name__}: {exc}")
+        return False
 
 
 def _discover_ollama_models() -> tuple[list[str], str | None]:
-    """Discover Ollama models with localhost/127.0.0.1 fallback and useful diagnostics."""
+    """Discover Ollama models with localhost/127.0.0.1 fallback, disk inspection fallback, and auto-start."""
     global OLLAMA_RUNTIME_BASE_URL
     import urllib.request
     last_error = "Ollama is not reachable."
+
     for attempt in range(2):
         for base in _ollama_candidates():
             try:
                 version_req = urllib.request.Request(f"{base}/api/version", headers={"Accept": "application/json"})
-                with urllib.request.urlopen(version_req, timeout=2.5) as response:
+                with urllib.request.urlopen(version_req, timeout=2.0) as response:
                     if response.status != 200:
                         raise RuntimeError(f"HTTP {response.status}")
                 tags_req = urllib.request.Request(f"{base}/api/tags", headers={"Accept": "application/json"})
-                with urllib.request.urlopen(tags_req, timeout=5) as response:
+                with urllib.request.urlopen(tags_req, timeout=4.0) as response:
                     data = json.loads(response.read().decode("utf-8", errors="replace"))
                 if not isinstance(data, dict) or not isinstance(data.get("models"), list):
                     last_error = f"Ollama at {base} returned an unexpected /api/tags response."
@@ -574,14 +697,30 @@ def _discover_ollama_models() -> tuple[list[str], str | None]:
                 if models:
                     OLLAMA_RUNTIME_BASE_URL = base
                     return models, None
+
+                # HTTP connected but returned 0 models: check disk manifests before giving up!
+                disk_models = [m["name"] for m in _read_models_from_all_stores()]
+                if disk_models:
+                    OLLAMA_RUNTIME_BASE_URL = base
+                    return disk_models, None
+
                 OLLAMA_RUNTIME_BASE_URL = base
                 return [], f"Ollama is running at {base}, but no models are installed."
             except Exception as exc:
                 last_error = f"{base}: {type(exc).__name__}: {exc}"
+
         if attempt == 0:
-            _try_start_ollama()
+            _try_start_ollama(force=True)
             import time
-            time.sleep(1.5)
+            time.sleep(1.2)
+
+    # Fallback when HTTP fails: check local disk stores directly!
+    disk_models = [m["name"] for m in _read_models_from_all_stores()]
+    if disk_models:
+        # We found models on disk! Try to ensure Ollama server is starting up in background
+        _try_start_ollama(force=True)
+        return disk_models, None
+
     print(f"[Ollama] Model discovery failed: {last_error}")
     return [], f"Ollama unavailable. Tried localhost:11434 and 127.0.0.1:11434. {last_error}"
 
@@ -619,7 +758,7 @@ def _scan_for_local_ollama_model_stores() -> list[str]:
         if (os.path.isdir(blobs) and os.listdir(blobs)) or os.path.isdir(manifests) or os.path.isdir(manifests_v2):
             found.append(clean)
 
-    # 1. Environment variable
+    # 1. Environment variable & .env
     check_candidate(os.environ.get("OLLAMA_MODELS"))
 
     # 2. Windows registry
@@ -636,16 +775,30 @@ def _scan_for_local_ollama_model_stores() -> list[str]:
     except Exception:
         pass
 
-    # 3. Known paths
+    # 3. Known paths (Dynamic user home & localappdata across all users)
     known_paths = [
-        r"L:\models llma\Ollama\models",
         os.path.expanduser(r"~/.ollama/models"),
-        r"C:\Users\Dell\.ollama\models",
+        os.path.join(os.environ.get("USERPROFILE", ""), ".ollama", "models"),
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Ollama", "models"),
+        os.path.join(os.environ.get("APPDATA", ""), "Ollama", "models"),
+        str(ROOT / "models"),
+        str(ROOT / ".ollama" / "models"),
+        str(USER_DATA_DIR / "models"),
     ]
     for kp in known_paths:
         check_candidate(kp)
 
-    # 4. Drive scan
+    # Search all users under SystemDrive:\Users
+    try:
+        users_dir = os.path.join(os.environ.get("SystemDrive", "C:"), r"\Users")
+        if os.path.isdir(users_dir):
+            for u in os.listdir(users_dir):
+                check_candidate(os.path.join(users_dir, u, ".ollama", "models"))
+                check_candidate(os.path.join(users_dir, u, "AppData", "Local", "Ollama", "models"))
+    except Exception:
+        pass
+
+    # 4. Drive scan across all available drives
     import string
     for letter in string.ascii_uppercase:
         drive_root = f"{letter}:\\"
@@ -657,6 +810,7 @@ def _scan_for_local_ollama_model_stores() -> list[str]:
             r"Ollama\models",
             r".ollama\models",
             r"ollama_models",
+            r"models\Ollama",
             r"models",
         ]
         for sub in subpaths:
@@ -675,12 +829,13 @@ def _restart_ollama_with_models_dir(models_dir: str) -> bool:
     import time
     time.sleep(1)
 
-    binary = shutil.which("ollama") or shutil.which("ollama.exe") or r"C:\Users\Dell\AppData\Local\Programs\Ollama\ollama.exe"
+    binary = _find_ollama_exe()
     if not binary or not os.path.exists(binary):
         return False
 
     env = os.environ.copy()
     env["OLLAMA_MODELS"] = models_dir
+    os.environ["OLLAMA_MODELS"] = models_dir
     creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     try:
         subprocess.Popen([binary, "serve"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
@@ -692,14 +847,19 @@ def _restart_ollama_with_models_dir(models_dir: str) -> bool:
 
 
 def _scan_and_recover_ollama_models() -> tuple[list[str], str | None, str | None]:
-    """Scan local storage for Ollama models, activate the store, and refresh."""
+    """Scan local storage for Ollama models, activate the store, start Ollama, and refresh."""
     models, _ = _discover_ollama_models()
     if models:
         return models, os.environ.get("OLLAMA_MODELS"), None
 
     stores = _scan_for_local_ollama_model_stores()
     if not stores:
-        return [], None, "No Ollama model directories found on your computer."
+        # Check if ollama binary exists anyway
+        exe = _find_ollama_exe()
+        if exe:
+            _try_start_ollama(force=True)
+            return [], None, "Ollama is installed and running, but no models were downloaded yet."
+        return [], None, "No Ollama models or executable found on your computer."
 
     for store in stores:
         resolved = store
@@ -710,7 +870,8 @@ def _scan_and_recover_ollama_models() -> tuple[list[str], str | None, str | None
 
         blobs_dir = os.path.join(resolved, "blobs")
         manifests_dir = os.path.join(resolved, "manifests")
-        if not os.path.isdir(blobs_dir) and not os.path.isdir(manifests_dir):
+        manifests_v2 = os.path.join(resolved, "manifests-v2")
+        if not os.path.isdir(blobs_dir) and not os.path.isdir(manifests_dir) and not os.path.isdir(manifests_v2):
             continue
 
         os.environ["OLLAMA_MODELS"] = resolved
@@ -721,13 +882,30 @@ def _scan_and_recover_ollama_models() -> tuple[list[str], str | None, str | None
         except Exception:
             pass
 
+        # Update local .env
+        try:
+            env_file = ROOT / ".env"
+            content = env_file.read_text(encoding="utf-8") if env_file.is_file() else ""
+            if "OLLAMA_MODELS=" in content:
+                content = re.sub(r"OLLAMA_MODELS=.*", f"OLLAMA_MODELS={resolved}", content)
+            else:
+                content += f"\nOLLAMA_MODELS={resolved}\n"
+            env_file.write_text(content.strip() + "\n", encoding="utf-8")
+        except Exception:
+            pass
+
         _restart_ollama_with_models_dir(resolved)
         import time
-        for _ in range(5):
+        for _ in range(6):
             time.sleep(1)
             models, _ = _discover_ollama_models()
             if models:
                 return models, resolved, None
+
+        # Even if HTTP tags hasn't caught up, read manifests from this store!
+        disk_mods = [m["name"] for m in _scan_store_manifests(resolved)]
+        if disk_mods:
+            return disk_mods, resolved, None
 
     return [], None, "Scanned local drives but could not find working Ollama model manifests."
 
@@ -3206,11 +3384,11 @@ def delete_ollama_model():
 @app.get("/api/models/ollama/details")
 def ollama_models_details():
     """Returns all locally installed Ollama models with their exact sizes and IDs."""
-    exe = shutil.which("ollama") or _find_ollama_exe()
+    exe = _find_ollama_exe()
     installed_list = []
     if exe:
         try:
-            res = _run_hidden([exe, "list"], capture_output=True, text=True, timeout=10, check=False)
+            res = _run_hidden([exe, "list"], capture_output=True, text=True, timeout=8, check=False)
             if res.returncode == 0 and res.stdout:
                 lines = res.stdout.strip().splitlines()
                 if len(lines) > 1:
@@ -3223,13 +3401,31 @@ def ollama_models_details():
                             installed_list.append({"name": name, "size": size, "modified": modified})
         except Exception:
             pass
+
+    # Fallback to HTTP tag discovery
     if not installed_list:
         models_raw, _ = _discover_ollama_models()
         for m in models_raw:
             installed_list.append({"name": m, "size": "", "modified": ""})
 
+    # Fallback to disk manifests
+    if not installed_list:
+        disk_models = _read_models_from_all_stores()
+        for m in disk_models:
+            installed_list.append({"name": m["name"], "size": m.get("size", ""), "modified": "On disk"})
+
+    # If any model exists without size, fill size from disk manifests
+    if installed_list and any(not m.get("size") for m in installed_list):
+        disk_map = {m["name"]: m.get("size", "") for m in _read_models_from_all_stores()}
+        for item in installed_list:
+            if not item.get("size") and item.get("name") in disk_map:
+                item["size"] = disk_map[item["name"]]
+
     cfg = _load_ai_config()
-    default_model = cfg.get("ollama_model") or "qwen2.5:3b"
+    default_model = cfg.get("ollama_model")
+    if not default_model or default_model not in [m["name"] for m in installed_list]:
+        model_names = [m["name"] for m in installed_list]
+        default_model = _default_model(model_names) if model_names else (default_model or "qwen2.5:3b")
 
     return jsonify({
         "ok": True,
@@ -3482,7 +3678,7 @@ def open_output_folder():
         "error": error_msg
     })
 
-APP_VERSION = "v4.0.6"
+APP_VERSION = "v4.0.7"
 GITHUB_REPO = "sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE"
 
 
@@ -3615,6 +3811,20 @@ def updater_apply():
                 updated_count += 1
 
         tf_path.unlink(missing_ok=True)
+
+        def _delayed_restart():
+            import time
+            time.sleep(2.0)
+            try:
+                py = sys.executable
+                creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+                subprocess.Popen([py, "app.py"], cwd=str(ROOT), creationflags=creationflags)
+                os._exit(0)
+            except Exception:
+                pass
+
+        threading.Thread(target=_delayed_restart, daemon=True).start()
+
         return jsonify({
             "ok": True,
             "method": "archive",

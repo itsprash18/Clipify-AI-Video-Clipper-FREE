@@ -1,9 +1,10 @@
 # Clipify AI — Complete Project Architecture, Development & Release Summary
 
-> **Current Version**: `4.0.6`  
+> **Current Version**: `4.0.7`  
 > **Repository**: `sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE`  
-> **Release Tag**: [`v4.0.6`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.6)  
+> **Release Tag**: [`v4.0.7`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.7)  
 > **Production Installers**:
+> - `installer/Clipify.AI.Setup.4.0.7.exe` (Version 4.0.7 — Universal Multi-User Ollama Discovery & Live Fast In-Place Updater)
 > - `installer/Clipify.AI.Setup.4.0.6.exe` (Version 4.0.6 — SHA-256: `4BCE503A9D51B3C42C1E4B38FA9DDBC2A3A2C22F34B20575F7A74F57E863CE78`)
 > - `installer/Clipify.AI.Setup.4.0.5.exe` (Preserved intact — SHA-256: `3F13235D6DF92034371A503D0E304F4753073A50C6E87ECFB9D75E2D5A6D73B0`)
 > - `installer/Clipify.AI.Setup.4.0.4.exe` (Preserved intact — SHA-256: `7A652BC40AB00F22C21F21238EDA832E12586BC86D7AFF91AFDCD18D126FEAC4`)
@@ -199,6 +200,18 @@ flowchart TD
   2. Mounted an overhead floating placard reading `"Need help?"` / `"Support"` above the creature's head that responds to hover and click events.
   3. Linked the placard directly to the built-in Help & Support modal / documentation, creating an intuitive in-app assistance affordance.
 
+### 16. Ollama Model Discovery Failure on External Installations ("⚠️ No Ollama models installed — Open Model Hub")
+- **Root Cause**:
+  1. **Uncaught NameError**: `ollama_models_details()` (`/api/models/ollama/details`) and `delete_ollama_model()` called `_find_ollama_exe()` when `shutil.which("ollama")` was `None`. However, `_find_ollama_exe()` was never defined in `app.py`. On the developer machine, Ollama happened to be registered in system `PATH`, short-circuiting the call. On other laptops where Ollama was installed into standard Windows locations (`%LOCALAPPDATA%\Programs\Ollama\ollama.exe`) without a global PATH entry, `shutil.which` returned `None`, triggering an uncaught `NameError` and crashing `/api/models/ollama/details` with HTTP 500. `model_hub.js` caught the 500 error, defaulted `installedModels = []`, and overwrote the model selector with `"⚠️ No Ollama models installed — Open Model Hub"`.
+  2. **Hardcoded User Profile Paths**: `_scan_for_local_ollama_model_stores()` and `_restart_ollama_with_models_dir()` contained hardcoded developer path strings (`C:\Users\Dell\.ollama\models`), failing completely on other users' computers (`C:\Users\<OtherUser>\.ollama\models`).
+  3. **Offline Ollama Daemon & Single Autostart Attempt**: If Ollama daemon was offline upon launch, `_try_start_ollama()` failed to find the binary on non-developer machines, setting `_OLLAMA_AUTOSTART_ATTEMPTED = True` permanently. Subsequent clicks on the reload button (`↻`) never re-attempted starting the service or mounting local stores.
+- **Fix**:
+  1. Implemented a comprehensive multi-tier `_find_ollama_exe()` locator scanning `PATH`, `%LOCALAPPDATA%\Programs\Ollama\ollama.exe`, `%USERPROFILE%`, `%ProgramFiles%`, registry keys (`HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\Ollama`, `HKLM`, `Software\Ollama`), and all user profiles in `C:\Users`.
+  2. Built direct disk manifest inspection engine (`_scan_store_manifests()` and `_read_models_from_all_stores()`) that directly walks `manifests/` and `manifests-v2/` on disk. It discovers every downloaded model (`qwen3:4b`, `qwen2.5:3b`, `llama3.2:3b`, etc.), parses layer weights to calculate exact model sizes in GB, and returns models immediately with zero delay even when Ollama daemon is starting up or offline.
+  3. Updated `_try_start_ollama()` and `_restart_ollama_with_models_dir()` to dynamically resolve any machine's Ollama executable and point `OLLAMA_MODELS` to the discovered local store.
+  4. Connected `refreshModelsBtn` (`↻`) in `app.js` and `loadOptions()` to automatically trigger `/api/models/scan` and `refreshModelHub()`, recovering unmounted models instantly with one click.
+  5. Enhanced in-place updater (`/api/updater/check` & `/api/updater/apply`): bumped version to `v4.0.7` and scheduled a clean backend process restart so users can click the "Update" button directly in the app to fetch and activate this fix without re-downloading the entire 347MB installer.
+
 ---
 
 ## 5. Verification Evidence & Artifacts
@@ -215,7 +228,7 @@ flowchart TD
 | **Draggable Split Screen** | Interactive drag test & frame capture | `verified_beta_split_screen_preview.png`, `verified_beta_split_crop.png` (30% to 70% bounds) |
 | **AI Narrate Thumbnails** | Image grid rendering audit | `verified_narrate_thumbnails_fixed.png`, `verified_narrate_full_grid.png`, `verified_narrate_clip_grid_crisp.png` |
 | **Mascot Support Placard** | Live DOM and visual verification | `verified_live_app_minigame_area.png`, `verified_final_live_monster_needhelp.png` |
-| **Long Video Alignment** | 35-min video transcription benchmark | `[Align]` log emission + live transition to `"Aligning word timestamps"` (30%) |
+| **Universal Ollama Discovery** | Direct API & Manifest Parsing Test | `test_app_ollama.py` passed: `/api/models/ollama/details` 200 OK (`qwen3:4b`, 2.5 GB), `/api/health` 200 OK, `/api/models/scan` 200 OK |
 | **Installer Regression** | Node.js regression suite | 15/15 tests PASS (`installer_regression_test.js`) |
 | **Installer Python Extraction**| Multi-path & native tar fallback | Resolved `powershell.exe ENOENT` and verified clean extraction |
 
@@ -230,7 +243,9 @@ flowchart TD
 - **Release Version 4.0.5** (Preserved intact):
   - Tag: [`v4.0.5`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.5)
   - Installer: `installer/Clipify.AI.Setup.4.0.5.exe` (SHA-256: `3F13235D6DF92034371A503D0E304F4753073A50C6E87ECFB9D75E2D5A6D73B0`)
-- **Release Version 4.0.6** (Latest):
+- **Release Version 4.0.6** (Preserved intact):
   - Tag: [`v4.0.6`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.6)
-  - Installer: `installer/Clipify.AI.Setup.4.0.6.exe` (SHA-256: `4BCE503A9D51B3C42C1E4B38FA9DDBC2A3A2C22F34B20575F7A74F57E863CE78`, Size: 347,615,301 bytes)
-  - Key Inclusions: Draggable Split-Screen Resizer (30%-70%), Live Result Time Display (`M:SS`), Whisper Phoneme Alignment Live Feedback (`[Align]`), SSE 3% Freeze Resolution + Status Polling Fallback, AI Narrate Thumbnail Vector & Multi-Path Fix, Anti-Hallucination Caption Inference Tuning, and Ground Mascot Support Placard.
+  - Installer: `installer/Clipify.AI.Setup.4.0.6.exe` (SHA-256: `4BCE503A9D51B3C42C1E4B38FA9DDBC2A3A2C22F34B20575F7A74F57E863CE78`)
+- **Release Version 4.0.7** (Latest):
+  - Tag: [`v4.0.7`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.7)
+  - Key Inclusions: Universal Multi-User Ollama Discovery (`_find_ollama_exe()`), Direct Disk Manifest Layer Parser (`_scan_store_manifests()`), Removal of hardcoded paths, In-place Update activation via app Update button, and Auto-start of offline Ollama daemons.
