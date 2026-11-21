@@ -401,10 +401,14 @@ def progress_for_line(line: str, current: int, current_stage: str = "") -> tuple
         return max(current, 25), "Loading cached transcription", "Using the saved WhisperX transcript."
     if "transcription completed" in low or "successfully loaded existing transcription" in low:
         return max(current, 30), "Transcription ready", "Transcript loaded successfully."
+    if "[align]" in low or "aligning word" in low:
+        return max(current, 30), "Aligning word timestamps", "Aligning word timestamps with speech (phoneme matching)…"
     if "speech recognition in progress" in low or "transcription progress" in low:
         m = re.search(r"approx (\d+)%", low) or re.search(r"progress:\s*([\d\.]+)%", low)
         if m:
             pct = float(m.group(1))
+            if pct >= 99.5:
+                return max(current, 30), "Aligning word timestamps", "Aligning word timestamps with speech (phoneme matching)…"
             scaled = 10 + int((pct / 100.0) * 19)
             return max(current, min(29, scaled)), "Transcribing audio", f"Transcribing audio: {pct:.0f}% of speech processed"
         return max(current, 10), "Transcribing audio", text
@@ -1157,7 +1161,7 @@ def _pipeline_command(input_dir: Path) -> list[str]:
 
 
 def run_job(
-job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, max_duration: int, branding: dict[str, Any], split_screen: bool = False, fast_whisper: bool = True, gaming_split: bool = True) -> None:
+job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, max_duration: int, branding: dict[str, Any], split_screen: bool = False, fast_whisper: bool = True, gaming_split: bool = True, split_ratio: int = 50) -> None:
     with jobs_lock:
         job = jobs[job_id]
         job["status"] = "running"
@@ -1222,6 +1226,7 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
         "CLIPPEDAI_WATERMARK_TEXT_Y": str(branding.get("watermark_text_y", 50)),
         "CLIPPEDAI_SPLIT_SCREEN": "1" if split_screen else "0",
         "CLIPPEDAI_GAMING_SPLIT": "1" if gaming_split else "0",
+        "CLIPPEDAI_SPLIT_RATIO": str(split_ratio),
         "CLIPPEDAI_FAST_WHISPER": "1" if fast_whisper else "0",
         "TRANSCRIPTION_MODEL": os.getenv("TRANSCRIPTION_MODEL", "tiny" if fast_whisper else ("medium" if _is_cuda_available() else "base")),
         "CLIPPEDAI_ALLOW_FALLBACK": "1",
@@ -1267,17 +1272,24 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
                     speech_pct = job.get("speech_progress")
                     if speech_pct is not None:
                         speech_pct = float(speech_pct)
-                        step_prog = min(29, 10 + int((speech_pct / 100.0) * 19))
-                        cur_prog = max(cur_prog, step_prog)
-                        job["progress"] = cur_prog
-                        if elapsed > 4 and speech_pct > 1.0:
-                            rate = speech_pct / max(1, elapsed)
-                            rem_s = int((100.0 - speech_pct) / max(0.01, rate))
-                            rm, rs = divmod(rem_s, 60)
-                            eta_str = f" · ~{rm}m {rs}s remaining" if rm > 0 else f" · ~{rs}s remaining"
+                        if speech_pct >= 99.5:
+                            step_prog = 30
+                            cur_prog = max(cur_prog, step_prog)
+                            job["progress"] = cur_prog
+                            job["stage"] = "Aligning word timestamps"
+                            detail = f"Aligning word timestamps with speech ({m}m {s}s elapsed · phoneme matching)"
                         else:
-                            eta_str = ""
-                        detail = f"Transcribing audio: {speech_pct:.0f}% of speech processed ({m}m {s}s elapsed{dur_str}{eta_str})"
+                            step_prog = min(29, 10 + int((speech_pct / 100.0) * 19))
+                            cur_prog = max(cur_prog, step_prog)
+                            job["progress"] = cur_prog
+                            if elapsed > 4 and speech_pct > 1.0:
+                                rate = speech_pct / max(1, elapsed)
+                                rem_s = int((100.0 - speech_pct) / max(0.01, rate))
+                                rm, rs = divmod(rem_s, 60)
+                                eta_str = f" · ~{rm}m {rs}s remaining" if rm > 0 else f" · ~{rs}s remaining"
+                            else:
+                                eta_str = ""
+                            detail = f"Transcribing audio: {speech_pct:.0f}% of speech processed ({m}m {s}s elapsed{dur_str}{eta_str})"
                     elif dur > 0:
                         est_total = max(30, int(dur * 0.40))
                         pct_chunk = min(99, max(1, int((elapsed / max(1, est_total)) * 100)))
@@ -2707,13 +2719,18 @@ def start():
         branding["logo_position"] = "top-right"
     if branding["text_position"] not in BRANDING_POSITIONS:
         branding["text_position"] = "bottom-center"
+    try:
+        split_ratio = max(30, min(70, int(data.get("split_ratio", data.get("splitRatio", 50)))))
+    except (TypeError, ValueError):
+        split_ratio = 50
     with jobs_lock:
         jobs[job_id]["branding"] = branding
         jobs[job_id]["split_screen"] = split_screen
         jobs[job_id]["gaming_split"] = gaming_split
+        jobs[job_id]["split_ratio"] = split_ratio
         jobs[job_id]["fast_whisper"] = fast_whisper
-    threading.Thread(target=run_job, args=(job_id, mode, clips, model, font, min_duration, max_duration, branding, split_screen, fast_whisper, gaming_split), daemon=True).start()
-    return jsonify({"ok": True, "job_id": job_id, "model": model, "font": font, "min_duration": min_duration, "max_duration": max_duration, "branding": branding, "split_screen": split_screen, "gaming_split": gaming_split, "fast_whisper": fast_whisper})
+    threading.Thread(target=run_job, args=(job_id, mode, clips, model, font, min_duration, max_duration, branding, split_screen, fast_whisper, gaming_split, split_ratio), daemon=True).start()
+    return jsonify({"ok": True, "job_id": job_id, "model": model, "font": font, "min_duration": min_duration, "max_duration": max_duration, "branding": branding, "split_screen": split_screen, "gaming_split": gaming_split, "split_ratio": split_ratio, "fast_whisper": fast_whisper})
 
 
 

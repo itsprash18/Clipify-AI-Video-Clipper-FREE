@@ -1277,7 +1277,9 @@ def transcribe_with_progress(audio_file_path, transcriber):
                         user_lang = "en"
                     if user_lang and not t_kwargs.get("language"):
                         t_kwargs["language"] = user_lang
-                    return orig_model_transcribe(audio_in, *t_args, **t_kwargs)
+                    res = orig_model_transcribe(audio_in, *t_args, **t_kwargs)
+                    print("  [Align] Speech decoding completed (100%). Aligning word timestamps with audio...", flush=True)
+                    return res
 
                 transcriber._model.transcribe = live_progress_transcribe
 
@@ -5630,12 +5632,19 @@ def _compose_gaming_split_layout(source_path: str, output_path: str,
     Top panel: Whole gameplay (scaled/center-cropped without webcam obstruction).
     Bottom panel: Streamer reaction camera / facecam centered at the bottom.
     """
-    game_h = 1080
-    cam_h = target_h - game_h  # 840
+    try:
+        ratio_env = os.getenv("CLIPPEDAI_SPLIT_RATIO", "50").strip()
+        ratio_pct = max(30.0, min(70.0, float(ratio_env)))
+    except (ValueError, TypeError):
+        ratio_pct = 50.0
+
+    game_h = int(round(target_h * (ratio_pct / 100.0) / 2.0)) * 2
+    cam_h = target_h - game_h
     if game_h % 2 != 0:
         game_h += 1
     if cam_h % 2 != 0:
         cam_h += 1
+        game_h = target_h - cam_h
 
     try:
         # Check for persistent corner facecam box via ContentAnalyzer

@@ -909,6 +909,16 @@
               </label>
             </div>
 
+            <!-- Dynamic Split Ratio Control -->
+            <div id="betaSplitRatioRow" style="margin-top:12px;padding:10px 14px;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:rgba(255,255,255,0.02);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-size:0.8rem;color:var(--muted-2);font-weight:600;">Split Screen Height Ratio</span>
+                <b id="betaSplitRatioText" style="font-size:0.75rem;color:#ffffff;background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);">Top 50% / Bottom 50%</b>
+              </div>
+              <input type="range" id="betaSplitRatio" min="30" max="70" value="50" style="width:100%;cursor:pointer;">
+              <small style="color:var(--muted-2);font-size:0.72rem;display:block;margin-top:4px;">Drag the middle bar in the preview or adjust this slider to resize top/bottom screen</small>
+            </div>
+
             <!-- Premium Captions Toggle -->
             <div
               style="margin-top:14px;padding:12px 14px;border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.02);">
@@ -1002,8 +1012,9 @@
             <div id="betaClipSwitcher" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
               <span style="font-size:0.78rem;color:var(--muted-2);">Renders will appear here after execution</span>
             </div>
+            <div id="betaClipMeta" style="font-size:0.75rem;color:var(--muted-2);margin-bottom:10px;display:none;align-items:center;gap:6px;background:rgba(255,255,255,0.03);padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);flex-wrap:wrap;"></div>
 
-            <div class="preview-frame"
+            <div class="preview-frame" id="betaPreviewFrame"
               style="aspect-ratio:9/16;max-height:560px;margin:0 auto;position:relative;background:#050507;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.14);display:grid;place-items:center;">
               <video id="betaResultVideo" controls playsinline
                 style="width:100%;height:100%;object-fit:contain;display:none;"></video>
@@ -1011,6 +1022,21 @@
                 <div style="font-size:2rem;margin-bottom:8px;">📱</div>
                 <b style="color:#ffffff;display:block;">Short Output Preview</b>
                 <small style="display:block;margin-top:4px;">Run pipeline above to inspect finished render</small>
+              </div>
+
+              <!-- Interactive Draggable Split Screen Resizer Overlay -->
+              <div id="betaSplitOverlay" class="split-screen-resizer-overlay">
+                <div id="betaSplitTop" class="split-panel-top">
+                  <span class="split-panel-label">🎮 Top: Gameplay</span>
+                </div>
+                <div id="betaSplitHandle" class="split-divider-handle" title="Drag up or down to resize top/bottom screen">
+                  <div class="handle-line"></div>
+                  <div class="handle-badge" id="betaSplitBadge">⇕ Top 50% · Bottom 50%</div>
+                  <div class="handle-line"></div>
+                </div>
+                <div id="betaSplitBottom" class="split-panel-bottom">
+                  <span class="split-panel-label">🎙️ Bottom: Camera / Reaction</span>
+                </div>
               </div>
             </div>
 

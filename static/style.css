@@ -2818,3 +2818,108 @@ footer {
   color: #a1a1aa;
   line-height: 1;
 }
+
+/* Split Screen Draggable Resizer Overlay in Preview */
+.split-screen-resizer-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  z-index: 10;
+  user-select: none;
+}
+
+.split-panel-top {
+  width: 100%;
+  height: 50%;
+  background: rgba(155, 92, 255, 0.08);
+  border-bottom: 1.5px dashed rgba(155, 92, 255, 0.5);
+  position: relative;
+  transition: height 0.04s ease-out;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.split-panel-bottom {
+  width: 100%;
+  height: 50%;
+  background: rgba(45, 212, 191, 0.08);
+  border-top: 1.5px dashed rgba(45, 212, 191, 0.5);
+  position: relative;
+  transition: height 0.04s ease-out;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.split-panel-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  letter-spacing: 0.03em;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.split-divider-handle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 36px;
+  margin-top: -18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: row-resize;
+  cursor: ns-resize;
+  z-index: 15;
+  touch-action: none;
+}
+
+.split-divider-handle .handle-line {
+  flex: 1;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(155, 92, 255, 0.7), #ffffff, rgba(45, 212, 191, 0.7));
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+  border-radius: 2px;
+}
+
+.split-divider-handle .handle-badge {
+  background: #121215;
+  color: #ffffff;
+  border: 1.5px solid var(--accent, #9b5cff);
+  box-shadow: 0 0 14px rgba(155, 92, 255, 0.5), 0 4px 10px rgba(0,0,0,0.7);
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: grab;
+  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.split-divider-handle:hover .handle-badge,
+.split-divider-handle.dragging .handle-badge {
+  transform: scale(1.06);
+  box-shadow: 0 0 20px rgba(155, 92, 255, 0.9), 0 6px 14px rgba(0,0,0,0.8);
+  border-color: #ffffff;
+}
+
+.split-divider-handle.dragging {
+  cursor: grabbing;
+}
