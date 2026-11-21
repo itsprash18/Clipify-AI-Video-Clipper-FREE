@@ -19,7 +19,7 @@ function renderClips(){
   $('#clipGrid').innerHTML=list.length?list.map(v=>`
     <button class="clip-card ${state.clip?.id===v.id?'selected':''}" data-clip="${escapeHtml(v.id)}" title="${escapeHtml(v.name)}">
       <div class="clip-media-wrapper">
-        <img class="clip-thumb" loading="lazy" src="/api/narrate/thumbnail/${encodeURIComponent(v.id)}" alt="${escapeHtml(v.name)}" onerror="this.onerror=null; this.src='/api/narrate/media/${encodeURIComponent(v.id)}';">
+        <img class="clip-thumb" loading="lazy" src="/api/narrate/thumbnail/${encodeURIComponent(v.id)}" alt="${escapeHtml(v.name)}" onerror="this.onerror=null; this.style.display='none';">
         <video class="clip-hover-video" muted playsinline loop preload="none" data-src="/api/narrate/media/${encodeURIComponent(v.id)}" style="display:none;"></video>
       </div>
       <span class="clip-copy">

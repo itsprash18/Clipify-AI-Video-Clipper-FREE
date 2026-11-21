@@ -945,13 +945,29 @@
       }
     }
 
-    creatureCard.addEventListener('click', openGame);
+    creatureCard.addEventListener('click', (e) => {
+      // If user clicked the "need help?" support link/board, do not open mini game!
+      if (e.target && (e.target.closest('#creatureSupportLink') || e.target.closest('.creature-support-board-link'))) {
+        return;
+      }
+      openGame();
+    });
     creatureCard.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
+        if (e.target && (e.target.closest('#creatureSupportLink') || e.target.closest('.creature-support-board-link'))) {
+          return;
+        }
         e.preventDefault();
         openGame();
       }
     });
+
+    const supportLink = document.getElementById('creatureSupportLink');
+    if (supportLink) {
+      supportLink.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+    }
 
     closeBtn?.addEventListener('click', closeGame);
 

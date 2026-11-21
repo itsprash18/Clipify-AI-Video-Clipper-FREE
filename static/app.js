@@ -1,5 +1,5 @@
-const state={jobId:null,mode:'viral',source:null,logoFile:null,logoPath:null,logoServerPath:null,es:null,model:null,modelsAvailable:false,font:'Montserrat Extra Bold',outputs:[],currentOutputIndex:0,drag:null,reviewFile:null,editorLogoFile:null,editorLogoPath:null,youtubePoll:null,sourcePreviewUrl:null};
-const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
+const state = { jobId: null, mode: 'viral', source: null, logoFile: null, logoPath: null, logoServerPath: null, es: null, model: null, modelsAvailable: false, font: 'Montserrat Extra Bold', outputs: [], currentOutputIndex: 0, drag: null, reviewFile: null, editorLogoFile: null, editorLogoPath: null, youtubePoll: null, sourcePreviewUrl: null };
+const $ = s => document.querySelector(s); const $$ = s => [...document.querySelectorAll(s)];
 
 async function safeJson(response, fallbackMsg = 'Server response error') {
   const text = await response.text();
@@ -10,51 +10,51 @@ async function safeJson(response, fallbackMsg = 'Server response error') {
     try {
       const doc = new DOMParser().parseFromString(text, 'text/html');
       msg = doc.querySelector('title, h1, p')?.textContent?.trim() || fallbackMsg;
-    } catch (_) {}
+    } catch (_) { }
     throw new Error(msg);
   }
 }
-const editorDownloads=()=>['#reviewDownload','#reviewDownloadMain'].map($).filter(Boolean);
-const editorApplyButtons=()=>['#applyEditorBranding','#applyEditorBrandingMain'].map($).filter(Boolean);
-const reviewPlayer=window.ClipifyReviewPlayer?.attach($('#reviewVideo'),$('#reviewVideoStatus'),$('#reviewVideoSpinner'),$('#reviewVideoStatusText'));
-const input=$('#videoInput'),drop=$('#dropzone'),create=$('#createBtn'),chip=$('#fileChip'),nameEl=$('#fileName'),sizeEl=$('#fileSize'),progressPanel=$('#progressPanel'),results=$('#results'),grid=$('#resultGrid'),log=$('#log'),modelSelect=$('#modelSelect'),refreshModelsBtn=$('#refreshModelsBtn'),scanModelsBtn=$('#scanModelsBtn'),fontSelect=$('#fontSelect'),minDuration=$('#minDuration'),maxDuration=$('#maxDuration'),youtubeUrl=$('#youtubeUrl'),youtubeImport=$('#youtubeImport'),youtubeStatus=$('#youtubeStatus');
-const positions=['top-left','top-center','top-right','center-left','center','center-right','bottom-left','bottom-center','bottom-right','custom'];
+const editorDownloads = () => ['#reviewDownload', '#reviewDownloadMain'].map($).filter(Boolean);
+const editorApplyButtons = () => ['#applyEditorBranding', '#applyEditorBrandingMain'].map($).filter(Boolean);
+const reviewPlayer = window.ClipifyReviewPlayer?.attach($('#reviewVideo'), $('#reviewVideoStatus'), $('#reviewVideoSpinner'), $('#reviewVideoStatusText'));
+const input = $('#videoInput'), drop = $('#dropzone'), create = $('#createBtn'), chip = $('#fileChip'), nameEl = $('#fileName'), sizeEl = $('#fileSize'), progressPanel = $('#progressPanel'), results = $('#results'), grid = $('#resultGrid'), log = $('#log'), modelSelect = $('#modelSelect'), refreshModelsBtn = $('#refreshModelsBtn'), scanModelsBtn = $('#scanModelsBtn'), fontSelect = $('#fontSelect'), minDuration = $('#minDuration'), maxDuration = $('#maxDuration'), youtubeUrl = $('#youtubeUrl'), youtubeImport = $('#youtubeImport'), youtubeStatus = $('#youtubeStatus');
+const positions = ['top-left', 'top-center', 'top-right', 'center-left', 'center', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right', 'custom'];
 
-function startTypewriter(){
-  const lead=$('#typewriterLead');
-  const focus=$('#typewriterFocus');
-  if(!lead||!focus)return;
-  const leadText='From long-form video to a ';
-  const focusText='Short worth watching.';
-  let index=0;
-  let phase='typingLead';
-  const tick=()=>{
-    if(phase==='typingLead'){
-      lead.textContent=leadText.slice(0,++index);
-      if(index>=leadText.length){index=0;phase='typingFocus';}
-      return setTimeout(tick,62);
+function startTypewriter() {
+  const lead = $('#typewriterLead');
+  const focus = $('#typewriterFocus');
+  if (!lead || !focus) return;
+  const leadText = 'From long-form video to a ';
+  const focusText = 'Short worth watching.';
+  let index = 0;
+  let phase = 'typingLead';
+  const tick = () => {
+    if (phase === 'typingLead') {
+      lead.textContent = leadText.slice(0, ++index);
+      if (index >= leadText.length) { index = 0; phase = 'typingFocus'; }
+      return setTimeout(tick, 62);
     }
-    if(phase==='typingFocus'){
-      focus.textContent=focusText.slice(0,++index);
-      if(index>=focusText.length){phase='pause';return setTimeout(tick,2100);}
-      return setTimeout(tick,72);
+    if (phase === 'typingFocus') {
+      focus.textContent = focusText.slice(0, ++index);
+      if (index >= focusText.length) { phase = 'pause'; return setTimeout(tick, 2100); }
+      return setTimeout(tick, 72);
     }
-    if(phase==='pause'){phase='erasingFocus';index=focusText.length;return tick();}
-    if(phase==='erasingFocus'){
-      focus.textContent=focusText.slice(0,--index);
-      if(index<=0){phase='erasingLead';index=leadText.length;}
-      return setTimeout(tick,42);
+    if (phase === 'pause') { phase = 'erasingFocus'; index = focusText.length; return tick(); }
+    if (phase === 'erasingFocus') {
+      focus.textContent = focusText.slice(0, --index);
+      if (index <= 0) { phase = 'erasingLead'; index = leadText.length; }
+      return setTimeout(tick, 42);
     }
-    lead.textContent=leadText.slice(0,--index);
-    if(index<=0){phase='typingLead';index=0;return setTimeout(tick,500);}
-    return setTimeout(tick,42);
+    lead.textContent = leadText.slice(0, --index);
+    if (index <= 0) { phase = 'typingLead'; index = 0; return setTimeout(tick, 500); }
+    return setTimeout(tick, 42);
   };
-  setTimeout(tick,350);
+  setTimeout(tick, 350);
 }
 
 startTypewriter();
 
-modelSelect?.addEventListener('change',()=>{state.model=modelSelect.value});
+modelSelect?.addEventListener('change', () => { state.model = modelSelect.value });
 
 refreshModelsBtn?.addEventListener('click', async () => {
   try {
@@ -95,7 +95,7 @@ scanModelsBtn?.addEventListener('click', async () => {
   }
 });
 
-async function refreshModelOptions(){
+async function refreshModelOptions() {
   if (refreshModelsBtn) {
     refreshModelsBtn.disabled = true;
     refreshModelsBtn.textContent = '…';
@@ -111,217 +111,217 @@ async function refreshModelOptions(){
   }
 }
 
-function formatBytes(n){
-  if(!n)return '';
-  const u=['B','KB','MB','GB'];
-  let i=0;
-  while(n>=1024&&i<3){n/=1024;i++}
-  return `${n.toFixed(i?1:0)} ${u[i]}`
+function formatBytes(n) {
+  if (!n) return '';
+  const u = ['B', 'KB', 'MB', 'GB'];
+  let i = 0;
+  while (n >= 1024 && i < 3) { n /= 1024; i++ }
+  return `${n.toFixed(i ? 1 : 0)} ${u[i]}`
 }
 
-function setFile(file){
-  state.jobId=null;
-  state.source=file;
-  nameEl.textContent=file.name;
-  sizeEl.textContent=formatBytes(file.size);
-  chip.hidden=false;
-  create.disabled=false;
-  if(youtubeStatus)youtubeStatus.textContent='';
-  const url=URL.createObjectURL(file);
-  const preview=$('#sourcePreview');
+function setFile(file) {
+  state.jobId = null;
+  state.source = file;
+  nameEl.textContent = file.name;
+  sizeEl.textContent = formatBytes(file.size);
+  chip.hidden = false;
+  create.disabled = false;
+  if (youtubeStatus) youtubeStatus.textContent = '';
+  const url = URL.createObjectURL(file);
+  const preview = $('#sourcePreview');
   // Assigning src is not enough: the element was hidden while the file was
   // being read, and Chromium leaves a blob-backed <video> parked in
   // NETWORK_LOADING (readyState 0) so the preview box stays empty. load()
   // restarts the fetch and lets the poster render.
-  if(state.sourcePreviewUrl)URL.revokeObjectURL(state.sourcePreviewUrl);
-  state.sourcePreviewUrl=url;
-  preview.src=url;
+  if (state.sourcePreviewUrl) URL.revokeObjectURL(state.sourcePreviewUrl);
+  state.sourcePreviewUrl = url;
+  preview.src = url;
   preview.load();
-  preview.hidden=false;
-  $('.preview-placeholder').style.display='none';
-  $('#previewMeta').textContent=`${file.name} · ${formatBytes(file.size)}`
+  preview.hidden = false;
+  $('.preview-placeholder').style.display = 'none';
+  $('#previewMeta').textContent = `${file.name} · ${formatBytes(file.size)}`
 }
 
-input?.addEventListener('change',e=>e.target.files[0]&&setFile(e.target.files[0]));
+input?.addEventListener('change', e => e.target.files[0] && setFile(e.target.files[0]));
 
-['dragenter','dragover'].forEach(x=>drop?.addEventListener(x,e=>{
+['dragenter', 'dragover'].forEach(x => drop?.addEventListener(x, e => {
   e.preventDefault();
   drop.classList.add('drag')
 }));
 
-['dragleave','drop'].forEach(x=>drop?.addEventListener(x,e=>{
+['dragleave', 'drop'].forEach(x => drop?.addEventListener(x, e => {
   e.preventDefault();
   drop.classList.remove('drag')
 }));
 
-drop?.addEventListener('drop',e=>{
-  const f=e.dataTransfer.files[0];
-  if(f&&f.type.startsWith('video/'))setFile(f)
+drop?.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('video/')) setFile(f)
 });
 
-async function importYouTube(){
+async function importYouTube() {
   sanitizeYouTubeInput(youtubeUrl);
-  const url=youtubeUrl.value.trim();
+  const url = youtubeUrl.value.trim();
 
-  if(!url || (url.includes('@') && !url.includes('youtube.com') && !url.includes('youtu.be'))){
+  if (!url || (url.includes('@') && !url.includes('youtube.com') && !url.includes('youtu.be'))) {
     youtubeUrl.value = '';
-    youtubeStatus.textContent='Paste a valid YouTube video link first.';
+    youtubeStatus.textContent = 'Paste a valid YouTube video link first.';
     return;
   }
 
-  youtubeImport.disabled=true;
-  youtubeImport.textContent='Connecting…';
-  youtubeStatus.textContent='Connecting to YouTube…';
+  youtubeImport.disabled = true;
+  youtubeImport.textContent = 'Connecting…';
+  youtubeStatus.textContent = 'Connecting to YouTube…';
 
-  const track=$('#youtubeProgress');
-  const bar=$('#youtubeProgressBar');
+  const track = $('#youtubeProgress');
+  const bar = $('#youtubeProgressBar');
 
-  if(track)track.hidden=false;
-  if(bar)bar.style.width='0%';
+  if (track) track.hidden = false;
+  if (bar) bar.style.width = '0%';
 
-  try{
-    const r=await fetch('/api/import-youtube',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({url})
+  try {
+    const r = await fetch('/api/import-youtube', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
     });
 
-    const d=await safeJson(r, 'Could not start YouTube import.');
+    const d = await safeJson(r, 'Could not start YouTube import.');
 
-    if(!r.ok)throw Error(d.error||'Could not start YouTube import.');
+    if (!r.ok) throw Error(d.error || 'Could not start YouTube import.');
 
-    state.jobId=d.job_id||state.jobId;
-    state.source=null;
-    chip.hidden=true;
-    create.disabled=true;
+    state.jobId = d.job_id || state.jobId;
+    state.source = null;
+    chip.hidden = true;
+    create.disabled = true;
 
-    youtubeImport.textContent='Downloading…';
+    youtubeImport.textContent = 'Downloading…';
 
     await waitForYouTubeDownload(d.job_id);
 
-  }catch(error){
+  } catch (error) {
 
-    if(state.youtubePoll)clearInterval(state.youtubePoll);
-    state.youtubePoll=null;
+    if (state.youtubePoll) clearInterval(state.youtubePoll);
+    state.youtubePoll = null;
 
-    youtubeStatus.textContent=error.message;
-    youtubeImport.disabled=false;
-    youtubeImport.textContent='Import video';
+    youtubeStatus.textContent = error.message;
+    youtubeImport.disabled = false;
+    youtubeImport.textContent = 'Import video';
 
-    if(track)track.hidden=true;
+    if (track) track.hidden = true;
   }
 }
 
-async function waitForYouTubeDownload(jobId){
+async function waitForYouTubeDownload(jobId) {
 
-  const track=$('#youtubeProgress');
-  const bar=$('#youtubeProgressBar');
+  const track = $('#youtubeProgress');
+  const bar = $('#youtubeProgressBar');
 
-  let finished=false;
+  let finished = false;
 
-  const tick=async()=>{
+  const tick = async () => {
 
-    try{
+    try {
 
-      const r=await fetch(`/api/status/${jobId}`,{cache:'no-store'});
-      const d=await safeJson(r, 'Could not read YouTube download status.');
+      const r = await fetch(`/api/status/${jobId}`, { cache: 'no-store' });
+      const d = await safeJson(r, 'Could not read YouTube download status.');
 
-      if(!r.ok)throw Error(d.error||'Could not read YouTube download status.');
+      if (!r.ok) throw Error(d.error || 'Could not read YouTube download status.');
 
-      const pct=Math.max(
+      const pct = Math.max(
         0,
-        Math.min(100,Number(d.progress)||0)
+        Math.min(100, Number(d.progress) || 0)
       );
 
-      if(bar)bar.style.width=pct+'%';
+      if (bar) bar.style.width = pct + '%';
 
-      youtubeStatus.textContent=
-        `${pct}% · ${d.detail||d.stage||'Downloading video…'}`;
+      youtubeStatus.textContent =
+        `${pct}% · ${d.detail || d.stage || 'Downloading video…'}`;
 
-      if(d.status==='uploaded'){
+      if (d.status === 'uploaded') {
 
-        finished=true;
+        finished = true;
 
-        if(state.youtubePoll)clearInterval(state.youtubePoll);
-        state.youtubePoll=null;
+        if (state.youtubePoll) clearInterval(state.youtubePoll);
+        state.youtubePoll = null;
 
-        state.jobId=jobId;
-        state.source={
-          name:d.filename,
-          size:0,
-          origin:'youtube',
-          jobId:jobId
+        state.jobId = jobId;
+        state.source = {
+          name: d.filename,
+          size: 0,
+          origin: 'youtube',
+          jobId: jobId
         };
 
-        nameEl.textContent=d.filename;
-        sizeEl.textContent='Downloaded locally';
-        chip.hidden=false;
+        nameEl.textContent = d.filename;
+        sizeEl.textContent = 'Downloaded locally';
+        chip.hidden = false;
 
         // Immediately show the downloaded YouTube video in the main preview frame
-        const mediaUrl=`/project-media/${encodeURIComponent(jobId)}/input/${encodeURIComponent(d.filename)}`;
-        const preview=$('#sourcePreview');
-        if(preview){
-          preview.src=mediaUrl;
+        const mediaUrl = `/project-media/${encodeURIComponent(jobId)}/input/${encodeURIComponent(d.filename)}`;
+        const preview = $('#sourcePreview');
+        if (preview) {
+          preview.src = mediaUrl;
           preview.load();
-          preview.hidden=false;
+          preview.hidden = false;
         }
-        const placeholder=$('.preview-placeholder');
-        if(placeholder)placeholder.style.display='none';
-        const meta=$('#previewMeta');
-        if(meta)meta.textContent=`${d.filename} · Downloaded from YouTube`;
+        const placeholder = $('.preview-placeholder');
+        if (placeholder) placeholder.style.display = 'none';
+        const meta = $('#previewMeta');
+        if (meta) meta.textContent = `${d.filename} · Downloaded from YouTube`;
 
-        youtubeStatus.textContent=
+        youtubeStatus.textContent =
           '100% · Download complete. Video ready.';
 
-        youtubeImport.disabled=false;
-        youtubeImport.textContent='Import video';
+        youtubeImport.disabled = false;
+        youtubeImport.textContent = 'Import video';
 
-        if(!state.modelsAvailable){
-          try{await loadOptions();}catch{}
+        if (!state.modelsAvailable) {
+          try { await loadOptions(); } catch { }
         }
 
-        create.disabled=false;
+        create.disabled = false;
 
-        if(track)track.hidden=true;
+        if (track) track.hidden = true;
 
-      }else if(d.status==='error'){
+      } else if (d.status === 'error') {
 
-        finished=true;
+        finished = true;
 
-        if(state.youtubePoll)clearInterval(state.youtubePoll);
-        state.youtubePoll=null;
+        if (state.youtubePoll) clearInterval(state.youtubePoll);
+        state.youtubePoll = null;
 
         throw Error(
-          d.error||
-          d.detail||
+          d.error ||
+          d.detail ||
           'YouTube download failed.'
         );
       }
 
-    }catch(error){
+    } catch (error) {
 
-      if(state.youtubePoll)clearInterval(state.youtubePoll);
-      state.youtubePoll=null;
+      if (state.youtubePoll) clearInterval(state.youtubePoll);
+      state.youtubePoll = null;
 
-      youtubeImport.disabled=false;
-      youtubeImport.textContent='Import video';
-      youtubeStatus.textContent=error.message;
+      youtubeImport.disabled = false;
+      youtubeImport.textContent = 'Import video';
+      youtubeStatus.textContent = error.message;
 
-      if(track)track.hidden=true;
+      if (track) track.hidden = true;
 
-      state.jobId=null;
-      state.source=null;
-      create.disabled=true;
+      state.jobId = null;
+      state.source = null;
+      create.disabled = true;
     }
 
-    if(finished)return;
+    if (finished) return;
   };
 
   await tick();
 
-  if(finished)return;
+  if (finished) return;
 
-  state.youtubePoll=setInterval(tick,500);
+  state.youtubePoll = setInterval(tick, 500);
 }
 
 youtubeImport?.addEventListener(
@@ -331,8 +331,8 @@ youtubeImport?.addEventListener(
 
 youtubeUrl?.addEventListener(
   'keydown',
-  event=>{
-    if(event.key==='Enter'){
+  event => {
+    if (event.key === 'Enter') {
       event.preventDefault();
       importYouTube();
     }
@@ -341,10 +341,10 @@ youtubeUrl?.addEventListener(
 
 youtubeUrl?.addEventListener(
   'paste',
-  event=>{
-    setTimeout(()=>{
-      const val = (youtubeUrl.value||'').trim();
-      if(val.includes('youtube.com/') || val.includes('youtu.be/')){
+  event => {
+    setTimeout(() => {
+      const val = (youtubeUrl.value || '').trim();
+      if (val.includes('youtube.com/') || val.includes('youtu.be/')) {
         importYouTube();
       }
     }, 50);
@@ -352,10 +352,10 @@ youtubeUrl?.addEventListener(
 );
 
 // Prevent browser password/email autofill from injecting credentials into YouTube link inputs
-function sanitizeYouTubeInput(inputEl){
-  if(!inputEl) return;
+function sanitizeYouTubeInput(inputEl) {
+  if (!inputEl) return;
   const v = (inputEl.value || '').trim();
-  if(v && v.includes('@') && !v.includes('youtube.com') && !v.includes('youtu.be')){
+  if (v && v.includes('@') && !v.includes('youtube.com') && !v.includes('youtu.be')) {
     inputEl.value = '';
   }
 }
@@ -373,58 +373,58 @@ function sanitizeYouTubeInput(inputEl){
 });
 
 [youtubeUrl, $('#betaYtUrl')].forEach(el => {
-  if(!el) return;
+  if (!el) return;
   ['input', 'change', 'focus', 'animationstart'].forEach(ev => {
     el.addEventListener(ev, () => sanitizeYouTubeInput(el));
   });
 });
 
-$$('.mode-card').forEach(btn=>
-  btn.addEventListener('click',()=>{
-    $$('.mode-card').forEach(x=>
+$$('.mode-card').forEach(btn =>
+  btn.addEventListener('click', () => {
+    $$('.mode-card').forEach(x =>
       x.classList.remove('selected')
     );
 
     btn.classList.add('selected');
-    state.mode=btn.dataset.mode;
+    state.mode = btn.dataset.mode;
   })
 );
 
-function syncDuration(){
+function syncDuration() {
 
-  let min=+minDuration.value;
-  let max=+maxDuration.value;
+  let min = +minDuration.value;
+  let max = +maxDuration.value;
 
-  if(min>max){
-    max=min;
-    maxDuration.value=max;
+  if (min > max) {
+    max = min;
+    maxDuration.value = max;
   }
 
-  $('#durationNote').textContent=
+  $('#durationNote').textContent =
     `Recommended: ${min}–${max} seconds. Qwen can refine boundaries inside candidates.`;
 }
 
-minDuration?.addEventListener('change',syncDuration);
-maxDuration?.addEventListener('change',syncDuration);
-if(minDuration&&maxDuration) syncDuration();
+minDuration?.addEventListener('change', syncDuration);
+maxDuration?.addEventListener('change', syncDuration);
+if (minDuration && maxDuration) syncDuration();
 
-function syncRange(id,out){
+function syncRange(id, out) {
 
-  const el=$('#'+id);
-  const o=$('#'+out);
+  const el = $('#' + id);
+  const o = $('#' + out);
 
-  const f=()=>{
-    o.textContent=el.value+'%';
+  const f = () => {
+    o.textContent = el.value + '%';
     updatePreview();
   };
 
-  el.addEventListener('input',f);
+  el.addEventListener('input', f);
   f();
 }
 
-syncRange('logoSize','logoSizeOut');
-syncRange('logoOpacity','logoOpacityOut');
-syncRange('textBgOpacity','textBgOpacityOut');
+syncRange('logoSize', 'logoSizeOut');
+syncRange('logoOpacity', 'logoOpacityOut');
+syncRange('textBgOpacity', 'textBgOpacityOut');
 
 [
   'logoEnabled',
@@ -441,155 +441,155 @@ syncRange('textBgOpacity','textBgOpacityOut');
   'textColor',
   'textBgColor',
   'overlayText'
-].forEach(id=>
-  $('#'+id)?.addEventListener(
+].forEach(id =>
+  $('#' + id)?.addEventListener(
     'input',
-    ()=>{
-      if(
-        id==='logoPosition' &&
-        $('#logoPosition').value!=='custom'
-      ){}
+    () => {
+      if (
+        id === 'logoPosition' &&
+        $('#logoPosition').value !== 'custom'
+      ) { }
 
-      if(
-        id==='textPosition' &&
-        $('#textPosition').value!=='custom'
-      ){}
+      if (
+        id === 'textPosition' &&
+        $('#textPosition').value !== 'custom'
+      ) { }
 
       updatePreview();
     }
   )
 );
 
-function hexAlpha(hex,p){
-  return hex+
-    Math.round(p*2.55)
+function hexAlpha(hex, p) {
+  return hex +
+    Math.round(p * 2.55)
       .toString(16)
-      .padStart(2,'0')
+      .padStart(2, '0')
 }
 
-function applyPresetPosition(el,pos,m){
+function applyPresetPosition(el, pos, m) {
 
-  el.style.left='';
-  el.style.right='';
-  el.style.top='';
-  el.style.bottom='';
-  el.style.transform='';
+  el.style.left = '';
+  el.style.right = '';
+  el.style.top = '';
+  el.style.bottom = '';
+  el.style.transform = '';
 
-  if(pos.includes('left'))
-    el.style.left=m+'px';
+  if (pos.includes('left'))
+    el.style.left = m + 'px';
 
-  if(pos.includes('right'))
-    el.style.right=m+'px';
+  if (pos.includes('right'))
+    el.style.right = m + 'px';
 
-  if(
+  if (
     pos.includes('center') &&
     !pos.startsWith('center-')
-  ){
-    el.style.left='50%';
-    el.style.transform='translateX(-50%)';
+  ) {
+    el.style.left = '50%';
+    el.style.transform = 'translateX(-50%)';
   }
 
-  if(pos.startsWith('top'))
-    el.style.top=m+'px';
+  if (pos.startsWith('top'))
+    el.style.top = m + 'px';
 
-  if(pos.startsWith('bottom'))
-    el.style.bottom=m+'px';
+  if (pos.startsWith('bottom'))
+    el.style.bottom = m + 'px';
 
-  if(pos==='center'){
-    el.style.top='50%';
-    el.style.transform='translate(-50%,-50%)';
+  if (pos === 'center') {
+    el.style.top = '50%';
+    el.style.transform = 'translate(-50%,-50%)';
   }
 
-  if(
-    pos==='center-left' ||
-    pos==='center-right'
-  ){
-    el.style.top='50%';
-    el.style.transform='translateY(-50%)';
+  if (
+    pos === 'center-left' ||
+    pos === 'center-right'
+  ) {
+    el.style.top = '50%';
+    el.style.transform = 'translateY(-50%)';
   }
 }
 
-function setCustomFromCenter(el,x,y){
+function setCustomFromCenter(el, x, y) {
 
-  const frame=$('#previewFrame');
-  const r=frame.getBoundingClientRect();
-  const er=el.getBoundingClientRect();
+  const frame = $('#previewFrame');
+  const r = frame.getBoundingClientRect();
+  const er = el.getBoundingClientRect();
 
-  const px=Math.max(
+  const px = Math.max(
     0,
     Math.min(
       100,
-      ((x-r.left-er.width/2)/
-      (r.width-er.width))*100
+      ((x - r.left - er.width / 2) /
+        (r.width - er.width)) * 100
     )
   );
 
-  const py=Math.max(
+  const py = Math.max(
     0,
     Math.min(
       100,
-      ((y-r.top-er.height/2)/
-      (r.height-er.height))*100
+      ((y - r.top - er.height / 2) /
+        (r.height - er.height)) * 100
     )
   );
 
-  return [px,py];
+  return [px, py];
 }
 
-function applyCustom(el,x,y){
+function applyCustom(el, x, y) {
 
-  el.style.left=x+'%';
-  el.style.top=y+'%';
-  el.style.right='auto';
-  el.style.bottom='auto';
-  el.style.transform='translate(-50%,-50%)';
+  el.style.left = x + '%';
+  el.style.top = y + '%';
+  el.style.right = 'auto';
+  el.style.bottom = 'auto';
+  el.style.transform = 'translate(-50%,-50%)';
 
-  el.dataset.x=x;
-  el.dataset.y=y;
+  el.dataset.x = x;
+  el.dataset.y = y;
 }
 
-function updatePreview(){
+function updatePreview() {
 
-  const logo=$('#previewLogo');
-  const txt=$('#previewText');
+  const logo = $('#previewLogo');
+  const txt = $('#previewText');
 
-  const logoImg=$('#previewLogoImg');
-  if(logoImg && state.logoPath){
-    logoImg.src=state.logoPath;
-    logoImg.style.display='block';
+  const logoImg = $('#previewLogoImg');
+  if (logoImg && state.logoPath) {
+    logoImg.src = state.logoPath;
+    logoImg.style.display = 'block';
   }
 
-  logo.style.display=
-    $('#logoEnabled').checked?'block':'none';
+  logo.style.display =
+    $('#logoEnabled').checked ? 'block' : 'none';
 
-  logo.style.opacity=
-    (+$('#logoOpacity').value)/100;
+  logo.style.opacity =
+    (+$('#logoOpacity').value) / 100;
 
-  logo.style.width=
+  logo.style.width =
     Math.max(
       28,
       Math.round(
-        220*(+$('#logoSize').value)/20
+        220 * (+$('#logoSize').value) / 20
       )
-    )+'px';
+    ) + 'px';
 
-  logo.style.fontSize=
+  logo.style.fontSize =
     Math.max(
       14,
       Math.round(
-        36*(+$('#logoSize').value)/12
+        36 * (+$('#logoSize').value) / 12
       )
-    )+'px';
+    ) + 'px';
 
-  if($('#logoPosition').value==='custom'){
+  if ($('#logoPosition').value === 'custom') {
 
     applyCustom(
       logo,
-      +logo.dataset.x||92,
-      +logo.dataset.y||8
+      +logo.dataset.x || 92,
+      +logo.dataset.y || 8
     );
 
-  }else{
+  } else {
 
     applyPresetPosition(
       logo,
@@ -598,43 +598,43 @@ function updatePreview(){
     );
   }
 
-  txt.style.display=
+  txt.style.display =
     $('#textEnabled').checked &&
-    $('#overlayText').value.trim()
-      ?'block'
-      :'none';
+      $('#overlayText').value.trim()
+      ? 'block'
+      : 'none';
 
-  txt.textContent=
-    $('#overlayText').value||'Your text';
+  txt.textContent =
+    $('#overlayText').value || 'Your text';
 
-  txt.style.fontSize=
+  txt.style.fontSize =
     Math.max(
       14,
       Math.round(
-        120*(+$('#textSize').value)/12
+        120 * (+$('#textSize').value) / 12
       )
-    )+'px';
+    ) + 'px';
 
-  txt.style.color=
+  txt.style.color =
     $('#textColor').value;
 
-  txt.style.background=
+  txt.style.background =
     $('#textBgEnabled').checked
-      ?hexAlpha(
+      ? hexAlpha(
         $('#textBgColor').value,
         +$('#textBgOpacity').value
       )
-      :'transparent';
+      : 'transparent';
 
-  if($('#textPosition').value==='custom'){
+  if ($('#textPosition').value === 'custom') {
 
     applyCustom(
       txt,
-      +txt.dataset.x||50,
-      +txt.dataset.y||75
+      +txt.dataset.x || 50,
+      +txt.dataset.y || 75
     );
 
-  }else{
+  } else {
 
     applyPresetPosition(
       txt,
@@ -644,10 +644,10 @@ function updatePreview(){
   }
 
   const wm = $('#previewWatermark');
-  if(wm){
+  if (wm) {
     const wmEnabled = $('#watermarkTextEnabled')?.checked || false;
     const wmText = ($('#watermarkTextInput')?.value || '').trim();
-    if(wmEnabled && wmText){
+    if (wmEnabled && wmText) {
       wm.style.display = 'block';
       wm.textContent = wmText;
       const opacity = (+($('#watermarkTextOpacity')?.value || 35)) / 100;
@@ -660,126 +660,126 @@ function updatePreview(){
       wm.style.fontSize = Math.max(12, Math.round(280 * (sizePct / 100))) + 'px';
       wm.style.transform = `rotate(${angle}deg)`;
 
-      if(pos === 'custom'){
+      if (pos === 'custom') {
         const xPct = +($('#watermarkTextX')?.value || 50);
         const yPct = +($('#watermarkTextY')?.value || 50);
         applyCustom(wm, xPct, yPct);
-      }else{
+      } else {
         applyPresetPosition(wm, pos, 40);
       }
-    }else{
+    } else {
       wm.style.display = 'none';
     }
   }
 }
 
-function beginDrag(el,e){
+function beginDrag(el, e) {
 
-  if(
-    e.button!==undefined &&
-    e.button!==0
-  )return;
+  if (
+    e.button !== undefined &&
+    e.button !== 0
+  ) return;
 
-  if(
+  if (
     !el ||
-    getComputedStyle(el).display==='none'
-  )return;
+    getComputedStyle(el).display === 'none'
+  ) return;
 
   e.preventDefault();
 
-  const frame=
+  const frame =
     el.closest(
       '.preview-frame,.editor-preview-frame'
     );
 
-  if(!frame)return;
+  if (!frame) return;
 
-  const r=frame.getBoundingClientRect();
-  const er=el.getBoundingClientRect();
+  const r = frame.getBoundingClientRect();
+  const er = el.getBoundingClientRect();
 
-  state.drag={
+  state.drag = {
     el,
     frame,
-    startX:e.clientX,
-    startY:e.clientY,
-    startLeft:er.left-r.left,
-    startTop:er.top-r.top,
-    frameW:r.width,
-    frameH:r.height
+    startX: e.clientX,
+    startY: e.clientY,
+    startLeft: er.left - r.left,
+    startTop: er.top - r.top,
+    frameW: r.width,
+    frameH: r.height
   };
 
   el.classList.add('dragging');
 
-  try{
+  try {
     el.setPointerCapture?.(e.pointerId)
-  }catch{}
+  } catch { }
 }
 
-function dragMove(e){
+function dragMove(e) {
 
-  if(!state.drag)return;
+  if (!state.drag) return;
 
-  const d=state.drag;
-  const er=d.el.getBoundingClientRect();
+  const d = state.drag;
+  const er = d.el.getBoundingClientRect();
 
-  const x=Math.max(
+  const x = Math.max(
     0,
     Math.min(
-      d.frameW-er.width,
-      d.startLeft+(e.clientX-d.startX)
+      d.frameW - er.width,
+      d.startLeft + (e.clientX - d.startX)
     )
   );
 
-  const y=Math.max(
+  const y = Math.max(
     0,
     Math.min(
-      d.frameH-er.height,
-      d.startTop+(e.clientY-d.startY)
+      d.frameH - er.height,
+      d.startTop + (e.clientY - d.startY)
     )
   );
 
-  const px=Math.max(
-    0,
-    Math.min(
-      100,
-      (x+er.width/2)/d.frameW*100
-    )
-  );
-
-  const py=Math.max(
+  const px = Math.max(
     0,
     Math.min(
       100,
-      (y+er.height/2)/d.frameH*100
+      (x + er.width / 2) / d.frameW * 100
     )
   );
 
-  applyCustom(d.el,px,py);
+  const py = Math.max(
+    0,
+    Math.min(
+      100,
+      (y + er.height / 2) / d.frameH * 100
+    )
+  );
 
-  if(d.el.id.includes('Logo')){
+  applyCustom(d.el, px, py);
 
-    if($('#logoPosition'))
-      $('#logoPosition').value='custom';
+  if (d.el.id.includes('Logo')) {
 
-    if($('#editorLogoEnabled'))
-      $('#editorLogoEnabled').checked=true;
+    if ($('#logoPosition'))
+      $('#logoPosition').value = 'custom';
 
-  }else{
+    if ($('#editorLogoEnabled'))
+      $('#editorLogoEnabled').checked = true;
 
-    if($('#textPosition'))
-      $('#textPosition').value='custom';
+  } else {
 
-    if($('#editorTextEnabled'))
-      $('#editorTextEnabled').checked=true;
+    if ($('#textPosition'))
+      $('#textPosition').value = 'custom';
+
+    if ($('#editorTextEnabled'))
+      $('#editorTextEnabled').checked = true;
   }
 }
 
-function endDrag(){
+function endDrag() {
 
-  if(!state.drag)return;
+  if (!state.drag) return;
 
   state.drag.el.classList.remove('dragging');
-  state.drag=null;
+  state.drag = null;
 }
 
 [
@@ -787,11 +787,11 @@ function endDrag(){
   'previewText',
   'editorLogo',
   'editorText'
-].forEach(id=>{
+].forEach(id => {
 
-  $('#'+id)?.addEventListener(
+  $('#' + id)?.addEventListener(
     'pointerdown',
-    e=>beginDrag($('#'+id),e)
+    e => beginDrag($('#' + id), e)
   );
 
 });
@@ -811,30 +811,30 @@ document.addEventListener(
   endDrag
 );
 
-function editorPreviewUpdate(){
+function editorPreviewUpdate() {
 
-  const logo=$('#editorLogo');
-  const txt=$('#editorText');
+  const logo = $('#editorLogo');
+  const txt = $('#editorText');
 
-  if(!logo||!txt)return;
+  if (!logo || !txt) return;
 
-  logo.style.display=
+  logo.style.display =
     $('#editorLogoEnabled')?.checked
-      ?'block'
-      :'none';
+      ? 'block'
+      : 'none';
 
-  logo.style.opacity=
-    (+($('#editorLogoOpacity')?.value||80))/100;
+  logo.style.opacity =
+    (+($('#editorLogoOpacity')?.value || 80)) / 100;
 
-  logo.style.width=
+  logo.style.width =
     Math.max(
       28,
       Math.round(
-        220*(+($('#editorLogoSize')?.value||8))/20
+        220 * (+($('#editorLogoSize')?.value || 8)) / 20
       )
-    )+'px';
+    ) + 'px';
 
-  if(logo.dataset.x){
+  if (logo.dataset.x) {
 
     applyCustom(
       logo,
@@ -843,39 +843,39 @@ function editorPreviewUpdate(){
     );
   }
 
-  txt.style.display=
+  txt.style.display =
     $('#editorTextEnabled')?.checked &&
-    $('#editorTextValue')?.value.trim()
-      ?'block'
-      :'none';
+      $('#editorTextValue')?.value.trim()
+      ? 'block'
+      : 'none';
 
-  txt.textContent=
-    $('#editorTextValue')?.value||'Your text';
+  txt.textContent =
+    $('#editorTextValue')?.value || 'Your text';
 
-  txt.style.fontSize=
+  txt.style.fontSize =
     Math.max(
       14,
       Math.round(
-        120*(+($('#editorTextSize')?.value||6))/12
+        120 * (+($('#editorTextSize')?.value || 6)) / 12
       )
-    )+'px';
+    ) + 'px';
 
-  txt.style.color=
-    $('#editorTextColor')?.value||'#FFFFFF';
+  txt.style.color =
+    $('#editorTextColor')?.value || '#FFFFFF';
 
-  txt.style.background=
+  txt.style.background =
     $('#editorTextBg')?.checked
-      ?hexAlpha(
-        $('#editorTextBgColor')?.value||'#000000',
-        +($('#editorTextBgOpacity')?.value||65)
+      ? hexAlpha(
+        $('#editorTextBgColor')?.value || '#000000',
+        +($('#editorTextBgOpacity')?.value || 65)
       )
-      :'transparent';
+      : 'transparent';
 
-  const bgOut=$('#editorTextBgOpacityOut');
-  if(bgOut)
-    bgOut.textContent=(+($('#editorTextBgOpacity')?.value||65))+'%';
+  const bgOut = $('#editorTextBgOpacityOut');
+  if (bgOut)
+    bgOut.textContent = (+($('#editorTextBgOpacity')?.value || 65)) + '%';
 
-  if(txt.dataset.x){
+  if (txt.dataset.x) {
 
     applyCustom(
       txt,
@@ -884,16 +884,16 @@ function editorPreviewUpdate(){
     );
   }
 
-  const img=$('#editorLogoImg');
+  const img = $('#editorLogoImg');
 
-  if(
+  if (
     img &&
     state.editorLogoPath
-  ){
-    img.src=
-      state.editorLogoPath+
-      (state.editorLogoPath.includes('?')?'&':'?')+
-      'v='+Date.now();
+  ) {
+    img.src =
+      state.editorLogoPath +
+      (state.editorLogoPath.includes('?') ? '&' : '?') +
+      'v=' + Date.now();
   }
 }
 
@@ -908,8 +908,8 @@ function editorPreviewUpdate(){
   'editorTextBg',
   'editorTextBgColor',
   'editorTextBgOpacity'
-].forEach(id=>
-  $('#'+id)?.addEventListener(
+].forEach(id =>
+  $('#' + id)?.addEventListener(
     'input',
     editorPreviewUpdate
   )
@@ -917,25 +917,25 @@ function editorPreviewUpdate(){
 
 $('#editorLogoInput')?.addEventListener(
   'change',
-  e=>{
-    const file=e.target.files[0];
+  e => {
+    const file = e.target.files[0];
 
-    if(!file)return;
+    if (!file) return;
 
-    state.editorLogoFile=file;
+    state.editorLogoFile = file;
 
-    const url=URL.createObjectURL(file);
+    const url = URL.createObjectURL(file);
 
-    state.editorLogoPath=url;
+    state.editorLogoPath = url;
 
-    const img=$('#editorLogoImg');
+    const img = $('#editorLogoImg');
 
-    if(img){
-      img.src=url;
-      img.style.display='block';
+    if (img) {
+      img.src = url;
+      img.style.display = 'block';
     }
 
-    $('#editorLogoEnabled').checked=true;
+    $('#editorLogoEnabled').checked = true;
 
     editorPreviewUpdate();
   }
@@ -943,20 +943,20 @@ $('#editorLogoInput')?.addEventListener(
 
 $('#logoInput')?.addEventListener(
   'change',
-  e=>{
-    const file=e.target.files[0];
+  e => {
+    const file = e.target.files[0];
 
-    if(!file)return;
+    if (!file) return;
 
-    state.logoFile=file;
+    state.logoFile = file;
 
-    const url=URL.createObjectURL(file);
+    const url = URL.createObjectURL(file);
 
-    state.logoPath=url;
+    state.logoPath = url;
 
-    $('#logoPath').value=file.name;
+    $('#logoPath').value = file.name;
 
-    $('#logoEnabled').checked=true;
+    $('#logoEnabled').checked = true;
 
     updatePreview();
   }
@@ -964,159 +964,159 @@ $('#logoInput')?.addEventListener(
 
 $('#clearLogo')?.addEventListener(
   'click',
-  ()=>{
-    state.logoFile=null;
-    state.logoPath=null;
+  () => {
+    state.logoFile = null;
+    state.logoPath = null;
 
-    if($('#logoInput'))
-      $('#logoInput').value='';
+    if ($('#logoInput'))
+      $('#logoInput').value = '';
 
-    if($('#logoPath'))
-      $('#logoPath').value='';
+    if ($('#logoPath'))
+      $('#logoPath').value = '';
 
-    $('#logoEnabled').checked=false;
+    $('#logoEnabled').checked = false;
 
     updatePreview();
   }
 );
 
-function addLog(message){
+function addLog(message) {
 
-  if(!log)return;
+  if (!log) return;
 
-  const line=
+  const line =
     document.createElement('div');
 
-  line.textContent=message;
+  line.textContent = message;
 
   log.appendChild(line);
-  log.scrollTop=log.scrollHeight;
+  log.scrollTop = log.scrollHeight;
 }
 
-function escapeHtml(value){
+function escapeHtml(value) {
 
-  return String(value??'')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&#039;');
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
-async function loadOptions(){
+async function loadOptions() {
 
   if (refreshModelsBtn) {
     refreshModelsBtn.disabled = false;
     refreshModelsBtn.textContent = '↻';
   }
 
-  try{
+  try {
 
-    const r=await fetch(
+    const r = await fetch(
       '/api/health',
-      {cache:'no-store'}
+      { cache: 'no-store' }
     );
 
-    const d=await r.json();
+    const d = await r.json();
 
-    const models=d.models||[];
+    const models = d.models || [];
 
-    modelSelect.innerHTML='';
+    modelSelect.innerHTML = '';
 
-    if(models.length){
+    if (models.length) {
 
-      models.forEach(model=>{
-        const option=
+      models.forEach(model => {
+        const option =
           document.createElement('option');
 
-        option.value=model;
-        option.textContent=model;
+        option.value = model;
+        option.textContent = model;
 
         modelSelect.appendChild(option);
       });
 
-      state.modelsAvailable=true;
-      modelSelect.disabled=false;
+      state.modelsAvailable = true;
+      modelSelect.disabled = false;
 
-      state.model=
-        d.default_model||
-        d.model||
+      state.model =
+        d.default_model ||
+        d.model ||
         models[0];
 
-      modelSelect.value=state.model;
+      modelSelect.value = state.model;
 
       if (window.refreshModelHub) {
         window.refreshModelHub();
       }
 
-      create.disabled=!state.source;
+      create.disabled = !state.source;
 
       $('#healthDot')?.classList.add('online');
 
       // Models are up: stop any pending retry loop.
       modelRetries = MODEL_RETRY_LIMIT;
-      if(modelRetryTimer){
+      if (modelRetryTimer) {
         clearTimeout(modelRetryTimer);
         modelRetryTimer = null;
       }
 
-      if($('#healthText'))
-        $('#healthText').textContent=
-          `${models.length} local model${models.length===1?'':'s'} ready`;
+      if ($('#healthText'))
+        $('#healthText').textContent =
+          `${models.length} local model${models.length === 1 ? '' : 's'} ready`;
 
-      if($('#statusPill'))
-        $('#statusPill').innerHTML=
+      if ($('#statusPill'))
+        $('#statusPill').innerHTML =
           '<span></span> Local AI ready';
 
       if (scanModelsBtn) scanModelsBtn.style.display = 'none';
 
-    }else{
+    } else {
 
-      state.modelsAvailable=false;
-      state.model='';
-      modelSelect.disabled=false;
-      create.disabled=!state.source;
+      state.modelsAvailable = false;
+      state.model = '';
+      modelSelect.disabled = false;
+      create.disabled = !state.source;
 
       if (scanModelsBtn) scanModelsBtn.style.display = 'inline-flex';
 
-      modelSelect.innerHTML=
+      modelSelect.innerHTML =
         '<option value="">⚡ Built-in Heuristic AI (No Ollama needed)</option>';
 
-      if($('#healthText'))
-        $('#healthText').textContent=
+      if ($('#healthText'))
+        $('#healthText').textContent =
           'Built-in Heuristic AI (Ollama offline)';
 
-      if($('#statusPill'))
-        $('#statusPill').innerHTML=
+      if ($('#statusPill'))
+        $('#statusPill').innerHTML =
           '<span></span> Heuristic Mode';
 
       _scheduleModelRetry();
 
     }
 
-  }catch(error){
+  } catch (error) {
 
     console.error(
       '[Health] failed:',
       error
     );
 
-    state.modelsAvailable=false;
-    state.model='';
-    modelSelect.disabled=false;
-    create.disabled=!state.source;
+    state.modelsAvailable = false;
+    state.model = '';
+    modelSelect.disabled = false;
+    create.disabled = !state.source;
 
     if (scanModelsBtn) scanModelsBtn.style.display = 'inline-flex';
 
-    modelSelect.innerHTML=
+    modelSelect.innerHTML =
       '<option value="">⚡ Built-in Heuristic AI (No Ollama needed)</option>';
 
-    if($('#healthText'))
-      $('#healthText').textContent=
+    if ($('#healthText'))
+      $('#healthText').textContent =
         'Built-in Heuristic AI';
 
-    if($('#statusPill'))
-      $('#statusPill').innerHTML=
+    if ($('#statusPill'))
+      $('#statusPill').innerHTML =
         '<span></span> Heuristic Mode';
 
     _scheduleModelRetry();
@@ -1130,9 +1130,9 @@ const MODEL_RETRY_LIMIT = 8;
 let modelRetries = 0;
 let modelRetryTimer = null;
 
-function _scheduleModelRetry(){
-  if(modelRetries >= MODEL_RETRY_LIMIT) return;
-  if(modelRetryTimer) clearTimeout(modelRetryTimer);
+function _scheduleModelRetry() {
+  if (modelRetries >= MODEL_RETRY_LIMIT) return;
+  if (modelRetryTimer) clearTimeout(modelRetryTimer);
   const delay = Math.min(1000 * (modelRetries + 1), 8000);
   modelRetryTimer = setTimeout(async () => {
     modelRetryTimer = null;
@@ -1141,81 +1141,81 @@ function _scheduleModelRetry(){
   }, delay);
 }
 
-function selectedBranding(){
+function selectedBranding() {
 
   return {
     logo_enabled:
-      $('#logoEnabled')?.checked||false,
+      $('#logoEnabled')?.checked || false,
 
     logo_path:
-      state.logoServerPath||
-      state.logoPath||
-      $('#logoPath')?.value||
+      state.logoServerPath ||
+      state.logoPath ||
+      $('#logoPath')?.value ||
       '',
 
     logo_position:
-      $('#logoPosition')?.value||
+      $('#logoPosition')?.value ||
       'top-right',
 
     logo_size:
-      +($('#logoSize')?.value||8),
+      +($('#logoSize')?.value || 8),
 
     logo_opacity:
-      +($('#logoOpacity')?.value||80),
+      +($('#logoOpacity')?.value || 80),
 
     logo_margin:
-      +($('#logoMargin')?.value||40),
+      +($('#logoMargin')?.value || 40),
 
     logo_x:
-      +($('#previewLogo')?.dataset.x||92),
+      +($('#previewLogo')?.dataset.x || 92),
 
     logo_y:
-      +($('#previewLogo')?.dataset.y||8),
+      +($('#previewLogo')?.dataset.y || 8),
 
     logo_bg_remove:
-      $('#logoBgRemove')?.checked||false,
+      $('#logoBgRemove')?.checked || false,
 
     logo_bg_color:
-      $('#logoBgColor')?.value||'#9B5CFF',
+      $('#logoBgColor')?.value || '#9B5CFF',
 
     logo_bg_similarity:
-      +($('#logoBgSimilarity')?.value||0.22),
+      +($('#logoBgSimilarity')?.value || 0.22),
 
     text_enabled:
-      $('#textEnabled')?.checked||false,
+      $('#textEnabled')?.checked || false,
 
     text:
-      $('#overlayText')?.value||'',
+      $('#overlayText')?.value || '',
 
     text_position:
-      $('#textPosition')?.value||
+      $('#textPosition')?.value ||
       'bottom-center',
 
     text_size:
-      +($('#textSize')?.value||6),
+      +($('#textSize')?.value || 6),
 
     text_color:
-      $('#textColor')?.value||
+      $('#textColor')?.value ||
       '#FFFFFF',
 
     text_bg_enabled:
-      $('#textBgEnabled')?.checked??true,
+      $('#textBgEnabled')?.checked ?? true,
 
     text_bg_color:
-      $('#textBgColor')?.value||
+      $('#textBgColor')?.value ||
       '#000000',
 
     text_bg_opacity:
-      +($('#textBgOpacity')?.value||65),
+      +($('#textBgOpacity')?.value || 65),
 
     text_margin:
-      +($('#textMargin')?.value||110),
+      +($('#textMargin')?.value || 110),
 
     text_x:
-      +($('#previewText')?.dataset.x||50),
+      +($('#previewText')?.dataset.x || 50),
 
     text_y:
-      +($('#previewText')?.dataset.y||75),
+      +($('#previewText')?.dataset.y || 75),
 
     watermark_text_enabled:
       $('#watermarkTextEnabled')?.checked || false,
@@ -1258,71 +1258,71 @@ function selectedBranding(){
   };
 }
 
-async function start(){
+async function start() {
 
-  if(!state.source && youtubeUrl && youtubeUrl.value.trim()){
+  if (!state.source && youtubeUrl && youtubeUrl.value.trim()) {
     const trimmedUrl = youtubeUrl.value.trim();
-    if(trimmedUrl.includes('youtube.com/') || trimmedUrl.includes('youtu.be/')){
+    if (trimmedUrl.includes('youtube.com/') || trimmedUrl.includes('youtu.be/')) {
       addLog('[YouTube] Importing video link before generating…');
       await importYouTube();
-      if(!state.source){
-        create.disabled=false;
+      if (!state.source) {
+        create.disabled = false;
         return;
       }
     }
   }
 
-  if(!state.source){
+  if (!state.source) {
     alert('Please upload a video or paste a YouTube link to generate Shorts.');
-    if(drop){
-      drop.scrollIntoView({behavior:'smooth',block:'center'});
+    if (drop) {
+      drop.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     return;
   }
 
-  if(!state.modelsAvailable){
-    try{await loadOptions();}catch{}
-    if(!state.modelsAvailable){
+  if (!state.modelsAvailable) {
+    try { await loadOptions(); } catch { }
+    if (!state.modelsAvailable) {
       addLog('[AI] Ollama offline: Using built-in candidate & audio density heuristics.');
       state.model = '';
     }
   }
 
-  try{
-    if(!state.jobId){
-      if(state.source && state.source.origin === 'youtube' && state.source.jobId){
+  try {
+    if (!state.jobId) {
+      if (state.source && state.source.origin === 'youtube' && state.source.jobId) {
         state.jobId = state.source.jobId;
-      }else if(state.source instanceof File){
-        const uploadForm=new FormData();
-        uploadForm.append('video',state.source);
-        const uploadResponse=await fetch('/api/upload',{method:'POST',body:uploadForm});
-        const uploadData=await safeJson(uploadResponse, 'Could not upload the video.');
-        if(!uploadResponse.ok) throw Error(uploadData.error||'Could not upload the video.');
-        state.jobId=uploadData.job_id;
+      } else if (state.source instanceof File) {
+        const uploadForm = new FormData();
+        uploadForm.append('video', state.source);
+        const uploadResponse = await fetch('/api/upload', { method: 'POST', body: uploadForm });
+        const uploadData = await safeJson(uploadResponse, 'Could not upload the video.');
+        if (!uploadResponse.ok) throw Error(uploadData.error || 'Could not upload the video.');
+        state.jobId = uploadData.job_id;
         addLog(`[Upload] Video ready as project ${state.jobId}`);
-      }else{
+      } else {
         throw Error('Could not find video project. Please re-select or re-import the video.');
       }
     }
 
-    if(state.logoFile){
-      const logoForm=new FormData();
-      logoForm.append('logo',state.logoFile);
-      const logoResponse=await fetch(`/api/upload-logo/${state.jobId}`,{method:'POST',body:logoForm});
-      const logoData=await safeJson(logoResponse, 'Could not upload the logo.');
-      if(!logoResponse.ok) throw Error(logoData.error||'Could not upload the logo.');
-      state.logoServerPath=logoData.path;
+    if (state.logoFile) {
+      const logoForm = new FormData();
+      logoForm.append('logo', state.logoFile);
+      const logoResponse = await fetch(`/api/upload-logo/${state.jobId}`, { method: 'POST', body: logoForm });
+      const logoData = await safeJson(logoResponse, 'Could not upload the logo.');
+      if (!logoResponse.ok) throw Error(logoData.error || 'Could not upload the logo.');
+      state.logoServerPath = logoData.path;
     }
 
-  }catch(error){
+  } catch (error) {
     addLog(`[Error] ${error.message}`);
     alert(error.message);
-    create.disabled=false;
+    create.disabled = false;
     return;
   }
 
-  const form=new FormData();
-  form.append('job_id',state.jobId);
+  const form = new FormData();
+  form.append('job_id', state.jobId);
 
   form.append(
     'mode',
@@ -1394,45 +1394,45 @@ async function start(){
     JSON.stringify(selectedBranding())
   );
 
-  create.disabled=true;
-  progressPanel.hidden=false;
-  results.hidden=true;
+  create.disabled = true;
+  progressPanel.hidden = false;
+  results.hidden = true;
 
-  progressPanel.dataset.state='running';
-  progressPanel.dataset.progress='0';
-  progressPanel.setAttribute('role','region');
-  progressPanel.setAttribute('aria-live','polite');
-  $('#progressTitle').textContent='Processing locally';
-  $('#progressStatus').textContent='LIVE';
-  $('#progressBar').style.width='0%';
-  $('#progressBar').setAttribute('aria-valuenow','0');
-  $('#progressPercent').textContent='0%';
-  $('#stageIcon').textContent='\u25cc';
-  $('#stageText').textContent='Preparing\u2026';
-  $('#subStage').textContent='Clipify AI is working locally';
-  renderPipelineSteps(0,false);
+  progressPanel.dataset.state = 'running';
+  progressPanel.dataset.progress = '0';
+  progressPanel.setAttribute('role', 'region');
+  progressPanel.setAttribute('aria-live', 'polite');
+  $('#progressTitle').textContent = 'Processing locally';
+  $('#progressStatus').textContent = 'LIVE';
+  $('#progressBar').style.width = '0%';
+  $('#progressBar').setAttribute('aria-valuenow', '0');
+  $('#progressPercent').textContent = '0%';
+  $('#stageIcon').textContent = '\u25cc';
+  $('#stageText').textContent = 'Preparing\u2026';
+  $('#subStage').textContent = 'Clipify AI is working locally';
+  renderPipelineSteps(0, false);
 
   addLog('[Start] Starting Clipify AI…');
 
-  try{
+  try {
 
-    const r=await fetch(
+    const r = await fetch(
       '/api/start',
       {
-        method:'POST',
-        body:form
+        method: 'POST',
+        body: form
       }
     );
 
-    const d=await safeJson(r, 'Could not start the job.');
+    const d = await safeJson(r, 'Could not start the job.');
 
-    if(!r.ok)
+    if (!r.ok)
       throw Error(
-        d.error||
+        d.error ||
         'Could not start the job.'
       );
 
-    state.jobId=d.job_id;
+    state.jobId = d.job_id;
 
     addLog(
       `[Start] Job ${state.jobId}`
@@ -1440,7 +1440,7 @@ async function start(){
 
     await watchJob(state.jobId);
 
-  }catch(error){
+  } catch (error) {
 
     addLog(
       `[Error] ${error.message}`
@@ -1448,160 +1448,160 @@ async function start(){
 
     alert(error.message);
 
-    create.disabled=false;
+    create.disabled = false;
   }
 }
 
-function renderPipelineSteps(progress, failed=false){
-  const helper=window.ClipifyPipelineStatus;
-  if(!helper)return;
-  const marks={complete:'\u2713',active:'\u2026',failed:'!',pending:'\u00b7'};
-  helper.stepStates(progress,failed).forEach(step=>{
-    const node=document.querySelector('[data-step="'+step.name+'"]');
-    if(!node)return;
-    node.dataset.state=step.state;
-    const indicator=node.querySelector('.step-indicator');
-    if(indicator)indicator.textContent=marks[step.state]||'';
+function renderPipelineSteps(progress, failed = false) {
+  const helper = window.ClipifyPipelineStatus;
+  if (!helper) return;
+  const marks = { complete: '\u2713', active: '\u2026', failed: '!', pending: '\u00b7' };
+  helper.stepStates(progress, failed).forEach(step => {
+    const node = document.querySelector('[data-step="' + step.name + '"]');
+    if (!node) return;
+    node.dataset.state = step.state;
+    const indicator = node.querySelector('.step-indicator');
+    if (indicator) indicator.textContent = marks[step.state] || '';
   });
 }
 
-function setPipelineFailure(message){
-  if(progressPanel.dataset.state==='error'||progressPanel.dataset.state==='complete')return;
-  const pct=Math.max(0,Math.min(100,Number(progressPanel.dataset.progress)||0));
-  const detail=window.ClipifyPipelineStatus
+function setPipelineFailure(message) {
+  if (progressPanel.dataset.state === 'error' || progressPanel.dataset.state === 'complete') return;
+  const pct = Math.max(0, Math.min(100, Number(progressPanel.dataset.progress) || 0));
+  const detail = window.ClipifyPipelineStatus
     ? window.ClipifyPipelineStatus.cleanFailure(message)
-    : String(message||'The pipeline stopped before a Short was created.').trim();
-  progressPanel.dataset.state='error';
-  progressPanel.setAttribute('role','alert');
-  progressPanel.setAttribute('aria-live','assertive');
-  $('#progressTitle').textContent='Processing failed';
-  $('#progressPercent').textContent=pct?('Stopped at '+pct+'%'):'Stopped';
-  $('#progressBar').setAttribute('aria-valuenow',String(pct));
-  $('#stageIcon').textContent='!';
-  $('#stageText').textContent='No Short was created';
-  $('#subStage').textContent=detail;
-  $('#progressStatus').textContent='FAILED';
-  renderPipelineSteps(pct,true);
+    : String(message || 'The pipeline stopped before a Short was created.').trim();
+  progressPanel.dataset.state = 'error';
+  progressPanel.setAttribute('role', 'alert');
+  progressPanel.setAttribute('aria-live', 'assertive');
+  $('#progressTitle').textContent = 'Processing failed';
+  $('#progressPercent').textContent = pct ? ('Stopped at ' + pct + '%') : 'Stopped';
+  $('#progressBar').setAttribute('aria-valuenow', String(pct));
+  $('#stageIcon').textContent = '!';
+  $('#stageText').textContent = 'No Short was created';
+  $('#subStage').textContent = detail;
+  $('#progressStatus').textContent = 'FAILED';
+  renderPipelineSteps(pct, true);
 }
 
-function setPipelineComplete(){
+function setPipelineComplete() {
   updateProgress({
-    progress:100,
-    stage:'Shorts ready',
-    detail:'Your finished Shorts are ready to review.'
+    progress: 100,
+    stage: 'Shorts ready',
+    detail: 'Your finished Shorts are ready to review.'
   });
-  progressPanel.dataset.state='complete';
-  progressPanel.setAttribute('role','status');
-  progressPanel.setAttribute('aria-live','polite');
-  $('#progressTitle').textContent='Processing complete';
-  $('#progressStatus').textContent='DONE';
-  $('#stageIcon').textContent='\u2713';
+  progressPanel.dataset.state = 'complete';
+  progressPanel.setAttribute('role', 'status');
+  progressPanel.setAttribute('aria-live', 'polite');
+  $('#progressTitle').textContent = 'Processing complete';
+  $('#progressStatus').textContent = 'DONE';
+  $('#stageIcon').textContent = '\u2713';
 }
 
-function updateProgress(d){
-  if(progressPanel.dataset.state==='error'||progressPanel.dataset.state==='complete')return;
-  const pct=Math.max(0,Math.min(100,Number(d.progress)||0));
-  progressPanel.dataset.state='running';
-  progressPanel.dataset.progress=String(pct);
-  const bar=$('#progressBar');
-  if(bar){
-    bar.style.width=pct+'%';
-    bar.setAttribute('aria-valuenow',String(pct));
+function updateProgress(d) {
+  if (progressPanel.dataset.state === 'error' || progressPanel.dataset.state === 'complete') return;
+  const pct = Math.max(0, Math.min(100, Number(d.progress) || 0));
+  progressPanel.dataset.state = 'running';
+  progressPanel.dataset.progress = String(pct);
+  const bar = $('#progressBar');
+  if (bar) {
+    bar.style.width = pct + '%';
+    bar.setAttribute('aria-valuenow', String(pct));
   }
-  if($('#progressPercent'))$('#progressPercent').textContent=String(pct)+'%';
-  if($('#progressTitle'))$('#progressTitle').textContent='Processing locally';
-  if($('#progressStatus'))$('#progressStatus').textContent='LIVE';
-  if($('#stageText'))$('#stageText').textContent=d.stage||'Working...';
-  if($('#subStage'))$('#subStage').textContent=d.detail||'';
-  if($('#stageIcon'))$('#stageIcon').textContent=pct>=100?'\u2713':'\u2726';
-  renderPipelineSteps(pct,false);
+  if ($('#progressPercent')) $('#progressPercent').textContent = String(pct) + '%';
+  if ($('#progressTitle')) $('#progressTitle').textContent = 'Processing locally';
+  if ($('#progressStatus')) $('#progressStatus').textContent = 'LIVE';
+  if ($('#stageText')) $('#stageText').textContent = d.stage || 'Working...';
+  if ($('#subStage')) $('#subStage').textContent = d.detail || '';
+  if ($('#stageIcon')) $('#stageIcon').textContent = pct >= 100 ? '\u2713' : '\u2726';
+  renderPipelineSteps(pct, false);
 }
 
-async function watchJob(jobId){
-  if(state.es){
-    try{state.es.close()}catch{}
+async function watchJob(jobId) {
+  if (state.es) {
+    try { state.es.close() } catch { }
   }
-  let terminal=false;
-  const stream=new EventSource('/api/events/'+jobId);
-  state.es=stream;
+  let terminal = false;
+  const stream = new EventSource('/api/events/' + jobId);
+  state.es = stream;
 
-  stream.onmessage=event=>{
-    try{
-      const d=JSON.parse(event.data);
-      const failed=d.kind==='error'||(d.kind==='status'&&d.status==='error');
-      const succeeded=(d.kind==='complete'&&d.pipeline===true)||d.kind==='done'||(d.kind==='status'&&d.status==='done');
+  stream.onmessage = event => {
+    try {
+      const d = JSON.parse(event.data);
+      const failed = d.kind === 'error' || (d.kind === 'status' && d.status === 'error');
+      const succeeded = (d.kind === 'complete' && d.pipeline === true) || d.kind === 'done' || (d.kind === 'status' && d.status === 'done');
 
-      if(d.kind==='log'){
+      if (d.kind === 'log') {
         addLog(d.message);
         return;
       }
-      if(failed){
-        const detail=d.detail||d.message||d.error||'The pipeline stopped before a Short was created.';
-        addLog('[Error] '+detail);
+      if (failed) {
+        const detail = d.detail || d.message || d.error || 'The pipeline stopped before a Short was created.';
+        addLog('[Error] ' + detail);
         setPipelineFailure(detail);
-        terminal=true;
+        terminal = true;
         stream.close();
-        if(state.es===stream)state.es=null;
-        create.disabled=false;
+        if (state.es === stream) state.es = null;
+        create.disabled = false;
         return;
       }
-      if(succeeded){
+      if (succeeded) {
         setPipelineComplete();
-        terminal=true;
+        terminal = true;
         stream.close();
-        if(state.es===stream)state.es=null;
+        if (state.es === stream) state.es = null;
         loadJobResult(jobId);
         return;
       }
-      if(d.kind==='progress'||d.kind==='status')updateProgress(d);
-    }catch(error){
-      console.error('[SSE]',error);
+      if (d.kind === 'progress' || d.kind === 'status') updateProgress(d);
+    } catch (error) {
+      console.error('[SSE]', error);
     }
   };
 
-  stream.onerror=()=>{
-    if(!terminal&&stream.readyState===EventSource.CLOSED){
-      terminal=true;
+  stream.onerror = () => {
+    if (!terminal && stream.readyState === EventSource.CLOSED) {
+      terminal = true;
       stream.close();
-      if(state.es===stream)state.es=null;
+      if (state.es === stream) state.es = null;
       setPipelineFailure('Connection to the local processing service was lost before the job finished.');
-      create.disabled=false;
+      create.disabled = false;
     }
   };
 }
 
-async function loadJobResult(jobId){
+async function loadJobResult(jobId) {
 
-  try{
+  try {
 
-    const r=await fetch(
+    const r = await fetch(
       `/api/status/${jobId}`,
-      {cache:'no-store'}
+      { cache: 'no-store' }
     );
 
-    const d=await r.json();
+    const d = await r.json();
 
-    if(!r.ok)
+    if (!r.ok)
       throw Error(
-        d.error||
+        d.error ||
         'Could not load job result.'
       );
 
-    const outputs=
-      d.outputs||
-      d.output_files||
+    const outputs =
+      d.outputs ||
+      d.output_files ||
       [];
 
     await loadResults(outputs, jobId);
 
-    if(outputs.length){
+    if (outputs.length) {
 
       await selectReview(jobId, outputs[0]);
 
       // Present all generated clips in the results view
       $('#results')?.scrollIntoView({
-        behavior:'smooth',
-        block:'start'
+        behavior: 'smooth',
+        block: 'start'
       });
 
       addLog(
@@ -1615,62 +1615,62 @@ async function loadJobResult(jobId){
         }
       }, 700);
 
-    }else{
+    } else {
 
       addLog(
         '[Done] Job completed but no output files were returned.'
       );
 
-      create.disabled=false;
+      create.disabled = false;
     }
 
-  }catch(error){
+  } catch (error) {
 
     addLog(
       `[Error] ${error.message}`
     );
 
-    create.disabled=false;
+    create.disabled = false;
   }
 }
 
-async function fetchMetadata(job,file){
+async function fetchMetadata(job, file) {
 
-  try{
+  try {
 
-    const r=await fetch(
+    const r = await fetch(
       `/api/metadata/${job}/${encodeURIComponent(file)}`,
-      {cache:'no-store'}
+      { cache: 'no-store' }
     );
 
-    if(!r.ok)return null;
+    if (!r.ok) return null;
 
     return await r.json();
 
-  }catch{
+  } catch {
 
     return null;
   }
 }
 
-function metadataMarkup(m){
+function metadataMarkup(m) {
 
-  if(!m)return '';
+  if (!m) return '';
 
-  const title=
-    escapeHtml(m.title||'');
+  const title =
+    escapeHtml(m.title || '');
 
-  const description=
-    escapeHtml(m.description||'');
+  const description =
+    escapeHtml(m.description || '');
 
-  const hashes=
+  const hashes =
     escapeHtml(
-      (m.hashtags||[]).join(' ')
+      (m.hashtags || []).join(' ')
     );
 
-  const tags=
+  const tags =
     escapeHtml(
-      (m.tags||[]).join(', ')
+      (m.tags || []).join(', ')
     );
 
   return `
@@ -1689,24 +1689,24 @@ function metadataMarkup(m){
   `;
 }
 
-async function copyMetadataValue(value,button){
+async function copyMetadataValue(value, button) {
 
-  if(!value)return;
+  if (!value) return;
 
-  try{
+  try {
 
-    if(navigator.clipboard?.writeText){
+    if (navigator.clipboard?.writeText) {
 
       await navigator.clipboard.writeText(value);
 
-    }else{
+    } else {
 
-      const area=
+      const area =
         document.createElement('textarea');
 
-      area.value=value;
-      area.style.position='fixed';
-      area.style.opacity='0';
+      area.value = value;
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
 
       document.body.appendChild(area);
 
@@ -1717,16 +1717,16 @@ async function copyMetadataValue(value,button){
       area.remove();
     }
 
-    const label=button.textContent;
+    const label = button.textContent;
 
-    button.textContent='Copied';
+    button.textContent = 'Copied';
 
     setTimeout(
-      ()=>button.textContent=label,
+      () => button.textContent = label,
       1200
     );
 
-  }catch(error){
+  } catch (error) {
 
     console.error(
       '[Metadata] copy failed:',
@@ -1735,21 +1735,21 @@ async function copyMetadataValue(value,button){
   }
 }
 
-function bindMetadataCopyButtons(container,m){
+function bindMetadataCopyButtons(container, m) {
 
-  const values={
-    title:String(m.title||''),
-    description:String(m.description||''),
-    hashtags:(m.hashtags||[]).join(' '),
-    tags:(m.tags||[]).join(', ')
+  const values = {
+    title: String(m.title || ''),
+    description: String(m.description || ''),
+    hashtags: (m.hashtags || []).join(' '),
+    tags: (m.tags || []).join(', ')
   };
 
   container
     .querySelectorAll('[data-copy-field]')
-    .forEach(button=>
+    .forEach(button =>
       button.addEventListener(
         'click',
-        ()=>{
+        () => {
           copyMetadataValue(
             values[button.dataset.copyField],
             button
@@ -1759,32 +1759,32 @@ function bindMetadataCopyButtons(container,m){
     );
 }
 
-function renderOutputCarousel(){
-  const featured=$('#featuredResult');
-  if(!featured) return;
-  if(!state.outputs.length){
-    featured.hidden=true;
+function renderOutputCarousel() {
+  const featured = $('#featuredResult');
+  if (!featured) return;
+  if (!state.outputs.length) {
+    featured.hidden = true;
     return;
   }
 
-  const total=state.outputs.length;
-  const currentFile=state.outputs[state.currentOutputIndex] || state.outputs[0];
-  const src=`/media/${state.jobId}/${encodeURIComponent(currentFile)}`;
-  const title=currentFile.replace(/\.mp4$/i,'');
+  const total = state.outputs.length;
+  const currentFile = state.outputs[state.currentOutputIndex] || state.outputs[0];
+  const src = `/media/${state.jobId}/${encodeURIComponent(currentFile)}`;
+  const title = currentFile.replace(/\.mp4$/i, '');
 
-  featured.hidden=false;
+  featured.hidden = false;
   featured.classList.remove('featured-pop');
   void featured.offsetWidth;
   featured.classList.add('featured-pop');
 
-  featured.innerHTML=`
+  featured.innerHTML = `
     <div class="featured-carousel-shell">
-      <button class="carousel-nav prev" type="button" aria-label="Previous clip" ${state.currentOutputIndex===0 ? 'disabled' : ''}>‹</button>
+      <button class="carousel-nav prev" type="button" aria-label="Previous clip" ${state.currentOutputIndex === 0 ? 'disabled' : ''}>‹</button>
       <div class="featured-video-shell">
         <video id="featuredVideo" controls playsinline preload="metadata" muted autoplay loop src="${src}?v=${Date.now()}"></video>
         <div class="featured-badge">${state.currentOutputIndex + 1} / ${total} · FINISHED SHORT</div>
       </div>
-      <button class="carousel-nav next" type="button" aria-label="Next clip" ${state.currentOutputIndex===total-1 ? 'disabled' : ''}>›</button>
+      <button class="carousel-nav next" type="button" aria-label="Next clip" ${state.currentOutputIndex === total - 1 ? 'disabled' : ''}>›</button>
     </div>
     <div class="featured-copy">
       <div class="featured-meta-row">
@@ -1794,7 +1794,7 @@ function renderOutputCarousel(){
       <h3 id="featuredTitle">${escapeHtml(title)}</h3>
       <p id="featuredMeta">1080 × 1920 · finished captions · optional branding</p>
       <div class="featured-dots" aria-label="Select clip">
-        ${state.outputs.map((_, index)=>`<button class="dot ${index===state.currentOutputIndex ? 'active' : ''}" type="button" aria-label="Go to clip ${index + 1}" data-index="${index}"></button>`).join('')}
+        ${state.outputs.map((_, index) => `<button class="dot ${index === state.currentOutputIndex ? 'active' : ''}" type="button" aria-label="Go to clip ${index + 1}" data-index="${index}"></button>`).join('')}
       </div>
       <div class="featured-actions">
         <button class="primary" id="featuredReview" type="button"><span>✏️ Edit in Studio</span><b>→</b></button>
@@ -1805,277 +1805,277 @@ function renderOutputCarousel(){
     </div>
   `;
 
-  const featuredVideo=$('#featuredVideo');
-  const featuredReview=$('#featuredReview');
-  const featuredDownload=$('#featuredDownload');
+  const featuredVideo = $('#featuredVideo');
+  const featuredReview = $('#featuredReview');
+  const featuredDownload = $('#featuredDownload');
 
-  if(featuredVideo){
-    featuredVideo.muted=true;
-    featuredVideo.autoplay=true;
-    featuredVideo.loop=true;
+  if (featuredVideo) {
+    featuredVideo.muted = true;
+    featuredVideo.autoplay = true;
+    featuredVideo.loop = true;
     featuredVideo.load();
-    featuredVideo.play().catch(()=>{});
+    featuredVideo.play().catch(() => { });
   }
 
-  featuredReview?.addEventListener('click', ()=>selectReview(state.jobId, currentFile));
-  featured.querySelector('#featuredPublish')?.addEventListener('click', ()=>{
-    if(window.openPublishModal){
+  featuredReview?.addEventListener('click', () => selectReview(state.jobId, currentFile));
+  featured.querySelector('#featuredPublish')?.addEventListener('click', () => {
+    if (window.openPublishModal) {
       window.openPublishModal(state.jobId, currentFile);
     }
   });
-  featured.querySelector('#featuredNew')?.addEventListener('click', ()=>{
+  featured.querySelector('#featuredNew')?.addEventListener('click', () => {
     $('#newBtn')?.click();
   });
-  featuredDownload?.addEventListener('click', (event)=>{
+  featuredDownload?.addEventListener('click', (event) => {
     event.preventDefault();
     window.location.href = `${src}?download=1`;
   });
 
-  featured.querySelector('.carousel-nav.prev')?.addEventListener('click', ()=>{
-    if(state.currentOutputIndex>0){
+  featured.querySelector('.carousel-nav.prev')?.addEventListener('click', () => {
+    if (state.currentOutputIndex > 0) {
       state.currentOutputIndex -= 1;
       renderOutputCarousel();
     }
   });
 
-  featured.querySelector('.carousel-nav.next')?.addEventListener('click', ()=>{
-    if(state.currentOutputIndex < state.outputs.length - 1){
+  featured.querySelector('.carousel-nav.next')?.addEventListener('click', () => {
+    if (state.currentOutputIndex < state.outputs.length - 1) {
       state.currentOutputIndex += 1;
       renderOutputCarousel();
     }
   });
 
-  featured.querySelectorAll('.featured-dots .dot').forEach((dot)=>{
-    dot.addEventListener('click', ()=>{
+  featured.querySelectorAll('.featured-dots .dot').forEach((dot) => {
+    dot.addEventListener('click', () => {
       state.currentOutputIndex = Number(dot.dataset.index || 0);
       renderOutputCarousel();
     });
   });
 
-  featured.querySelector('.featured-video-shell')?.addEventListener('dblclick', ()=>selectReview(state.jobId, currentFile));
+  featured.querySelector('.featured-video-shell')?.addEventListener('dblclick', () => selectReview(state.jobId, currentFile));
 
   const reviewFile = currentFile;
   const renderedJob = state.jobId;
-  fetchMetadata(renderedJob, reviewFile).then((m)=>{
-    if(state.jobId!==renderedJob || state.outputs[state.currentOutputIndex]!==reviewFile) return;
-    const titleEl=$('#featuredTitle');
-    if(titleEl && m?.title) titleEl.textContent = m.title;
-    const metaEl=$('#featuredMeta');
-    const selection=m?.selection||{};
-    if(metaEl && selection.method==='qwen' && selection.decision==='reject'){
-      metaEl.textContent=`1080 × 1920 · Qwen (${selection.model||'local model'}) rejected this clip · recovery used`;
-    }else if(metaEl && selection.method==='qwen' && selection.decision==='keep'){
-      metaEl.textContent=`1080 × 1920 · Qwen (${selection.model||'local model'}) selected this clip`;
-    }else if(metaEl && selection.method==='deterministic_fallback'){
-      metaEl.textContent='1080 × 1920 · deterministic fallback · Qwen score unavailable';
+  fetchMetadata(renderedJob, reviewFile).then((m) => {
+    if (state.jobId !== renderedJob || state.outputs[state.currentOutputIndex] !== reviewFile) return;
+    const titleEl = $('#featuredTitle');
+    if (titleEl && m?.title) titleEl.textContent = m.title;
+    const metaEl = $('#featuredMeta');
+    const selection = m?.selection || {};
+    if (metaEl && selection.method === 'qwen' && selection.decision === 'reject') {
+      metaEl.textContent = `1080 × 1920 · Qwen (${selection.model || 'local model'}) rejected this clip · recovery used`;
+    } else if (metaEl && selection.method === 'qwen' && selection.decision === 'keep') {
+      metaEl.textContent = `1080 × 1920 · Qwen (${selection.model || 'local model'}) selected this clip`;
+    } else if (metaEl && selection.method === 'deterministic_fallback') {
+      metaEl.textContent = '1080 × 1920 · deterministic fallback · Qwen score unavailable';
     }
   });
 }
 
-async function loadResults(outputs, jobId = state.jobId){
+async function loadResults(outputs, jobId = state.jobId) {
 
   state.jobId = jobId || state.jobId;
   state.outputs = outputs || [];
   state.currentOutputIndex = 0;
 
-  grid.innerHTML='';
+  grid.innerHTML = '';
 
   renderOutputCarousel();
 
-  for(let i=0;i<state.outputs.length;i++){
-    const file=state.outputs[i];
-    const src=`/media/${state.jobId}/${encodeURIComponent(file)}`;
-    const card=document.createElement('button');
-    card.type='button';
-    card.className='result-thumb';
-    card.dataset.index=String(i);
-    card.innerHTML=`
+  for (let i = 0; i < state.outputs.length; i++) {
+    const file = state.outputs[i];
+    const src = `/media/${state.jobId}/${encodeURIComponent(file)}`;
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'result-thumb';
+    card.dataset.index = String(i);
+    card.innerHTML = `
       <video muted playsinline preload="metadata" src="${src}"></video>
       <span>${i + 1}</span>
     `;
-    card.addEventListener('click', ()=>{
-      state.currentOutputIndex=i;
+    card.addEventListener('click', () => {
+      state.currentOutputIndex = i;
       renderOutputCarousel();
     });
     grid.appendChild(card);
   }
 
-  results.hidden=!state.outputs.length;
+  results.hidden = !state.outputs.length;
 
-  if(state.outputs.length){
-    results.scrollIntoView({behavior:'smooth',block:'start'});
-    setTimeout(()=>$('#featuredVideo')?.focus({preventScroll:true}), 450);
+  if (state.outputs.length) {
+    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => $('#featuredVideo')?.focus({ preventScroll: true }), 450);
   }
 
   updateEditorClipSwitcher();
-  create.disabled=false;
+  create.disabled = false;
 }
 
-function updateEditorClipSwitcher(){
-  const switcher=$('#editorClipSwitcher');
-  if(!switcher) return;
-  if(!state.outputs || state.outputs.length<=1){
-    switcher.hidden=true;
-    switcher.innerHTML='';
+function updateEditorClipSwitcher() {
+  const switcher = $('#editorClipSwitcher');
+  if (!switcher) return;
+  if (!state.outputs || state.outputs.length <= 1) {
+    switcher.hidden = true;
+    switcher.innerHTML = '';
     return;
   }
-  switcher.hidden=false;
-  switcher.innerHTML=state.outputs.map((out, idx)=>{
-    const active=(out===state.reviewFile || (!state.reviewFile && idx===0));
+  switcher.hidden = false;
+  switcher.innerHTML = state.outputs.map((out, idx) => {
+    const active = (out === state.reviewFile || (!state.reviewFile && idx === 0));
     return `<button type="button" class="editor-short-pill ${active ? 'active' : ''}" data-file="${out}" style="background:${active ? 'rgba(215,187,148,0.28)' : 'rgba(255,255,255,0.06)'};border:1px solid ${active ? 'var(--warm,#d6b388)' : 'rgba(190,176,159,0.3)'};color:var(--text);padding:6px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;">Short #${idx + 1}</button>`;
   }).join('');
-  switcher.querySelectorAll('button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const f=btn.dataset.file;
-      if(f) selectReview(state.jobId, f);
+  switcher.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const f = btn.dataset.file;
+      if (f) selectReview(state.jobId, f);
     });
   });
 }
 
-function updateEditorFramingPreview(){
-  const panX=+$('#editorPanX')?.value||0;
-  const panY=+$('#editorPanY')?.value||0;
-  const zoom=(+$('#editorZoom')?.value||100)/100;
-  if($('#editorPanXOut')) $('#editorPanXOut').textContent=(panX>=0?`+${panX}%`:`${panX}%`);
-  if($('#editorPanYOut')) $('#editorPanYOut').textContent=(panY>=0?`+${panY}%`:`${panY}%`);
-  if($('#editorZoomOut')) $('#editorZoomOut').textContent=`${zoom.toFixed(1)}x`;
+function updateEditorFramingPreview() {
+  const panX = +$('#editorPanX')?.value || 0;
+  const panY = +$('#editorPanY')?.value || 0;
+  const zoom = (+$('#editorZoom')?.value || 100) / 100;
+  if ($('#editorPanXOut')) $('#editorPanXOut').textContent = (panX >= 0 ? `+${panX}%` : `${panX}%`);
+  if ($('#editorPanYOut')) $('#editorPanYOut').textContent = (panY >= 0 ? `+${panY}%` : `${panY}%`);
+  if ($('#editorZoomOut')) $('#editorZoomOut').textContent = `${zoom.toFixed(1)}x`;
 
-  const video=$('#reviewVideo');
-  if(video){
-    if(panX===0 && panY===0 && zoom===1){
-      video.style.transform='none';
-    }else{
-      video.style.transform=`scale(${zoom}) translate(${panX*0.3}%, ${panY*0.3}%)`;
-      video.style.transformOrigin='center center';
+  const video = $('#reviewVideo');
+  if (video) {
+    if (panX === 0 && panY === 0 && zoom === 1) {
+      video.style.transform = 'none';
+    } else {
+      video.style.transform = `scale(${zoom}) translate(${panX * 0.3}%, ${panY * 0.3}%)`;
+      video.style.transformOrigin = 'center center';
     }
   }
 }
 
-async function selectReview(job,file){
+async function selectReview(job, file) {
 
-  state.jobId=job;
-  state.reviewFile=file;
+  state.jobId = job;
+  state.reviewFile = file;
 
-  const src=
+  const src =
     `/media/${job}/${encodeURIComponent(file)}`;
 
-  $('#reviewTitle').textContent=file;
+  $('#reviewTitle').textContent = file;
 
-  $('#reviewMeta').textContent=
+  $('#reviewMeta').textContent =
     '1080 × 1920 · local render · post-render branding available';
 
   // Reset framing preview controls to automatic defaults
-  if($('#editorPanX')) $('#editorPanX').value=0;
-  if($('#editorPanY')) $('#editorPanY').value=0;
-  if($('#editorZoom')) $('#editorZoom').value=100;
-  if($('#editorSplitRatio')) $('#editorSplitRatio').value=50;
+  if ($('#editorPanX')) $('#editorPanX').value = 0;
+  if ($('#editorPanY')) $('#editorPanY').value = 0;
+  if ($('#editorZoom')) $('#editorZoom').value = 100;
+  if ($('#editorSplitRatio')) $('#editorSplitRatio').value = 50;
   updateEditorFramingPreview();
   updateEditorClipSwitcher();
 
   // The editor renders its primary actions twice (panel + footer). Both copies
   // must be wired, otherwise the visible one stays a dead href="#".
-  editorDownloads().forEach(a=>{a.href=src;a.hidden=false;});
+  editorDownloads().forEach(a => { a.href = src; a.hidden = false; });
 
-  editorApplyButtons().forEach(b=>b.disabled=false);
+  editorApplyButtons().forEach(b => b.disabled = false);
 
   $('#editorLogoImg').removeAttribute('src');
 
-  state.editorLogoFile=null;
-  state.editorLogoPath=null;
+  state.editorLogoFile = null;
+  state.editorLogoPath = null;
 
-  $('#editorLogoEnabled').checked=false;
-  $('#editorTextEnabled').checked=false;
-  $('#editorTextValue').value='';
+  $('#editorLogoEnabled').checked = false;
+  $('#editorTextEnabled').checked = false;
+  $('#editorTextValue').value = '';
 
-  $('#editorLogo').dataset.x='92';
-  $('#editorLogo').dataset.y='8';
+  $('#editorLogo').dataset.x = '92';
+  $('#editorLogo').dataset.y = '8';
 
-  $('#editorText').dataset.x='50';
-  $('#editorText').dataset.y='75';
+  $('#editorText').dataset.x = '50';
+  $('#editorText').dataset.y = '75';
 
-  const m=
+  const m =
     await fetchMetadata(
       job,
       file
     );
 
-  const meta=
+  const meta =
     $('#editorMetadata');
 
-  if(m){
+  if (m) {
 
-    meta.hidden=false;
+    meta.hidden = false;
 
-    const selectionNote=$('#editorSelectionNote');
-    const selection=m.selection||{};
-    if(selectionNote){
-      selectionNote.hidden=true;
-      selectionNote.textContent='';
-      selectionNote.dataset.decision='';
-      if(selection.method==='qwen' && selection.decision==='reject'){
-        selectionNote.textContent=`Qwen (${selection.model||'local model'}) marked this clip reject. It was retained by the older recovery policy after boundary and duration validation.`;
-        selectionNote.dataset.decision='reject';
-        selectionNote.hidden=false;
-      }else if(selection.method==='qwen' && selection.decision==='keep'){
-        selectionNote.textContent=`Selected by Qwen (${selection.model||'local model'}); decision: keep.`;
-        selectionNote.dataset.decision='keep';
-        selectionNote.hidden=false;
-      }else if(selection.method==='deterministic_fallback'){
-        selectionNote.textContent='Selected by deterministic fallback because no usable Qwen score was available.';
-        selectionNote.dataset.decision='fallback';
-        selectionNote.hidden=false;
+    const selectionNote = $('#editorSelectionNote');
+    const selection = m.selection || {};
+    if (selectionNote) {
+      selectionNote.hidden = true;
+      selectionNote.textContent = '';
+      selectionNote.dataset.decision = '';
+      if (selection.method === 'qwen' && selection.decision === 'reject') {
+        selectionNote.textContent = `Qwen (${selection.model || 'local model'}) marked this clip reject. It was retained by the older recovery policy after boundary and duration validation.`;
+        selectionNote.dataset.decision = 'reject';
+        selectionNote.hidden = false;
+      } else if (selection.method === 'qwen' && selection.decision === 'keep') {
+        selectionNote.textContent = `Selected by Qwen (${selection.model || 'local model'}); decision: keep.`;
+        selectionNote.dataset.decision = 'keep';
+        selectionNote.hidden = false;
+      } else if (selection.method === 'deterministic_fallback') {
+        selectionNote.textContent = 'Selected by deterministic fallback because no usable Qwen score was available.';
+        selectionNote.dataset.decision = 'fallback';
+        selectionNote.hidden = false;
       }
     }
 
-    $('#reviewTitle').textContent=
-      m.title||file;
+    $('#reviewTitle').textContent =
+      m.title || file;
 
-    $('#editorMetaDescription').textContent=
-      m.description||
-      m.title||
+    $('#editorMetaDescription').textContent =
+      m.description ||
+      m.title ||
       '';
 
-    $('#editorMetaHashtags').textContent=
-      (m.hashtags||[]).join(' ');
+    $('#editorMetaHashtags').textContent =
+      (m.hashtags || []).join(' ');
 
-    $('#editorMetaTags').textContent=
-      'Tags: '+
-      (m.tags||[]).join(', ');
+    $('#editorMetaTags').textContent =
+      'Tags: ' +
+      (m.tags || []).join(', ');
 
-  }else{
+  } else {
 
-    meta.hidden=true;
+    meta.hidden = true;
   }
 
   navigateTo('editor');
   // Let the editor section become visible before asking Chromium to fetch media.
-  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-  $('#reviewEmpty').hidden=true;
-  if(reviewPlayer){
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  $('#reviewEmpty').hidden = true;
+  if (reviewPlayer) {
     reviewPlayer.load(src);
-  }else{
-    const video=$('#reviewVideo');
-    video.hidden=false;
-    video.src=src;
+  } else {
+    const video = $('#reviewVideo');
+    video.hidden = false;
+    video.src = src;
     video.load();
   }
   editorPreviewUpdate();
 }
 
-async function applyEditorBranding(){
+async function applyEditorBranding() {
 
-  if(
-    !state.jobId||
+  if (
+    !state.jobId ||
     !state.reviewFile
-  )return;
+  ) return;
 
-  const b={
+  const b = {
 
     logo_enabled:
       $('#editorLogoEnabled').checked,
 
     logo_path:
-      state.editorLogoPath||'',
+      state.editorLogoPath || '',
 
     logo_position:
       'custom',
@@ -2090,10 +2090,10 @@ async function applyEditorBranding(){
       40,
 
     logo_x:
-      +$('#editorLogo').dataset.x||92,
+      +$('#editorLogo').dataset.x || 92,
 
     logo_y:
-      +$('#editorLogo').dataset.y||8,
+      +$('#editorLogo').dataset.y || 8,
 
     logo_bg_remove:
       $('#editorLogoBgRemove').checked,
@@ -2135,10 +2135,10 @@ async function applyEditorBranding(){
       110,
 
     text_x:
-      +$('#editorText').dataset.x||50,
+      +$('#editorText').dataset.x || 50,
 
     text_y:
-      +$('#editorText').dataset.y||75,
+      +$('#editorText').dataset.y || 75,
 
     framing: {
       pan_x: +$('#editorPanX')?.value || 0,
@@ -2148,203 +2148,203 @@ async function applyEditorBranding(){
     }
   };
 
-  try{
+  try {
 
-    editorApplyButtons().forEach(b=>{
-      b.disabled=true;
-      const span=b.querySelector('span');
-      if(span)span.textContent='Rendering…';
+    editorApplyButtons().forEach(b => {
+      b.disabled = true;
+      const span = b.querySelector('span');
+      if (span) span.textContent = 'Rendering…';
     });
 
-    if(state.editorLogoFile){
+    if (state.editorLogoFile) {
 
-      const fd=new FormData();
+      const fd = new FormData();
 
       fd.append(
         'logo',
         state.editorLogoFile
       );
 
-      const ur=
+      const ur =
         await fetch(
-          '/api/upload-logo/'+state.jobId,
+          '/api/upload-logo/' + state.jobId,
           {
-            method:'POST',
-            body:fd
+            method: 'POST',
+            body: fd
           }
         );
 
-      const ud=
+      const ud =
         await ur.json();
 
-      if(!ur.ok)
+      if (!ur.ok)
         throw Error(
-          ud.error||
+          ud.error ||
           'Logo upload failed'
         );
 
-      state.editorLogoPath=ud.path;
-      b.logo_path=ud.path;
+      state.editorLogoPath = ud.path;
+      b.logo_path = ud.path;
     }
 
-    const r=
+    const r =
       await fetch(
-        '/api/apply-branding/'+state.jobId,
+        '/api/apply-branding/' + state.jobId,
         {
-          method:'POST',
-          headers:{
+          method: 'POST',
+          headers: {
             'Content-Type':
               'application/json'
           },
-          body:JSON.stringify({
-            filename:state.reviewFile,
-            branding:b,
-            font:fontSelect.value
+          body: JSON.stringify({
+            filename: state.reviewFile,
+            branding: b,
+            font: fontSelect.value
           })
         }
       );
 
-    const d=
+    const d =
       await r.json();
 
-    if(!r.ok)
+    if (!r.ok)
       throw Error(
-        d.error||
+        d.error ||
         'Branding render failed'
       );
 
-    state.reviewFile=d.filename;
+    state.reviewFile = d.filename;
 
-    const src=
-      d.url+
-      '?v='+
+    const src =
+      d.url +
+      '?v=' +
       Date.now();
 
-    if(reviewPlayer) reviewPlayer.load(src);
-    else { $('#reviewVideo').src=src; $('#reviewVideo').load(); }
+    if (reviewPlayer) reviewPlayer.load(src);
+    else { $('#reviewVideo').src = src; $('#reviewVideo').load(); }
 
-    editorDownloads().forEach(a=>a.href=d.url);
+    editorDownloads().forEach(a => a.href = d.url);
 
-    $('#reviewTitle').textContent=
+    $('#reviewTitle').textContent =
       d.filename;
 
     addLog(
-      '[Editor] '+
-      d.filename+
+      '[Editor] ' +
+      d.filename +
       ' created'
     );
 
-    const m=
+    const m =
       await fetchMetadata(
         state.jobId,
         state.reviewFile
       );
 
-    if(m){
+    if (m) {
 
-      $('#editorMetadata').hidden=false;
+      $('#editorMetadata').hidden = false;
 
-      $('#editorMetaDescription').textContent=
-        m.description||
-        m.title||
+      $('#editorMetaDescription').textContent =
+        m.description ||
+        m.title ||
         '';
 
-      $('#editorMetaHashtags').textContent=
-        (m.hashtags||[]).join(' ');
+      $('#editorMetaHashtags').textContent =
+        (m.hashtags || []).join(' ');
 
-      $('#editorMetaTags').textContent=
-        'Tags: '+
-        (m.tags||[]).join(', ');
+      $('#editorMetaTags').textContent =
+        'Tags: ' +
+        (m.tags || []).join(', ');
     }
 
     loadProjects();
 
-  }catch(e){
+  } catch (e) {
 
     alert(e.message);
 
-  }finally{
+  } finally {
 
-    editorApplyButtons().forEach(b=>{
-      b.disabled=false;
-      const span=b.querySelector('span');
-      if(span)span.textContent='Apply to Finished Short';
+    editorApplyButtons().forEach(b => {
+      b.disabled = false;
+      const span = b.querySelector('span');
+      if (span) span.textContent = 'Apply to Finished Short';
     });
   }
 }
 
-editorApplyButtons().forEach(btn=>btn.addEventListener('click',applyEditorBranding));
+editorApplyButtons().forEach(btn => btn.addEventListener('click', applyEditorBranding));
 
-['#editorPanX', '#editorPanY', '#editorZoom', '#editorSplitRatio'].forEach(sel=>{
+['#editorPanX', '#editorPanY', '#editorZoom', '#editorSplitRatio'].forEach(sel => {
   $(sel)?.addEventListener('input', updateEditorFramingPreview);
 });
 
-$('#resetFramingBtn')?.addEventListener('click', ()=>{
-  if($('#editorPanX')) $('#editorPanX').value = 0;
-  if($('#editorPanY')) $('#editorPanY').value = 0;
-  if($('#editorZoom')) $('#editorZoom').value = 100;
-  if($('#editorSplitRatio')) $('#editorSplitRatio').value = 50;
+$('#resetFramingBtn')?.addEventListener('click', () => {
+  if ($('#editorPanX')) $('#editorPanX').value = 0;
+  if ($('#editorPanY')) $('#editorPanY').value = 0;
+  if ($('#editorZoom')) $('#editorZoom').value = 100;
+  if ($('#editorSplitRatio')) $('#editorSplitRatio').value = 50;
   updateEditorFramingPreview();
 });
 
-async function loadProjects(){
+async function loadProjects() {
 
-  const r=
+  const r =
     await fetch('/api/projects');
 
-  const d=
+  const d =
     await r.json();
 
-  const list=
+  const list =
     $('#projectList');
 
-  list.innerHTML='';
+  list.innerHTML = '';
 
-  const sel=
+  const sel =
     $('#assetProject');
 
-  if(sel)
-    sel.innerHTML=
+  if (sel)
+    sel.innerHTML =
       '<option value="">Choose a project</option>';
 
-  const visibleProjects=(d.projects||[]).filter(x=>x.outputs?.length||['running','uploaded'].includes(x.status));
+  const visibleProjects = (d.projects || []).filter(x => x.outputs?.length || ['running', 'uploaded'].includes(x.status));
 
-  visibleProjects.forEach(x=>{
+  visibleProjects.forEach(x => {
 
-    if(sel){
+    if (sel) {
 
       sel.add(
         new Option(
-          `${x.source||x.id} · ${x.outputs.length} Short(s)`,
+          `${x.source || x.id} · ${x.outputs.length} Short(s)`,
           x.id
         )
       );
     }
 
-    const el=
+    const el =
       document.createElement('article');
 
-    el.className=
+    el.className =
       'project-card panel';
-    const firstOutput=x.outputs?.[0];
-    const firstMetadata=x.output_metadata?.[firstOutput]||{};
-    const projectTitle=firstMetadata.title||x.name||x.source||x.id;
-    const projectDescription=firstMetadata.description||'No description generated yet.';
-    const outputTitles=(x.outputs||[]).map((output,index)=>{
-      const metadata=x.output_metadata?.[output]||{};
-      return `<button class="project-output" type="button" data-output="${escapeHtml(output)}">${escapeHtml(metadata.title||`Short ${index+1}`)}</button>`;
+    const firstOutput = x.outputs?.[0];
+    const firstMetadata = x.output_metadata?.[firstOutput] || {};
+    const projectTitle = firstMetadata.title || x.name || x.source || x.id;
+    const projectDescription = firstMetadata.description || 'No description generated yet.';
+    const outputTitles = (x.outputs || []).map((output, index) => {
+      const metadata = x.output_metadata?.[output] || {};
+      return `<button class="project-output" type="button" data-output="${escapeHtml(output)}">${escapeHtml(metadata.title || `Short ${index + 1}`)}</button>`;
     }).join('');
-    const thumbnail=firstOutput?`<video class="project-thumb" muted playsinline preload="metadata" src="/media/${encodeURIComponent(x.id)}/${encodeURIComponent(firstOutput)}"></video>`:'<div class="project-thumb project-thumb-empty">✦</div>';
+    const thumbnail = firstOutput ? `<video class="project-thumb" muted playsinline preload="metadata" src="/media/${encodeURIComponent(x.id)}/${encodeURIComponent(firstOutput)}"></video>` : '<div class="project-thumb project-thumb-empty">✦</div>';
 
-    el.innerHTML=`
+    el.innerHTML = `
       ${thumbnail}
 
       <div class="project-main">
 
         <b>
           ${escapeHtml(
-            projectTitle
-          )}
+      projectTitle
+    )}
         </b>
 
         <small>
@@ -2369,11 +2369,11 @@ async function loadProjects(){
 
     el
       .querySelector('.project-open')
-      .onclick=async (e)=>{
+      .onclick = async (e) => {
         e.preventDefault();
         e.stopPropagation();
         const output = (x.outputs && x.outputs.length) ? x.outputs[0] : null;
-        if(output)
+        if (output)
           await selectReview(
             x.id,
             output
@@ -2390,94 +2390,94 @@ async function loadProjects(){
       }
     });
 
-    el.querySelectorAll('.project-output').forEach(button=>{
-      button.onclick=()=>selectReview(x.id,button.dataset.output);
+    el.querySelectorAll('.project-output').forEach(button => {
+      button.onclick = () => selectReview(x.id, button.dataset.output);
     });
 
-    el.querySelector('.project-rename').onclick=async()=>{
-      const next=prompt('Project name',x.name||x.source||x.id);
-      if(next===null)return;
-      const response=await fetch(`/api/projects/${x.id}/rename`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:next})});
-      const data=await response.json();
-      if(!response.ok){alert(data.error||'Could not rename project.');return;}
+    el.querySelector('.project-rename').onclick = async () => {
+      const next = prompt('Project name', x.name || x.source || x.id);
+      if (next === null) return;
+      const response = await fetch(`/api/projects/${x.id}/rename`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: next }) });
+      const data = await response.json();
+      if (!response.ok) { alert(data.error || 'Could not rename project.'); return; }
       loadProjects();
     };
 
-    el.querySelector('.project-delete').onclick=async()=>{
-      if(!confirm('Move this project to Recently deleted?'))return;
-      const response=await fetch(`/api/projects/${x.id}`,{method:'DELETE'});
-      const data=await response.json();
-      if(!response.ok){alert(data.error||'Could not delete project.');return;}
+    el.querySelector('.project-delete').onclick = async () => {
+      if (!confirm('Move this project to Recently deleted?')) return;
+      const response = await fetch(`/api/projects/${x.id}`, { method: 'DELETE' });
+      const data = await response.json();
+      if (!response.ok) { alert(data.error || 'Could not delete project.'); return; }
       await loadProjects();
       loadTrash();
     };
 
     list.appendChild(el);
 
-    const thumb=el.querySelector('.project-thumb');
-    if(thumb?.tagName==='VIDEO'){
-      thumb.addEventListener('loadedmetadata',()=>{
-        thumb.currentTime=Math.min(1,thumb.duration||1);
+    const thumb = el.querySelector('.project-thumb');
+    if (thumb?.tagName === 'VIDEO') {
+      thumb.addEventListener('loadedmetadata', () => {
+        thumb.currentTime = Math.min(1, thumb.duration || 1);
       });
     }
   });
 
-  if(!visibleProjects.length){
+  if (!visibleProjects.length) {
 
-    list.innerHTML=
+    list.innerHTML =
       '<div class="empty-state">No projects yet. Generate your first Short.</div>';
   }
 }
 
-async function loadTrash(){
-  const list=$('#trashList');
-  if(!list)return;
-  const response=await fetch('/api/projects/trash',{cache:'no-store'});
-  const data=await response.json();
-  if(!response.ok){list.innerHTML='<div class="empty-state">Could not load deleted projects.</div>';return;}
-  list.innerHTML=(data.projects||[]).map(x=>`
+async function loadTrash() {
+  const list = $('#trashList');
+  if (!list) return;
+  const response = await fetch('/api/projects/trash', { cache: 'no-store' });
+  const data = await response.json();
+  if (!response.ok) { list.innerHTML = '<div class="empty-state">Could not load deleted projects.</div>'; return; }
+  list.innerHTML = (data.projects || []).map(x => `
     <div class="trash-row">
-      <div><b>${escapeHtml(x.name||x.id)}</b><small>${escapeHtml(x.id)}</small></div>
+      <div><b>${escapeHtml(x.name || x.id)}</b><small>${escapeHtml(x.id)}</small></div>
       <button class="ghost" data-restore="${escapeHtml(x.id)}">Restore</button>
-    </div>`).join('')||'<div class="empty-state">No deleted projects.</div>';
-  list.querySelectorAll('[data-restore]').forEach(button=>button.onclick=async()=>{
-    const response=await fetch(`/api/projects/${encodeURIComponent(button.dataset.restore)}/restore`,{method:'POST'});
-    const result=await response.json();
-    if(!response.ok){alert(result.error||'Could not restore project.');return;}
+    </div>`).join('') || '<div class="empty-state">No deleted projects.</div>';
+  list.querySelectorAll('[data-restore]').forEach(button => button.onclick = async () => {
+    const response = await fetch(`/api/projects/${encodeURIComponent(button.dataset.restore)}/restore`, { method: 'POST' });
+    const result = await response.json();
+    if (!response.ok) { alert(result.error || 'Could not restore project.'); return; }
     await loadProjects();
     loadTrash();
   });
 }
 
-async function loadAssets(){
+async function loadAssets() {
 
-  const id=
+  const id =
     $('#assetProject').value;
 
-  if(!id){
+  if (!id) {
 
-    $('#assetList').innerHTML=
+    $('#assetList').innerHTML =
       '<div class="empty-state">Choose a project to load assets.</div>';
 
     return;
   }
 
-  const r=
+  const r =
     await fetch(
-      '/api/assets/'+id
+      '/api/assets/' + id
     );
 
-  const d=
+  const d =
     await r.json();
 
-  $('#assetList').innerHTML=
-    (d.assets||[])
-      .map(a=>`
+  $('#assetList').innerHTML =
+    (d.assets || [])
+      .map(a => `
 
         <div class="asset-row">
 
           <span>
-            ${a.kind==='source'?'🎬':'✦'}
+            ${a.kind === 'source' ? '🎬' : '✦'}
           </span>
 
           <div>
@@ -2504,81 +2504,78 @@ async function loadAssets(){
         </div>
 
       `)
-      .join('')||
-      '<div class="empty-state">No assets.</div>';
+      .join('') ||
+    '<div class="empty-state">No assets.</div>';
 }
 
 $('#refreshProjects')
-  .onclick=loadProjects;
+  .onclick = loadProjects;
 
 $('#refreshTrash')
-  ?.addEventListener('click',loadTrash);
+  ?.addEventListener('click', loadTrash);
 
 $('#refreshAssets')
-  .onclick=loadAssets;
+  .onclick = loadAssets;
 
 $('#assetProject')
-  .onchange=loadAssets;
+  .onchange = loadAssets;
 
 $('#newBtn')
-  .onclick=()=>{
+  .onclick = () => {
 
-    state.jobId=null;
-    state.source=null;
-    state.logoFile=null;
-    state.logoPath=null;
+    state.jobId = null;
+    state.source = null;
+    state.logoFile = null;
+    state.logoPath = null;
 
-    input.value='';
+    input.value = '';
 
-    if(youtubeUrl)
-      youtubeUrl.value='';
+    if (youtubeUrl)
+      youtubeUrl.value = '';
 
-    if(youtubeStatus)
-      youtubeStatus.textContent='';
+    if (youtubeStatus)
+      youtubeStatus.textContent = '';
 
-    $('#logoInput').value='';
+    $('#logoInput').value = '';
 
-    chip.hidden=true;
-    results.hidden=true;
-    progressPanel.hidden=true;
-    create.disabled=true;
+    chip.hidden = true;
+    results.hidden = true;
+    progressPanel.hidden = true;
+    create.disabled = true;
 
-    location.hash='create';
+    location.hash = 'create';
   };
 
-if(create) create.onclick=start;
+if (create) create.onclick = start;
 
-function navigateTo(id){
+function navigateTo(id) {
   const target = id || 'create';
-  if(target === 'models'){
-    if(window.openModelHub) window.openModelHub();
+  if (target === 'models') {
+    if (window.openModelHub) window.openModelHub();
     return;
   }
-  if(target === 'update'){
-    if(window.openClipifyUpdate) window.openClipifyUpdate();
+  if (target === 'update') {
+    if (window.openClipifyUpdate) window.openClipifyUpdate();
     return;
   }
-  if(target === 'guide'){
-    if(window.startClipifyTour) window.startClipifyTour();
+  if (target === 'guide') {
+    if (window.startClipifyTour) window.startClipifyTour();
     return;
   }
-  if(location.hash.slice(1) !== target){
+  if (location.hash.slice(1) !== target) {
     location.hash = target;
   }
-  $$('.page-section').forEach(s=>
-    s.classList.toggle('visible', s.id === target)
-  );
-  $$('[data-nav]').forEach(a=>
+  $$('.page-section').forEach(s => {
+    const isTarget = s.id === target;
+    s.classList.toggle('visible', isTarget);
+    s.style.display = isTarget ? 'block' : 'none';
+  });
+  $$('[data-nav]').forEach(a =>
     a.classList.toggle('active', a.dataset.nav === target)
   );
-  if(target === 'projects') loadProjects();
-  if(target === 'assets') loadProjects().then(loadAssets);
-  const el = document.getElementById(target);
-  if(el){
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } else {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+  if (target === 'projects') loadProjects();
+  if (target === 'assets') loadProjects().then(loadAssets);
+  window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 $('#navGuideLink')?.addEventListener('click', (e) => {
@@ -2641,7 +2638,7 @@ $('#openOutput2')?.addEventListener('click', handleOpenOutput);
 
 window.addEventListener(
   'hashchange',
-  ()=>{
+  () => {
     const searchParams = new URLSearchParams(location.search);
     const raw = location.hash.slice(1) || searchParams.get('section') || 'create';
     const id = raw.split('?')[0];
@@ -2673,18 +2670,18 @@ window.addEventListener(
 
 const initialHash = (location.hash.slice(1) || '').split('?')[0];
 if (initialHash && document.getElementById(initialHash)) {
-  try { navigateTo(initialHash); } catch(e){ console.warn(e); }
+  try { navigateTo(initialHash); } catch (e) { console.warn(e); }
 } else if (initialHash === 'models') {
   if (window.openModelHub) window.openModelHub();
 } else {
-  try { window.dispatchEvent(new Event('hashchange')); } catch(e){ console.warn(e); }
-  try { navigateTo('create'); } catch(e){ console.warn(e); }
+  try { window.dispatchEvent(new Event('hashchange')); } catch (e) { console.warn(e); }
+  try { navigateTo('create'); } catch (e) { console.warn(e); }
 }
-try { loadOptions(); } catch(e){ console.warn(e); }
-try { loadProjects(); } catch(e){ console.warn(e); }
-try { loadTrash(); } catch(e){ console.warn(e); }
-try { updatePreview(); } catch(e){ console.warn(e); }
-try { editorPreviewUpdate(); } catch(e){ console.warn(e); }
+try { loadOptions(); } catch (e) { console.warn(e); }
+try { loadProjects(); } catch (e) { console.warn(e); }
+try { loadTrash(); } catch (e) { console.warn(e); }
+try { updatePreview(); } catch (e) { console.warn(e); }
+try { editorPreviewUpdate(); } catch (e) { console.warn(e); }
 
 const revealSections = $$('.page-section');
 if ('IntersectionObserver' in window) {
@@ -2737,7 +2734,7 @@ function initSocialPublishing() {
         const hashtags = Array.isArray(meta.hashtags) ? meta.hashtags.join(' ') : (Array.isArray(meta.tags) ? meta.tags.map(t => t.startsWith('#') ? t : '#' + t).join(' ') : '#Shorts');
         $('#publishDescription').value = `${meta.description}\n\n${hashtags}`;
       }
-    }).catch(() => {});
+    }).catch(() => { });
 
     modal.style.display = 'flex';
     modal.hidden = false;
@@ -2867,7 +2864,7 @@ function initAIModelManagement() {
         if (hfTokenInput && data.hf_token_masked) hfTokenInput.value = data.hf_token_masked;
         updateUI();
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function updateUI() {
@@ -2896,7 +2893,7 @@ function initAIModelManagement() {
         body: JSON.stringify({ provider: 'ollama' })
       });
       loadOptions();
-    } catch (_) {}
+    } catch (_) { }
   });
 
   tabHf?.addEventListener('click', async () => {
@@ -2908,7 +2905,7 @@ function initAIModelManagement() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider: 'huggingface' })
       });
-    } catch (_) {}
+    } catch (_) { }
   });
 
   hfModelSelect?.addEventListener('change', async () => {
@@ -2918,7 +2915,7 @@ function initAIModelManagement() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hf_model: hfModelSelect.value })
       });
-    } catch (_) {}
+    } catch (_) { }
   });
 
   btnVerifyHf?.addEventListener('click', async () => {
@@ -3009,7 +3006,7 @@ function initAIModelManagement() {
               alert(sData.error);
             }
           }
-        } catch (_) {}
+        } catch (_) { }
       }, 1200);
     } catch (err) {
       alert('Error initiating model pull: ' + err.message);
@@ -3164,15 +3161,49 @@ function initBetaTestingSection() {
           body: JSON.stringify({ url })
         });
         const data = await res.json();
-        if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to import YouTube video');
-        betaState.jobId = data.job_id;
+        if (!res.ok || (!data.ok && !data.job_id)) throw new Error(data.error || 'Failed to import YouTube video');
+        const jobId = data.job_id;
+        betaState.jobId = jobId;
         betaState.sourceFile = null;
         dropZone.style.display = 'none';
         sourceInfo.style.display = 'flex';
-        sourceName.textContent = data.title || 'YouTube Video';
-        sourceMeta.textContent = `Project ${data.job_id} · Imported from YouTube`;
+        sourceName.textContent = 'Connecting to YouTube...';
+        sourceMeta.textContent = `Project ${jobId} · Downloading...`;
+
+        // Poll /api/status/${jobId} until uploaded or error
+        await new Promise((resolve, reject) => {
+          let pollCount = 0;
+          const pollTimer = setInterval(async () => {
+            pollCount++;
+            try {
+              const sr = await fetch(`/api/status/${jobId}`, { cache: 'no-store' });
+              if (!sr.ok) return;
+              const sd = await sr.json();
+              if (sd.status === 'uploaded') {
+                clearInterval(pollTimer);
+                sourceName.textContent = sd.filename || 'YouTube Video';
+                sourceMeta.textContent = `Project ${jobId} · Ready to Clip`;
+                resolve();
+              } else if (sd.status === 'error') {
+                clearInterval(pollTimer);
+                reject(new Error(sd.detail || sd.error || 'YouTube download failed'));
+              } else {
+                sourceName.textContent = sd.stage || 'Downloading YouTube video...';
+                sourceMeta.textContent = `${sd.progress || 0}% · ${sd.detail || 'Connecting...'}`;
+              }
+            } catch (err) {
+              if (pollCount > 180) {
+                clearInterval(pollTimer);
+                reject(err);
+              }
+            }
+          }, 1000);
+        });
       } catch (err) {
-        alert(err.message);
+        dropZone.style.display = 'block';
+        sourceInfo.style.display = 'none';
+        betaState.jobId = null;
+        alert(err.message || 'Failed to import YouTube video');
       } finally {
         ytImportBtn.disabled = false;
         ytImportBtn.textContent = 'Fetch Link';
@@ -3273,7 +3304,7 @@ function initBetaTestingSection() {
               stageText.textContent = 'Pipeline error';
               logBox.textContent += `[Error] ${data.text}\n`;
             }
-          } catch (_) {}
+          } catch (_) { }
         };
         sse.onerror = () => {
           sse.close();
@@ -3327,7 +3358,7 @@ function initBetaTestingSection() {
     resultVideo.style.display = 'block';
     resultVideo.src = url;
     resultVideo.load();
-    resultVideo.play().catch(() => {});
+    resultVideo.play().catch(() => { });
 
     downloadBtn.href = `${url}?download=1`;
     downloadBtn.style.pointerEvents = 'auto';
@@ -3338,254 +3369,4 @@ function initBetaTestingSection() {
       window.location.hash = `#editor?video=${encodeURIComponent(url)}&title=${encodeURIComponent(filename)}`;
     };
   }
-
-  // --- Beta Top Subtabs (Narration vs Video Clipper) ---
-  const tabNarrate = $('#btnBetaTabNarrate');
-  const tabClipper = $('#btnBetaTabClipper');
-  const wsNarrate = $('#betaNarrateWorkspace');
-  const wsClipper = $('#betaClipperWorkspace');
-
-  function switchBetaTab(tab) {
-    if (tab === 'narrate') {
-      tabNarrate?.classList.add('active');
-      if (tabNarrate) { tabNarrate.style.background = '#ffffff'; tabNarrate.style.color = '#000000'; }
-      tabClipper?.classList.remove('active');
-      if (tabClipper) { tabClipper.style.background = 'rgba(255,255,255,0.06)'; tabClipper.style.color = '#ffffff'; }
-      if (wsNarrate) wsNarrate.style.display = 'grid';
-      if (wsClipper) wsClipper.style.display = 'none';
-      loadBetaNarrateResources();
-    } else {
-      tabClipper?.classList.add('active');
-      if (tabClipper) { tabClipper.style.background = '#ffffff'; tabClipper.style.color = '#000000'; }
-      tabNarrate?.classList.remove('active');
-      if (tabNarrate) { tabNarrate.style.background = 'rgba(255,255,255,0.06)'; tabNarrate.style.color = '#ffffff'; }
-      if (wsNarrate) wsNarrate.style.display = 'none';
-      if (wsClipper) wsClipper.style.display = 'grid';
-    }
-  }
-
-  tabNarrate?.addEventListener('click', () => switchBetaTab('narrate'));
-  tabClipper?.addEventListener('click', () => switchBetaTab('clipper'));
-
-  // --- Beta Narration Testing Suite ---
-  const narratePrompt = $('#betaNarratePrompt');
-  const narrateScript = $('#betaNarrateScript');
-  const btnGenScript = $('#btnBetaNarrateGenScript');
-  const btnRandomScript = $('#btnBetaNarrateRandom');
-  const wordCountOut = $('#betaNarrateWordCount');
-  const voiceSelect = $('#betaNarrateVoiceSelect');
-  const speedSelect = $('#betaNarrateSpeedSelect');
-  const btnAudition = $('#btnBetaAuditionVoice');
-  const voiceAudio = $('#betaVoiceAudio');
-  const videoSelect = $('#betaNarrateVideoSelect');
-  const captionPreset = $('#betaNarrateCaptionPreset');
-  const btnStartNarrate = $('#btnBetaStartNarrate');
-  const narrateProgBox = $('#betaNarrateProgressBox');
-  const narrateProgBar = $('#betaNarrateProgressBar');
-  const narrateProgPct = $('#betaNarrateProgressPct');
-  const narrateStageText = $('#betaNarrateStageText');
-  const narrateResultVideo = $('#betaNarrateResultVideo');
-  const narratePlaceholder = $('#betaNarratePlaceholder');
-  const narrateDownloadBtn = $('#betaNarrateDownloadBtn');
-
-  function updateWordCount() {
-    const text = narrateScript?.value.trim() || '';
-    const words = text ? text.split(/\s+/).length : 0;
-    const estSec = Math.round(words / 2.5);
-    const m = String(Math.floor(estSec / 60)).padStart(2, '0');
-    const s = String(estSec % 60).padStart(2, '0');
-    if (wordCountOut) wordCountOut.textContent = `${words} words · ~${m}:${s} est.`;
-  }
-  narrateScript?.addEventListener('input', updateWordCount);
-
-  let narrateResourcesLoaded = false;
-  async function loadBetaNarrateResources() {
-    if (narrateResourcesLoaded) return;
-    narrateResourcesLoaded = true;
-
-    // Load voices
-    try {
-      const vRes = await fetch('/api/narrate/voices');
-      const vData = await vRes.json();
-      if (vData.voices && vData.voices.length && voiceSelect) {
-        voiceSelect.innerHTML = '';
-        const kokoroGroup = document.createElement('optgroup');
-        kokoroGroup.label = 'Kokoro Neural Voices (Ultra-Realistic)';
-        const winGroup = document.createElement('optgroup');
-        winGroup.label = 'Windows System Voices';
-
-        vData.voices.forEach(v => {
-          const opt = document.createElement('option');
-          opt.value = v.id;
-          opt.textContent = `${v.name} (${v.gender || 'Neural'} · ${v.provider || 'local'})`;
-          if (v.id === 'af_heart') opt.selected = true;
-          if (v.provider === 'kokoro') kokoroGroup.appendChild(opt);
-          else winGroup.appendChild(opt);
-        });
-
-        if (kokoroGroup.children.length) voiceSelect.appendChild(kokoroGroup);
-        if (winGroup.children.length) voiceSelect.appendChild(winGroup);
-      }
-    } catch (_) {}
-
-    // Load background clips
-    try {
-      const bRes = await fetch('/api/narrate/videos');
-      const bData = await bRes.json();
-      if (bData.videos && bData.videos.length && videoSelect) {
-        videoSelect.innerHTML = '';
-        bData.videos.forEach((vid, i) => {
-          const opt = document.createElement('option');
-          opt.value = vid.name || vid;
-          opt.textContent = `${vid.name || vid} (9:16 vertical)`;
-          if (i === 0) opt.selected = true;
-          videoSelect.appendChild(opt);
-        });
-      }
-    } catch (_) {}
-  }
-
-  // Audition voice
-  btnAudition?.addEventListener('click', async () => {
-    const voice = voiceSelect?.value || 'af_heart';
-    const speed = parseInt(speedSelect?.value || '0', 10);
-    btnAudition.disabled = true;
-    btnAudition.textContent = 'Auditioning...';
-    try {
-      const res = await fetch('/api/narrate/preview-voice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ voice, speed })
-      });
-      const data = await res.json();
-      if (data.url && voiceAudio) {
-        voiceAudio.src = data.url;
-        voiceAudio.style.display = 'block';
-        voiceAudio.play().catch(() => {});
-      }
-    } catch (err) {
-      alert('Audition error: ' + err.message);
-    } finally {
-      btnAudition.disabled = false;
-      btnAudition.textContent = '▶ Audition Voice Sample';
-    }
-  });
-
-  // AI Script generation
-  btnGenScript?.addEventListener('click', async () => {
-    const prompt = narratePrompt?.value.trim();
-    if (!prompt) return alert('Enter a story prompt or idea first.');
-    btnGenScript.disabled = true;
-    btnGenScript.textContent = 'Writing...';
-    try {
-      const res = await fetch('/api/narrate/script', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, duration: 30 })
-      });
-      const data = await res.json();
-      if (data.script && narrateScript) {
-        narrateScript.value = data.script;
-        updateWordCount();
-      } else {
-        alert(data.error || 'Failed to generate script.');
-      }
-    } catch (err) {
-      alert('Script generation error: ' + err.message);
-    } finally {
-      btnGenScript.disabled = false;
-      btnGenScript.textContent = '✨ Generate Script';
-    }
-  });
-
-  // Random Script
-  btnRandomScript?.addEventListener('click', async () => {
-    btnRandomScript.disabled = true;
-    try {
-      const res = await fetch('/api/narrate/random-script', { method: 'POST' });
-      const data = await res.json();
-      if (data.script && narrateScript) {
-        narrateScript.value = data.script;
-        updateWordCount();
-      }
-    } catch (_) {}
-    finally {
-      btnRandomScript.disabled = false;
-    }
-  });
-
-  // Start Narration Generation
-  let narratePoll = null;
-  btnStartNarrate?.addEventListener('click', async () => {
-    const script = narrateScript?.value.trim();
-    if (!script) return alert('Enter or generate a script first.');
-    const voice = voiceSelect?.value || 'af_heart';
-    const video = videoSelect?.value || '';
-    const speed = parseInt(speedSelect?.value || '0', 10);
-    const caption_mode = captionPreset?.value || 'sync-yellow';
-
-    btnStartNarrate.disabled = true;
-    if (narrateProgBox) narrateProgBox.style.display = 'block';
-    if (narrateProgBar) narrateProgBar.style.width = '10%';
-    if (narrateProgPct) narrateProgPct.textContent = '10%';
-    if (narrateStageText) narrateStageText.textContent = 'Starting voice synthesis...';
-
-    try {
-      const res = await fetch('/api/narrate/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ script, voice, video, speed, caption_mode })
-      });
-      const data = await res.json();
-      if (!data.ok || !data.job_id) {
-        throw new Error(data.error || 'Failed to start narration generation.');
-      }
-
-      const jobId = data.job_id;
-      narratePoll = setInterval(async () => {
-        try {
-          const sRes = await fetch(`/api/narrate/status/${jobId}`);
-          const sData = await sRes.json();
-          const pct = Math.min(100, Math.max(0, parseInt(sData.progress || 0)));
-          if (narrateProgBar) narrateProgBar.style.width = `${pct}%`;
-          if (narrateProgPct) narrateProgPct.textContent = `${pct}%`;
-          if (narrateStageText && sData.stage) narrateStageText.textContent = sData.stage;
-
-          if (sData.status === 'done') {
-            clearInterval(narratePoll);
-            btnStartNarrate.disabled = false;
-            if (narrateProgBar) narrateProgBar.style.width = '100%';
-            if (narrateProgPct) narrateProgPct.textContent = '100%';
-            if (narrateStageText) narrateStageText.textContent = 'Narration Complete!';
-
-            const outUrl = `/api/narrate/result-media/${jobId}/${encodeURIComponent(sData.output || 'narrated_short.mp4')}`;
-            if (narratePlaceholder) narratePlaceholder.style.display = 'none';
-            if (narrateResultVideo) {
-              narrateResultVideo.style.display = 'block';
-              narrateResultVideo.src = outUrl;
-              narrateResultVideo.load();
-              narrateResultVideo.play().catch(() => {});
-            }
-            if (narrateDownloadBtn) {
-              narrateDownloadBtn.href = `${outUrl}?download=1`;
-              narrateDownloadBtn.style.pointerEvents = 'auto';
-              narrateDownloadBtn.style.opacity = '1';
-            }
-          } else if (sData.status === 'error') {
-            clearInterval(narratePoll);
-            btnStartNarrate.disabled = false;
-            if (narrateStageText) narrateStageText.textContent = 'Narration failed: ' + (sData.error || 'Unknown error');
-            alert('Narration Error: ' + (sData.error || 'Generation failed'));
-          }
-        } catch (_) {}
-      }, 1000);
-    } catch (err) {
-      alert('Narration error: ' + err.message);
-      btnStartNarrate.disabled = false;
-      if (narrateProgBox) narrateProgBox.style.display = 'none';
-    }
-  });
-
-  // Pre-load narration resources on startup
-  loadBetaNarrateResources();
 }

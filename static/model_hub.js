@@ -7,8 +7,28 @@
 (function () {
   'use strict';
 
-  // 12 Curated Models from UI design
+  // 14 Curated Models from UI design
   const CURATED_MODELS = [
+    {
+      id: 'qwen3:4b',
+      name: 'Qwen 3 4B (Recommended)',
+      brand: 'Qwen',
+      iconClass: 'model-icon-qwen',
+      iconText: 'Q',
+      approxSize: '2.5 GB',
+      categories: ['all', 'top', 'recommended'],
+      description: "Small and snappy. Native hybrid reasoning. Perfect for clip highlights, fast transcripts and modest GPUs."
+    },
+    {
+      id: 'qwen3:8b',
+      name: 'Qwen 3 8B (High Accuracy)',
+      brand: 'Qwen',
+      iconClass: 'model-icon-qwen',
+      iconText: 'Q',
+      approxSize: '4.9 GB',
+      categories: ['all', 'top', 'recommended', 'reasoning'],
+      description: "State-of-the-art Qwen3 reasoning model. Exceptional transcript comprehension, viral hook detection & timing."
+    },
     {
       id: 'qwen2.5-coder:7b',
       name: 'Qwen 2.5 Coder 7B',
@@ -37,7 +57,7 @@
       iconText: 'Q',
       approxSize: '1.9 GB',
       categories: ['all', 'top', 'recommended'],
-      description: "Default fast engine. Incredible efficiency on low-RAM machines with 0 ms prompt latency."
+      description: "Ultra-fast legacy engine. Incredible efficiency on low-RAM machines with near-zero latency."
     },
     {
       id: 'llama3.3:70b',
@@ -133,7 +153,7 @@
 
   // State
   let installedModels = []; // list of objects { name, size, modified }
-  let defaultModel = 'qwen2.5:3b';
+  let defaultModel = 'qwen3:4b';
   let activeTab = 'all';
   let searchQuery = '';
   let activePollInterval = null;
@@ -689,3 +709,4 @@
   setTimeout(fetchInstalledModels, 500);
 
 })();
+

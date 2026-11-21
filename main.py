@@ -577,7 +577,7 @@ def get_transcription_file_path(input_path: str) -> str:
 
 
 def load_existing_transcription(transcription_path: str):
-    """Load existing transcription if it exists."""
+    """Load existing transcription if it exists and is healthy."""
 
     if os.path.exists(transcription_path):
         print(f"Found existing transcription: {transcription_path}")
@@ -585,6 +585,27 @@ def load_existing_transcription(transcription_path: str):
         try:
             with open(transcription_path, "rb") as f:
                 transcription = pickle.load(f)
+
+            # Anti-hallucination check: discard cached transcriptions with degenerate loops (e.g. 6+ repeating identical words)
+            try:
+                words = transcription.get_word_info() if hasattr(transcription, "get_word_info") else []
+                max_consec = 0
+                curr_consec = 0
+                prev_word = None
+                for w in words or []:
+                    w_text = re.sub(r"[^\w]", "", str(w.get("word", "")).strip().lower())
+                    if w_text and w_text == prev_word:
+                        curr_consec += 1
+                        if curr_consec > max_consec:
+                            max_consec = curr_consec
+                    else:
+                        prev_word = w_text
+                        curr_consec = 1
+                if max_consec >= 6:
+                    print(f"  [Transcribe] Discarding corrupt cached transcription: detected {max_consec} consecutive repeating words (Whisper hallucination loop). Will re-transcribe cleanly.")
+                    return None
+            except Exception:
+                pass
 
             print("Successfully loaded existing transcription!")
             return transcription
@@ -1470,16 +1491,24 @@ def create_transcriber(model_size: str) -> "Transcriber":
         kwargs["device"] = os.getenv("WHISPERX_DEVICE", compute_params["device"])
         kwargs["compute_type"] = os.getenv("WHISPERX_COMPUTE_TYPE", compute_params["compute_type"])
         fast_env = os.getenv("CLIPPEDAI_FAST_WHISPER", "1").strip().lower() in {"1", "true", "yes", "on"}
+        asr_opts = dict(kwargs.get("asr_options") or {})
+        # Robust anti-hallucination & anti-repetition configuration
+        asr_opts.setdefault("condition_on_previous_text", False)
+        asr_opts.setdefault("repetition_penalty", 1.2)
+        asr_opts.setdefault("no_repeat_ngram_size", 3)
+        asr_opts.setdefault("compression_ratio_threshold", 2.4)
+        asr_opts.setdefault("hallucination_silence_threshold", 2.0)
         if kwargs["device"] == "cpu":
             cpu_count = os.cpu_count() or 4
             kwargs["threads"] = int(os.getenv("WHISPERX_THREADS", str(max(4, cpu_count))))
-            # Accelerate CPU Whisper inference by using greedy decoding and single temperature
-            asr_opts = dict(kwargs.get("asr_options") or {})
+            # Accelerate CPU Whisper inference while keeping fallback capability
             asr_opts.setdefault("beam_size", int(os.getenv("WHISPERX_BEAM_SIZE", "1")))
             asr_opts.setdefault("best_of", int(os.getenv("WHISPERX_BEST_OF", "1")))
             asr_opts.setdefault("patience", 1)
-            asr_opts.setdefault("temperatures", [0.0])
-            kwargs["asr_options"] = asr_opts
+            asr_opts.setdefault("temperatures", [0.0, 0.2, 0.4])
+        else:
+            asr_opts.setdefault("temperatures", [0.0, 0.2, 0.4, 0.6])
+        kwargs["asr_options"] = asr_opts
         user_lang = os.getenv("WHISPERX_LANGUAGE", "en")
         if "language" not in kwargs or kwargs["language"] is None:
             kwargs["language"] = user_lang
@@ -1931,6 +1960,21 @@ def create_animated_subtitles(video_path, transcription, clip, output_path):
         shutil.copy2(video_path, output_path)
         return output_path
 
+    # Anti-hallucination deduplication: collapse degenerate consecutive repetitions to max 2 occurrences
+    cleaned_clip_words = []
+    consec_count = 0
+    last_word_clean = None
+    for w in clip_words_local:
+        clean_val = re.sub(r"[^\w]", "", str(w.get("word", "")).strip().lower())
+        if clean_val and clean_val == last_word_clean:
+            consec_count += 1
+        else:
+            last_word_clean = clean_val
+            consec_count = 1
+        if consec_count <= 2:
+            cleaned_clip_words.append(w)
+    clip_words_local = cleaned_clip_words or clip_words_local
+
     # Apply ALL CAPS for Premium Caption grammar
     if PREMIUM_CAPTIONS:
         for w in clip_words_local:
@@ -1965,7 +2009,7 @@ def create_animated_subtitles(video_path, transcription, clip, output_path):
     print(f"  [Captions] {len(clip_words_local)} words -> {len(beats)} beats; font={font_name}, size={font_size}, preset={preset}, margin_v={margin_v}")
 
     ass_file = os.path.abspath(os.path.join(OUTPUT_DIR, "temp_subtitles.ass"))
-    final_output = os.path.abspath(output_path.replace(".mp4", "_with_subtitles.mp4"))
+    final_output = os.path.abspath(str(output_path).replace(".mp4", "_with_subtitles.mp4"))
     style_header = (
         "[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\n"
         "WrapStyle: 0\nScaledBorderAndShadow: yes\nYCbCr Matrix: TV.709\n\n"
@@ -2385,7 +2429,21 @@ def words_for_clip(clip, transcription, padding_words: int = 0):
             break
     lo = max(0, start_idx - padding_words)
     hi = min(len(all_words) - 1, end_idx + padding_words)
-    return all_words[lo : hi + 1]
+    raw_sub = all_words[lo : hi + 1]
+    # Filter degenerate consecutive repetitions
+    deduped = []
+    consec = 0
+    last_val = None
+    for item in raw_sub:
+        norm = re.sub(r"[^\w]", "", str(item.get("word", "")).strip().lower())
+        if norm and norm == last_val:
+            consec += 1
+        else:
+            last_val = norm
+            consec = 1
+        if consec <= 2:
+            deduped.append(item)
+    return deduped
 
 
 def transcript_text(words) -> str:

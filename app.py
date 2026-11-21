@@ -82,7 +82,10 @@ if os.name == "nt":
 clear_ffmpeg_report_environment()
 install_hidden_subprocess_defaults()
 
-from flask import Flask, Response, jsonify, render_template, request, send_from_directory, send_file
+import logging
+logger = logging.getLogger("clipify")
+
+from flask import Flask, Response, jsonify, redirect, render_template, request, send_from_directory, send_file
 from werkzeug.utils import secure_filename
 
 def _hidden_creationflags():
@@ -1609,11 +1612,11 @@ def live_preview_frame():
 
 def _generate_thumbnail_file(video_path: Path, thumb_path: Path) -> bool:
     try:
-        from clipify.platform.binary_locator import get_ffmpeg_path
-        ff = get_ffmpeg_path()
+        ff = _ffmpeg_path()
         if not ff or not video_path.exists():
             return False
 
+        thumb_path.parent.mkdir(parents=True, exist_ok=True)
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
         thumb_tmp = thumb_path.with_suffix(".tmp.jpg")
 
@@ -1909,10 +1912,17 @@ def narrate_thumbnail(clip_id: str):
             response = send_from_directory(thumb_path.parent, thumb_path.name, mimetype="image/jpeg")
             response.headers["Cache-Control"] = "public, max-age=86400"
             return response
-        # Fallback to direct media
-        return redirect(f"/api/narrate/media/{clip_id}")
 
-    return jsonify({"error": "Thumbnail not found"}), 404
+    # Clean SVG fallback placeholder so <img> tags never render broken image icons
+    svg_placeholder = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="360" height="200" viewBox="0 0 360 200">'
+        '<rect width="360" height="200" fill="#131d17"/>'
+        '<circle cx="180" cy="90" r="28" fill="#243b2c"/>'
+        '<polygon points="173,77 194,90 173,103" fill="#a3d9a5"/>'
+        '<text x="180" y="145" text-anchor="middle" fill="#7ba380" font-family="sans-serif" font-size="13">Clip Preview</text>'
+        '</svg>'
+    )
+    return Response(svg_placeholder, mimetype="image/svg+xml")
 
 
 def _clean_ai_script(raw: str) -> str:
@@ -2519,7 +2529,7 @@ def import_youtube():
                     jobs[job_id]["events"].append({"kind":"error","message":detail})
 
     threading.Thread(target=worker, daemon=True).start()
-    return jsonify({"job_id": job_id, "filename": "", "size": 0, "status": "downloading"}), 202
+    return jsonify({"ok": True, "job_id": job_id, "filename": "", "size": 0, "status": "downloading"}), 202
 
 
 @app.post("/api/upload-logo/<job_id>")
@@ -3455,7 +3465,7 @@ def open_output_folder():
         "error": error_msg
     })
 
-APP_VERSION = "v4.0.5"
+APP_VERSION = "v4.0.6"
 GITHUB_REPO = "sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE"
 
 
