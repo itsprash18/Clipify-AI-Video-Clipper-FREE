@@ -7,18 +7,19 @@
 **100% Free · Private & Local · No Cloud Subscriptions · No Watermarks**
 
 <p align="center">
-  <a href="https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.5"><strong>Download v4.0.5 Release (Windows & Android) »</strong></a>
+  <a href="https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.7"><strong>Download v4.0.7 Release (Windows & Android) »</strong></a>
   <br>
   <a href="https://ai.projectclipzy.workers.dev/">Project Website</a> ·
   <a href="#-key-features">Key Features</a> ·
+  <a href="#-screenshots">Screenshots</a> ·
   <a href="#-live-studio-beta">Live Studio</a> ·
   <a href="#-quick-start">Quick Start</a> ·
   <a href="#-clipper-vs-competitors">Comparison</a> ·
   <a href="#-local-ai-engine">Local AI Setup</a>
 </p>
 
-[![Release](https://img.shields.io/badge/release-v4.0.5-438d72?style=for-the-badge&logo=github)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.5)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Android-243b63?style=for-the-badge&logo=windows)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.5)
+[![Release](https://img.shields.io/badge/release-v4.0.7-438d72?style=for-the-badge&logo=github)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.7)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Android-243b63?style=for-the-badge&logo=windows)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.7)
 [![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-6366f1?style=for-the-badge)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-3776ab?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Ollama](https://img.shields.io/badge/AI%20Engine-Ollama%20%2F%20Qwen-000000?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.ai)
@@ -35,7 +36,7 @@ Everything runs on your computer—preserving **100% privacy**, with **zero mont
 
 ---
 
-## 📥 Download (v4.0.5)
+## 📥 Download (v4.0.7)
 
 > [!IMPORTANT]
 > **🛡️ Why Windows SmartScreen / Antivirus Flags New Releases (False Positive Explanation)**:
@@ -46,17 +47,17 @@ Everything runs on your computer—preserving **100% privacy**, with **zero mont
 > 1. Click **"More info"** on the Windows SmartScreen blue dialog.
 > 2. Click the **"Run anyway"** button.
 >
-> **Alternative Fix:** Right-click `Clipify.AI.Setup.4.0.5.exe` → **Properties** → Check **"Unblock"** at bottom → Click **OK**.
+> **Alternative Fix:** Right-click `Clipify.AI.Setup.4.0.7.exe` → **Properties** → Check **"Unblock"** at bottom → Click **OK**.
 
 | Package | Platform | Version | Size | Download |
 | :--- | :---: | :---: | :---: | :--- |
-| **`Clipify.AI.Setup.4.0.5.exe`** | Windows 10/11 (64-bit) | `v4.0.5` | **331.4 MB** | [**Download Windows Installer (x64)**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v4.0.5/Clipify.AI.Setup.4.0.5.exe) |
+| **`Clipify.AI.Setup.4.0.7.exe`** | Windows 10/11 (64-bit) | `v4.0.7` | **347.6 MB** | [**Download Windows Installer (x64)**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v4.0.7/Clipify.AI.Setup.4.0.7.exe) |
 | **`Clipify AI (beta).apk`** | Android 8.0+ (ARM64/x86) | `v3.9.0` | **13.8 MB** | [**Download Android APK (beta)**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.9.0/Clipify.AI.beta.apk) |
 
 #### Verify SHA-256 integrity:
 ```powershell
-Get-FileHash ".\Clipify.AI.Setup.4.0.5.exe" -Algorithm SHA256
-# SHA-256: 3F13235D6DF92034371A503D0E304F4753073A50C6E87ECFB9D75E2D5A6D73B0
+Get-FileHash ".\Clipify.AI.Setup.4.0.7.exe" -Algorithm SHA256
+# SHA-256: 67E89DCA0042E61FC1C7ECBFA3945D2F609B58C48D7C5D0E6CE20DE29606545C
 ```
 
 ---
@@ -73,66 +74,91 @@ Get-FileHash ".\Clipify.AI.Setup.4.0.5.exe" -Algorithm SHA256
 ### 2. 🎯 AI Video Clipping & Viral Highlight Scoring
 - **Automated Ingestion**: Paste a YouTube link or drag-and-drop MP4/MOV/MKV/WEBM footage.
 - **Word-Level Transcription**: Fast, accurate speech-to-text powered by WhisperX.
-- **LLM Virality Scoring**: Uses local Ollama models (`qwen2.5:3b`, `qwen2.5:8b`, etc.) or built-in fast AI to rank conversation hooks, humor, drama, or actionable advice.
+- **LLM Virality Scoring**: Uses local Ollama models (`qwen3:4b`, `qwen2.5:3b`, `qwen2.5:8b`, etc.) or built-in fast AI to rank conversation hooks, humor, drama, or actionable advice.
 - **Automatic Titles & Descriptions**: Generates high-CTR titles, hashtags, and social descriptions ready for YouTube Shorts, Instagram Reels, and TikTok.
 
 ### 3. 📐 Smart 9:16 Face-Tracking & 2-Panel Split-Screen
 - **Active Speaker Tracking**: Computer-vision face detection smoothly centers subjects in a vertical 9:16 frame with EMA jitter smoothing.
-- **Gaming Split-Screen Mode (Toggleable)**: When **enabled**, renders full widescreen gameplay on top (1080x1080) and streamer webcam on bottom (1080x840). When **disabled**, automatically switches to 2-person podcast split mode (Speaker 1 on top, Speaker 2 on bottom).
+- **Gaming Split-Screen Mode (Toggleable)**: When **enabled**, renders full widescreen gameplay on top and streamer webcam on bottom. When **disabled**, automatically switches to 2-person podcast split mode (Speaker 1 on top, Speaker 2 on bottom).
 - **Turbo Whisper Engine**: Optional high-speed transcription toggle for instant speech-to-text processing on standard CPUs.
 
-### 4. 🎨 Dynamic Animated Captions (Hormozi / Viral Style)
+### 4. ⇕ Interactive Draggable Split-Screen Resizer (30% to 70%)
+- **Live Interactive Resizer Bar**: Drag the glowing divider bar directly in the 9:16 preview player or adjust the precision percentage slider to custom proportions (`Top 30% / Bottom 70%` through `Top 70% / Bottom 30%`).
+- **Instant Visual Feedback**: Live preview shows real-time dimension badges (`Top 50% · Bottom 50%`) with automatic pixel-exact FFmpeg crop mapping.
+
+### 5. ⏱️ Live Result Time & Cut Range Indicators
+- **Exact Duration Calculation**: Real-time badges (`⏱️ Result Time: M:SS`) update instantly as you change cut boundaries, playback speed, or clip count.
+- **Live Progress Telemetry**: Granular SSE event logs tracking transcription percentages, speech intervals, and render stages so the process never feels stuck.
+
+### 6. 🧠 Universal Multi-User Ollama Discovery & Manifest Layer Parser
+- **Auto-Detect Across All Windows Locations**: Deep multi-tier scanner discovers Ollama installations across `PATH`, `%LOCALAPPDATA%`, `C:\Users\*\AppData\Local\Programs\Ollama`, and Windows Registry (`HKCU` / `HKLM`).
+- **Direct Disk Manifest Parser**: Inspects local Ollama stores (`manifests/` and `manifests-v2/`) to compute model sizes and detect models (`qwen3:4b`, `qwen2.5:3b`, etc.) even when the daemon is offline.
+- **Automatic Daemon Recovery**: Automatically starts the Ollama daemon in the background configured with the correct model store path.
+
+### 7. 🔄 Live 1-Click In-Place Desktop Updater
+- **One-Click Upgrades**: Check for updates and upgrade to the latest version directly inside the app with zero reinstallation hassle.
+- **Seamless Transition**: Pulls updated assets in seconds, applies hot-patches, and reloads your workspace smoothly.
+
+### 8. 🎨 Dynamic Animated Captions (Hormozi / Viral Style)
 - **Active Word Highlighting**: Karaoke-style word highlighting with customizable accent colors (Neon Yellow, Coral, Cyan, Green).
 - **Creator Font Library**: Includes Montserrat Extra Bold, The Bold Font, Komika Axis, Anton, and more.
 - **Customizable Layout**: Adjust caption placement, font size, stroke thickness, and drop shadow.
 
-### 5. 🎛️ Built-in 9:16 Vertical Video Editor
+### 9. 🎛️ Built-in 9:16 Vertical Video Editor
 - **Real-Time 9:16 Preview**: True vertical player with zero letterboxing or distortion.
 - **Post-Render Watermarking & Branding**: Overlay custom logos, adjust opacity and scale, or strip transparent backgrounds automatically with built-in chroma-keying.
 - **One-Click Share & Export**: Instant download or export directly from your local project library.
 
-### 6. 🎙️ Narrate Studio (Faceless Shorts Generator) [BETA]
+### 10. 🎙️ Narrate Studio (Faceless Shorts Generator) [BETA]
 - **AI Story & Script Generation**: Turn any idea into a viral script using local LLMs with custom storytelling prompts.
 - **Dual Voice Engines**: Kokoro Neural TTS and Windows SAPI TTS with sub-2ms audio preview caching.
 - **Curated Background Footage**: Pick from clean stock backgrounds and render a complete faceless short in seconds.
 
-### 7. ✨ "Premium Caption" Mode (Exact Motion Grammar of Viral Shorts)
+### 11. ✨ "Premium Caption" Mode (Exact Motion Grammar of Viral Shorts)
 - **Scale-In Pop Animation**: ASS scale transform (`{\fscx85\fscy85\t(0,75,\fscx108\fscy108)\t(75,140,\fscx100\fscy100)}`) with bold dark borders and soft shadows.
 - **Dynamic Situational / Scene-Action Cues**: Automatically detects pauses and transcript emotion spikes to inject uppercase action cues (e.g. `*REACTS*`, `*LOOKS CLOSER*`, `*SHOCKED*`, `*GAMEPLAY INTENSIFIES*`) with an independent sub-toggle.
 - **Vertical Safe Zone Presets**: Center Seam (`MarginV: 920` for split layouts), Lower Safe Band (`MarginV: 300` for single vertical), and Top Safe Band.
 - **Punchy Dialogue Beats**: Formatted into rapid 1–4 word beats in ALL CAPS.
 
-### 8. 💧 "Add Watermark" Mode (Transparent Text Overlay)
+### 12. 💧 "Add Watermark" Mode (Transparent Text Overlay)
 - **Coexists With Custom Text & Logo**: Dedicated transparent text watermark running concurrently with standard banners and logos.
 - **Complete Control Set**: Opacity slider (0% to 100%, default 35%), rotation angle slider (`-45°` to `+45°`, default `-20°`), position presets, font size, and color picker.
 - **Pixel-Accurate Parity**: Interactive UI preview matches FFmpeg PIL RGBA composite output.
 
-### 9. ☁️ Free Hugging Face Cloud AI & Available Models Dropdown
+### 13. ☁️ Free Hugging Face Cloud AI & Available Models Dropdown
 - **Zero Local RAM Required**: Connect for free to Hugging Face Serverless Inference API with pre-configured models (`Qwen/Qwen2.5-7B-Instruct`, `Llama-3.2-3B`, `Mistral-7B`, `Gemma-2-9B`).
-- **Available Models Dropdown**: Quick dropdown selector to browse, select, and pull popular local Ollama models (`qwen2.5:3b`, `llama3.2:3b`, `deepseek-r1`, etc.) without typing.
+- **Available Models Dropdown**: Quick dropdown selector to browse, select, and pull popular local Ollama models (`qwen3:4b`, `qwen2.5:3b`, `llama3.2:3b`, `deepseek-r1`, etc.) without typing.
 
-### 10. 🧪 All-in-One Beta Testing Lab
+### 14. 🧪 All-in-One Beta Testing Lab
 - **AI Narration Testing Studio**: Generate scripts, audition Kokoro neural voices, select 9:16 background gameplay footage, and render narrated shorts directly from the sidebar.
 - **Video Clipping & Overlay Testing**: Upload local files or paste YouTube links, adjust layout & watermarks, monitor live SSE progress and terminal logs, and export multi-clips with zero setup.
+
+### 15. 🌲 Forest Minigame & Ground Mascot Support Placard
+- **Interactive Companion Minigame**: Relaxing retro runner minigame built right into the studio sidebar.
+- **Need Help? Ground Mascot**: Friendly grounded creature mascot holding a `"Need help?"` support placard, providing one-click guidance and community links.
 
 ---
 
 ## 📸 Screenshots
 
-### 🔴 Live Studio: Real-Time LIVE Stream Clipping & Export-Ready Shorts
+### 🎬 Studio Overview & Navigation
 <p align="center">
-  <img src="docs/screenshots/live_studio_stream.jpg" alt="Clipify AI Live Stream Clipping — Live Stream Ingestion & Export Ready Live Shorts" width="100%">
+  <img src="docs/screenshots/dashboard.png" alt="Clipify AI Create Studio Dashboard" width="100%">
 </p>
 
-| 🎬 Short Studio Dashboard | 🎙️ Narrate Studio (Faceless Shorts) |
+| 🧪 Beta Testing Lab (Draggable Split Resizer) | 🤖 Model Hub & Engine Manager |
 | :---: | :---: |
-| ![Short Studio Dashboard](docs/screenshots/dashboard.png) | ![Narrate Studio](docs/screenshots/narration.png) |
+| ![Beta Testing Lab & Split Resizer](docs/screenshots/beta_testing.png) | ![Model Hub & Engine Manager](docs/screenshots/model_hub.png) |
 
-| 🎛️ 9:16 Vertical Video Editor | 🎭 2-Panel Split-Screen Mode |
+| 🎙️ Narrate Studio (Neural Voices) | 🔴 Live Studio Stream Clipping |
+| :---: | :---: |
+| ![Narrate Studio](docs/screenshots/narration.png) | ![Live Studio](docs/screenshots/live_studio_stream.jpg) |
+
+| 🎛️ 9:16 Vertical Video Editor | 🎭 Gaming Split-Screen Mode |
 | :---: | :---: |
 | ![9:16 Video Editor](docs/screenshots/editor.png) | ![2-Panel Split Screen](docs/screenshots/split_screen.png) |
 
-| 🎮 Interactive Installer with Live Telemetry | 📂 Projects Library |
+| 🎮 Interactive Installer with Telemetry | 📂 Projects Library |
 | :---: | :---: |
 | ![Interactive Installer](docs/screenshots/installer.png) | ![Projects Library](docs/screenshots/projects.png) |
 
@@ -140,15 +166,16 @@ Get-FileHash ".\Clipify.AI.Setup.4.0.5.exe" -Algorithm SHA256
 
 ## 🥊 Clipper vs Competitors
 
-| Feature | OpusClip | Munch / Submagic | Clipify AI (v3.5.4) |
+| Feature | OpusClip | Munch / Submagic | Clipify AI (v4.0.7) |
 | :--- | :---: | :---: | :---: |
 | **Pricing** | $19 – $49/mo | $20 – $50/mo | **100% Free & Open-Source** |
 | **Video Processing** | Cloud (Queues / Limits) | Cloud (Usage Quotas) | **100% Local (Private & Unlimited)** |
 | **Watermarks** | Yes (Free tier) | Yes (Free tier) | **None (Clean Video Exports)** |
 | **AI LLM Highlight Detection** | Proprietary Cloud | Proprietary Cloud | **Local Ollama / Qwen** |
 | **Animated Word Captions** | ✅ | ✅ | **✅ (Multiple Creator Fonts)** |
-| **2-Panel Split Screen** | Limited | Limited | **✅ Built-in** |
+| **Draggable Split Screen** | ❌ | ❌ | **✅ Built-in (30% to 70%)** |
 | **Faceless Narration Studio** | ❌ | ❌ | **✅ Built-in (Kokoro + SAPI)** |
+| **In-Place Live Updater** | ❌ | ❌ | **✅ Built-in (1-Click Update)** |
 | **Custom Code & Extensibility**| ❌ | ❌ | **✅ Full Python / JS Source** |
 
 ---
@@ -157,11 +184,11 @@ Get-FileHash ".\Clipify.AI.Setup.4.0.5.exe" -Algorithm SHA256
 
 ### Method 1: Windows 1-Click Installer (Recommended)
 
-1. Download **[`Clipify.AI.Setup.exe`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.1.0/Clipify.AI.Setup.exe)** from the latest release.
+1. Download **[`Clipify.AI.Setup.4.0.7.exe`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v4.0.7/Clipify.AI.Setup.4.0.7.exe)** from the latest release.
 2. Launch the installer. It will automatically:
    - Configure Python 3.11 embedded runtime.
    - Install required FFmpeg, WhisperX, and PyTorch dependencies.
-   - Detect or pull local Ollama models (`qwen2.5:3b` / `qwen2.5:8b`).
+   - Detect or pull local Ollama models (`qwen3:4b` / `qwen2.5:3b`).
    - Create desktop shortcuts.
 3. Open **Clipify AI** from your desktop and start clipping!
 
