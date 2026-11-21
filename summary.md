@@ -4,7 +4,7 @@
 > **Repository**: `sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE`  
 > **Release Tag**: [`v4.0.7`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.7)  
 > **Production Installers**:
-> - `installer/Clipify.AI.Setup.4.0.7.exe` (Version 4.0.7 — Universal Multi-User Ollama Discovery & Live Fast In-Place Updater)
+> - `installer/Clipify.AI.Setup.4.0.7.exe` (Version 4.0.7 — SHA-256: `67E89DCA0042E61FC1C7ECBFA3945D2F609B58C48D7C5D0E6CE20DE29606545C`, Size: 347,617,161 bytes)
 > - `installer/Clipify.AI.Setup.4.0.6.exe` (Version 4.0.6 — SHA-256: `4BCE503A9D51B3C42C1E4B38FA9DDBC2A3A2C22F34B20575F7A74F57E863CE78`)
 > - `installer/Clipify.AI.Setup.4.0.5.exe` (Preserved intact — SHA-256: `3F13235D6DF92034371A503D0E304F4753073A50C6E87ECFB9D75E2D5A6D73B0`)
 > - `installer/Clipify.AI.Setup.4.0.4.exe` (Preserved intact — SHA-256: `7A652BC40AB00F22C21F21238EDA832E12586BC86D7AFF91AFDCD18D126FEAC4`)
@@ -248,4 +248,5 @@ flowchart TD
   - Installer: `installer/Clipify.AI.Setup.4.0.6.exe` (SHA-256: `4BCE503A9D51B3C42C1E4B38FA9DDBC2A3A2C22F34B20575F7A74F57E863CE78`)
 - **Release Version 4.0.7** (Latest):
   - Tag: [`v4.0.7`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.7)
+  - Installer: `installer/Clipify.AI.Setup.4.0.7.exe` (SHA-256: `67E89DCA0042E61FC1C7ECBFA3945D2F609B58C48D7C5D0E6CE20DE29606545C`, Size: 347,617,161 bytes)
   - Key Inclusions: Universal Multi-User Ollama Discovery (`_find_ollama_exe()`), Direct Disk Manifest Layer Parser (`_scan_store_manifests()`), Removal of hardcoded paths, In-place Update activation via app Update button, and Auto-start of offline Ollama daemons.
