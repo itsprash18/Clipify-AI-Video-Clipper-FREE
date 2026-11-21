@@ -19,11 +19,11 @@
     </a>
     <a href="/narrate" class="narrate-nav" data-nav="narrate" id="navNarrateLink">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a5 5 0 0 0-5 5v4a5 5 0 0 0 10 0V8a5 5 0 0 0-5-5Zm-2.5 5a2.5 2.5 0 0 1 5 0v4a2.5 2.5 0 0 1-5 0V8ZM4 11h2a6 6 0 0 0 12 0h2a8 8 0 0 1-7 7.94V21h-2v-2.06A8 8 0 0 1 4 11Z"/></svg>
-      <span>Narrate</span> <span class="nav-beta-tag">BETA</span>
+      <span>Narrate</span>
     </a>
     <a href="/live" class="live-nav" data-nav="live" id="navLiveLink">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 0-14.14 0M16.24 7.76a6 6 0 0 0-8.48 0M4.93 19.07a10 10 0 0 0 14.14 0M7.76 16.24a6 6 0 0 0 8.48 0"/></svg>
-      <span>Live Studio</span> <span class="nav-beta-tag">BETA</span>
+      <span>Live Studio</span>
     </a>
     <a href="#projects" data-nav="projects" id="navProjectsLink">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-9Zm2.5-.5a.5.5 0 0 0-.5.5v9c0 .28.22.5.5.5h11a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-11Zm2 2.5h7v2h-7v-2Zm0 4h7v2h-7v-2Z"/></svg>
@@ -81,11 +81,6 @@
       <text class="creature-question-mark" x="40" y="16" font-size="14" font-weight="900" fill="#facc15">?</text>
       <path class="creature-sweat-drop" d="M20 20 Q 18 23 20 25 Q 22 23 20 20 Z" fill="#38bdf8" />
     </svg>
-    <div class="sidebar-creature-info">
-      <span class="creature-badge">🎮 Mini Game</span>
-      <span class="creature-title">Forest Runner</span>
-      <small class="creature-status-sub" style="font-size:10px;color:rgba(255,255,255,0.45);">Running endlessly...</small>
-    </div>
   </div>
 </aside>
 <main class="main">
@@ -96,7 +91,7 @@
       <h1 class="living-title">CREATE<br>A SHORT</h1>
       <p>Turn long-form footage into polished vertical edits with local AI, smart transcription, and gaming-aware composition.</p>
     </div>
-    <div class="top-actions"><a class="github-watermark" href="https://github.com/sherlock-dev-ai" target="_blank" rel="noopener noreferrer" aria-label="Open Sherlock Dev AI on GitHub"><span aria-hidden="true">↗</span> GitHub</a><button class="ghost" id="openOutput">Open output</button><div class="status-pill" id="statusPill"><span></span> Checking local services</div></div>
+    <div class="top-actions"><a class="github-watermark" href="https://github.com/sherlock-dev-ai" target="_blank" rel="noopener noreferrer" aria-label="Open Sherlock Dev AI on GitHub"><span aria-hidden="true">↗</span> GitHub</a><button class="ghost" id="openInput" title="Open source / raw video input folder in File Explorer">Open input</button><button class="ghost" id="openOutput" title="Open rendered shorts output folder in File Explorer">Open output</button><div class="status-pill" id="statusPill"><span></span> Checking local services</div></div>
   </header>
   <div class="workflow">
     <div class="workflow-step active"><b>01</b><div><strong>Source</strong><small>Upload</small></div></div>
@@ -306,148 +301,12 @@
     <div>
       <span class="eyebrow" style="color:var(--accent);display:flex;align-items:center;gap:6px;"><span class="nav-beta-tag" style="font-size:0.68rem;padding:2px 6px;">BETA</span> ALL-IN-ONE TESTING WORKSPACE</span>
       <h1>Beta Testing Lab</h1>
-      <p>Test the new AI Narration Studio and the AI Video Clipping Pipeline with live preview, prompt generation, and direct exports.</p>
+      <p>Test advanced experimental AI video clipping algorithms, viral caption motion grammar, and dynamic reaction overlays.</p>
     </div>
   </header>
 
-  <div class="beta-top-nav-tabs" style="display:flex;gap:10px;margin-top:16px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:12px;align-items:center;flex-wrap:wrap;">
-    <button type="button" class="beta-subtab active" id="btnBetaTabNarrate" style="background:#ffffff;color:#000000;border:none;border-radius:10px;padding:9px 20px;font-size:0.88rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-      🎙️ AI Narration Testing Studio <span class="nav-beta-tag" style="background:#000;color:#fff;font-size:0.65rem;">BETA</span>
-    </button>
-    <button type="button" class="beta-subtab" id="btnBetaTabClipper" style="background:rgba(255,255,255,0.06);color:#ffffff;border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:9px 20px;font-size:0.88rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-      🎬 AI Video Clipping &amp; Overlays
-    </button>
-    <div style="flex:1;"></div>
-    <a href="/narrate" class="ghost" style="padding:7px 14px;font-size:0.8rem;text-decoration:none;display:inline-flex;align-items:center;gap:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);">
-      🚀 Fullscreen Narration Studio ↗
-    </a>
-  </div>
-
-  <!-- Workspace 1: AI Narration Testing Studio -->
-  <div id="betaNarrateWorkspace" class="beta-workspace-layout" style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(360px,0.8fr);gap:24px;margin-top:20px;">
-    <div class="beta-controls-col" style="display:flex;flex-direction:column;gap:18px;">
-      
-      <!-- Card 1: Story & Script Generation -->
-      <div class="panel beta-card" style="padding:20px;border-radius:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="display:inline-grid;place-items:center;width:24px;height:24px;border-radius:6px;background:rgba(255,255,255,0.08);color:#fff;font-size:0.75rem;font-weight:700;">01</span>
-            <strong style="font-size:1rem;color:#ffffff;">Story &amp; Script Generation</strong>
-          </div>
-          <span style="font-size:0.75rem;color:var(--accent);">AI Hook Engine</span>
-        </div>
-
-        <label style="display:flex;flex-direction:column;gap:6px;font-size:0.84rem;color:rgba(255,255,255,0.8);">
-          AI Story Prompt
-          <div style="display:flex;gap:8px;">
-            <input type="text" id="betaNarratePrompt" placeholder="e.g. Crazy gaming story with a wild plot twist" style="flex:1;padding:10px 12px;border-radius:8px;background:#0d1117;border:1px solid rgba(255,255,255,0.18);color:#fff;font-size:0.85rem;" />
-            <button type="button" class="ghost" id="btnBetaNarrateGenScript" style="white-space:nowrap;padding:0 14px;font-size:0.8rem;border:1px solid rgba(255,255,255,0.25);">✨ Generate Script</button>
-            <button type="button" class="ghost" id="btnBetaNarrateRandom" style="white-space:nowrap;padding:0 10px;font-size:0.8rem;">⚡ Random</button>
-          </div>
-        </label>
-
-        <label style="display:flex;flex-direction:column;gap:6px;margin-top:12px;font-size:0.84rem;color:rgba(255,255,255,0.8);">
-          Narration Script (Voiceover Dialogue)
-          <textarea id="betaNarrateScript" rows="4" placeholder="Enter or paste spoken narration dialogue here..." style="width:100%;padding:10px 12px;border-radius:8px;background:#0d1117;border:1px solid rgba(255,255,255,0.18);color:#fff;font-size:0.85rem;resize:vertical;"></textarea>
-          <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:rgba(255,255,255,0.45);margin-top:2px;">
-            <span id="betaNarrateWordCount">0 words · ~00:00 est.</span>
-            <span>Spoken clearly by neural TTS</span>
-          </div>
-        </label>
-      </div>
-
-      <!-- Card 2: Neural Voice & Background Footage -->
-      <div class="panel beta-card" style="padding:20px;border-radius:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="display:inline-grid;place-items:center;width:24px;height:24px;border-radius:6px;background:rgba(255,255,255,0.08);color:#fff;font-size:0.75rem;font-weight:700;">02</span>
-            <strong style="font-size:1rem;color:#ffffff;">Voice &amp; Atmosphere</strong>
-          </div>
-          <span style="font-size:0.75rem;color:#88c995;">Kokoro Neural / Windows TTS</span>
-        </div>
-
-        <div class="two" style="gap:12px;">
-          <label>Voice Actor
-            <select id="betaNarrateVoiceSelect" style="width:100%;height:38px;padding:0 10px;border-radius:8px;background:#0d1117;border:1px solid rgba(255,255,255,0.18);color:#fff;font-size:0.82rem;">
-              <option value="af_heart">Heart (Warm &amp; Natural Female)</option>
-              <option value="am_adam">Adam (Deep Male Narrator)</option>
-              <option value="af_bella">Bella (Engaging Female)</option>
-              <option value="am_michael">Michael (Energetic Male)</option>
-              <option value="af_sarah">Sarah (Crisp Storyteller)</option>
-            </select>
-          </label>
-          <label>Speech Pacing
-            <select id="betaNarrateSpeedSelect" style="width:100%;height:38px;padding:0 10px;border-radius:8px;background:#0d1117;border:1px solid rgba(255,255,255,0.18);color:#fff;font-size:0.82rem;">
-              <option value="-2">Slower (-2)</option>
-              <option value="0" selected>Natural (0)</option>
-              <option value="2">Faster (+2)</option>
-            </select>
-          </label>
-        </div>
-
-        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
-          <button type="button" class="ghost" id="btnBetaAuditionVoice" style="padding:6px 14px;font-size:0.8rem;border:1px solid rgba(255,255,255,0.2);">▶ Audition Voice Sample</button>
-          <audio id="betaVoiceAudio" style="height:30px;flex:1;display:none;" controls></audio>
-        </div>
-
-        <div class="two" style="gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
-          <label>Background Clip (9:16)
-            <select id="betaNarrateVideoSelect" style="width:100%;height:38px;padding:0 10px;border-radius:8px;background:#0d1117;border:1px solid rgba(255,255,255,0.18);color:#fff;font-size:0.82rem;">
-              <option value="">Scanning background clips...</option>
-            </select>
-          </label>
-          <label>Caption Animation
-            <select id="betaNarrateCaptionPreset" style="width:100%;height:38px;padding:0 10px;border-radius:8px;background:#0d1117;border:1px solid rgba(255,255,255,0.18);color:#fff;font-size:0.82rem;">
-              <option value="sync-yellow" selected>Sync Yellow (Active Word Follows Audio)</option>
-              <option value="selective-yellow">White + Yellow Highlight</option>
-              <option value="color-words">Color Words (Yellow, Red, Green)</option>
-            </select>
-          </label>
-        </div>
-
-        <button type="button" class="primary big" id="btnBetaStartNarrate" style="margin-top:16px;width:100%;padding:14px;font-size:0.95rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;">
-          <span>⚡ Generate Narrated Short</span><b>→</b>
-        </button>
-
-        <div id="betaNarrateProgressBox" style="display:none;margin-top:14px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);">
-          <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:6px;">
-            <b id="betaNarrateStageText" style="color:#ffffff;">Rendering narration...</b>
-            <span id="betaNarrateProgressPct" style="color:var(--accent);font-weight:700;">0%</span>
-          </div>
-          <div style="width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden;">
-            <div id="betaNarrateProgressBar" style="width:0%;height:100%;background:#ffffff;transition:width 0.2s;"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Right Column: Narration Preview & Output -->
-    <div class="beta-preview-col" style="display:flex;flex-direction:column;gap:18px;">
-      <div class="panel beta-card" style="padding:20px;border-radius:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-          <strong style="font-size:1rem;color:#ffffff;">Narrated Short Preview</strong>
-          <span class="format-pill">1080 × 1920 · 9:16</span>
-        </div>
-
-        <div class="preview-frame" style="aspect-ratio:9/16;max-height:540px;margin:0 auto;position:relative;background:#050507;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.14);display:grid;place-items:center;">
-          <video id="betaNarrateResultVideo" controls playsinline style="width:100%;height:100%;object-fit:contain;display:none;"></video>
-          <div id="betaNarratePlaceholder" style="text-align:center;padding:20px;color:var(--muted-2);">
-            <div style="font-size:2rem;margin-bottom:8px;">🎙️</div>
-            <b style="color:#ffffff;display:block;">Narration Output Preview</b>
-            <small style="display:block;margin-top:4px;">Generate narration above to review video with voice &amp; synced captions</small>
-          </div>
-        </div>
-
-        <div style="display:flex;gap:10px;margin-top:16px;">
-          <a id="betaNarrateDownloadBtn" class="primary" href="#" download style="flex:1;text-align:center;text-decoration:none;pointer-events:none;opacity:0.5;justify-content:center;padding:12px;">Download Short ↓</a>
-          <a href="/narrate" class="ghost" style="flex:1;padding:12px;text-align:center;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">Open in Full Studio ↗</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Workspace 2: Video Clipping & Overlays -->
-  <div id="betaClipperWorkspace" class="beta-workspace-layout" style="display:none;grid-template-columns:minmax(0,1.2fr) minmax(360px,0.8fr);gap:24px;margin-top:20px;">
+  <!-- Video Clipping & Overlays (Primary Beta Workspace) -->
+  <div id="betaClipperWorkspace" class="beta-workspace-layout" style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(360px,0.8fr);gap:24px;margin-top:20px;">
     <!-- Left Column: Step 1 (Upload) & Step 2 (AI Config & Execution) -->
     <div class="beta-controls-col" style="display:flex;flex-direction:column;gap:18px;">
       
