@@ -5223,7 +5223,7 @@ def resize_gaming_adaptive(input_path: str, output_path: str, target_w: int = 10
     # Gameplay occupies the upper ~57%; facecam gets a large reaction panel below.
     game_h=1080; face_h=760; gap=28; top_y=28; face_y=top_y+game_h+gap
     prof = get_upscale_profile()
-    flags = prof["flags"]
+    flags = prof.get("scale_flags", "lanczos")
     unsharp_str = f",{prof['unsharp']}" if prof.get("unsharp") else ""
     # A soft blurred background makes the vertical canvas feel intentional rather than boxed.
     filter_complex=(
@@ -5744,83 +5744,75 @@ def _compose_dual_person_split(source_path: str, output_path: str,
         sep = abs(centroids[1] - centroids[0])
 
         # Dual split needs both speakers to have genuine presence and separation in the clip.
-        if c0_tracks < 3 or c1_tracks < 3 or sep < 0.10:
-            print(f"  [Framing] Dual-person split not applicable (c0={c0_tracks}, c1={c1_tracks}, sep={sep:.2f}); checking solo layout...")
+        if c0_tracks < 3 or c1_tracks < 3 or sep < 0.18:
+            print(f"  [Framing] Dual-person split not applicable (c0={c0_tracks}, c1={c1_tracks}, sep={sep:.2f}); falling back to solo framing.")
             return False
 
+    if centroids is None:
+        print("  [Framing] Dual-person split: fewer than two distinct subjects detected; falling back to solo framing.")
+        return False
+
     prof = get_upscale_profile()
-    flags = prof["flags"]
+    flags = prof.get("scale_flags", "lanczos")
     unsharp_str = f",{prof['unsharp']}" if prof.get("unsharp") else ""
 
-    if centroids is None:
-        print("  [Framing] Dual-person split: framing left speaker (top) and right speaker (bottom).")
-        divider = panel_h - 2
-        vf = (f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase:flags={flags}{unsharp_str},setsar=1,split=2[a][b];"
-              f"[a]crop={target_w}:{panel_h}:0:(in_h-{panel_h})/2,setsar=1[p1];"
-              f"[b]crop={target_w}:{panel_h}:(in_w-{target_w}):(in_h-{panel_h})/2,setsar=1[p2];"
-              f"[p1][p2]vstack=inputs=2,"
-              f"drawbox=x=0:y={divider}:w={target_w}:h=4:color=black@0.55:t=fill[v]")
-        top_note = "left speaker (top), right speaker (bottom)"
-        top_kf = []
-        bottom_kf = []
-    else:
-        # Each panel now runs the full tracking pipeline against its own person,
-        # so framing, loss handling and the face clamp behave exactly as they do
-        # for a single-panel clip.
-        panel_zoom = 2.0
-        # Aim each panel at its own speaker's typical position, so the opening
-        # frames are framed on the right person before anything is detected.
-        top_hint = (centroids[1], sum(o["cy"] for o in clusters[1]) / len(clusters[1]))
-        bottom_hint = (centroids[0], sum(o["cy"] for o in clusters[0]) / len(clusters[0]))
+    # Each panel now runs the full tracking pipeline against its own person,
+    # so framing, loss handling and the face clamp behave exactly as they do
+    # for a single-panel clip.
+    panel_zoom = 2.0
+    # Aim each panel at its own speaker's typical position, so the opening
+    # frames are framed on the right person before anything is detected.
+    top_hint = (centroids[1], sum(o["cy"] for o in clusters[1]) / len(clusters[1]))
+    bottom_hint = (centroids[0], sum(o["cy"] for o in clusters[0]) / len(clusters[0]))
 
-        _, top_info = _detect_person_trajectory(source_path, target_w, panel_h, panel_zoom,
-                                                role_centroids=centroids, role_index=1,
-                                                hold_on_loss=True, initial_hint=top_hint)
-        _, bottom_info = _detect_person_trajectory(source_path, target_w, panel_h, panel_zoom,
-                                                   role_centroids=centroids, role_index=0,
-                                                   hold_on_loss=True, initial_hint=bottom_hint)
+    _, top_info = _detect_person_trajectory(source_path, target_w, panel_h, panel_zoom,
+                                            role_centroids=centroids, role_index=1,
+                                            hold_on_loss=True, initial_hint=top_hint)
+    _, bottom_info = _detect_person_trajectory(source_path, target_w, panel_h, panel_zoom,
+                                               role_centroids=centroids, role_index=0,
+                                               hold_on_loss=True, initial_hint=bottom_hint)
 
-        # Both panels crop from one shared canvas. If the passes above disagree
-        # with the filter graph about that canvas, every keyframe coordinate is
-        # wrong, so fail loudly instead of rendering a plausible-looking clip.
-        for label, role_info in (("top", top_info), ("bottom", bottom_info)):
-            rw = int(round(role_info.get("scaled_w") or 0))
-            rh = int(round(role_info.get("scaled_h") or 0))
-            if (rw, rh) != (scaled_w, scaled_h):
-                raise RuntimeError(
-                    f"split-screen canvas mismatch in {label} role: "
-                    f"detection used {rw}x{rh}, filter graph uses {scaled_w}x{scaled_h}"
-                )
+    # Both panels crop from one shared canvas. If the passes above disagree
+    # with the filter graph about that canvas, every keyframe coordinate is
+    # wrong, so fail loudly instead of rendering a plausible-looking clip.
+    for label, role_info in (("top", top_info), ("bottom", bottom_info)):
+        rw = int(round(role_info.get("scaled_w") or 0))
+        rh = int(round(role_info.get("scaled_h") or 0))
+        if (rw, rh) != (scaled_w, scaled_h):
+            raise RuntimeError(
+                f"split-screen canvas mismatch in {label} role: "
+                f"detection used {rw}x{rh}, filter graph uses {scaled_w}x{scaled_h}"
+            )
 
-        # The top panel reads as a locked-off camera: it follows its speaker, but
-        # slowly and without jitter, while the bottom panel keeps the responsive
-        # per-frame tracking. That difference is what makes the top look locked.
-        top_kf = _locked_follow_series(top_info.get("keyframes", []),
-                                       sample_fps=5.0, window_s=2.0, hold_px=8.0)
-        bottom_kf = bottom_info.get("keyframes", [])
+    # The top panel reads as a locked-off camera: it follows its speaker, but
+    # slowly and without jitter, while the bottom panel keeps the responsive
+    # per-frame tracking. That difference is what makes the top look locked.
+    top_kf = _locked_follow_series(top_info.get("keyframes", []),
+                                   sample_fps=5.0, window_s=2.0, hold_px=8.0)
+    bottom_kf = bottom_info.get("keyframes", [])
 
-        max_x = max(0.0, scaled_w - target_w)
-        max_y = max(0.0, scaled_h - panel_h)
-        if not top_kf:
-            top_x_val = max(0.0, min(max_x, (centroids[1] * scaled_w - target_w / 2.0))) if centroids else max_x
-            top_kf = [{"time": 0.0, "x": top_x_val, "y": max_y / 2.0}]
-        if not bottom_kf:
-            bot_x_val = max(0.0, min(max_x, (centroids[0] * scaled_w - target_w / 2.0))) if centroids else 0.0
-            bottom_kf = [{"time": 0.0, "x": bot_x_val, "y": max_y / 2.0}]
+    max_x = max(0.0, scaled_w - target_w)
+    max_y = max(0.0, scaled_h - panel_h)
+    if not top_kf:
+        top_x_val = max(0.0, min(max_x, (centroids[1] * scaled_w - target_w / 2.0)))
+        top_kf = [{"time": 0.0, "x": top_x_val, "y": max_y / 2.0}]
+    if not bottom_kf:
+        bot_x_val = max(0.0, min(max_x, (centroids[0] * scaled_w - target_w / 2.0)))
+        bottom_kf = [{"time": 0.0, "x": bot_x_val, "y": max_y / 2.0}]
 
-        top_x_expr = _camera_expression(top_kf, "x", max_kf=30)
-        top_y_expr = _camera_expression(top_kf, "y", max_kf=30)
-        bottom_x = _camera_expression(bottom_kf, "x")
-        bottom_y = _camera_expression(bottom_kf, "y")
+    top_x_expr = _camera_expression(top_kf, "x", max_kf=30)
+    top_y_expr = _camera_expression(top_kf, "y", max_kf=30)
+    bottom_x = _camera_expression(bottom_kf, "x")
+    bottom_y = _camera_expression(bottom_kf, "y")
 
-        divider = panel_h - 2
-        vf = (f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase:flags={flags}{unsharp_str},setsar=1,split=2[a][b];"
-              f"[a]crop={target_w}:{panel_h}:{top_x_expr}:{top_y_expr},setsar=1[p1];"
-              f"[b]crop={target_w}:{panel_h}:{bottom_x}:{bottom_y},setsar=1[p2];"
-              f"[p1][p2]vstack=inputs=2,"
-              f"drawbox=x=0:y={divider}:w={target_w}:h=4:color=black@0.55:t=fill[v]")
-        top_note = (f"top locked ({len(top_kf)} holds), bottom tracked "
-                    f"({len(bottom_kf)} keyframes)")
+    divider = panel_h - 2
+    vf = (f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase:flags={flags}{unsharp_str},setsar=1,split=2[a][b];"
+          f"[a]crop={target_w}:{panel_h}:{top_x_expr}:{top_y_expr},setsar=1[p1];"
+          f"[b]crop={target_w}:{panel_h}:{bottom_x}:{bottom_y},setsar=1[p2];"
+          f"[p1][p2]vstack=inputs=2,"
+          f"drawbox=x=0:y={divider}:w={target_w}:h=4:color=black@0.55:t=fill[v]")
+    top_note = (f"top locked ({len(top_kf)} holds), bottom tracked "
+                f"({len(bottom_kf)} keyframes)")
 
     # Retained for the split-screen regression checks: the exact camera plan that
     # produced this render, so the layout can be asserted without re-detecting.
@@ -5868,7 +5860,7 @@ def _compose_solo_split_layout(source_path: str, output_path: str,
             top_y = _camera_expression(keyframes, "y", max_kf=30)
 
         prof = get_upscale_profile()
-        flags = prof["flags"]
+        flags = prof.get("scale_flags", "lanczos")
         unsharp_str = f",{prof['unsharp']}" if prof.get("unsharp") else ""
 
         divider = panel_h - 2
@@ -5972,7 +5964,7 @@ def _compose_gaming_split_layout(source_path: str, output_path: str,
             )
 
         prof = get_upscale_profile()
-        flags = prof["flags"]
+        flags = prof.get("scale_flags", "lanczos")
         divider = game_h - 2
         # Top panel: Whole gameplay (16:9 gameplay center-cropped to 1080x1080 without black sidebars)
         gameplay_crop = (
@@ -6933,7 +6925,7 @@ def process_single_video(
                 "-t", f"{dur:.3f}",
                 "-filter_complex", "[0:v]setpts=PTS-STARTPTS[v];[0:a]asetpts=PTS-STARTPTS[a]",
                 "-map", "[v]", "-map", "[a]",
-                "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "0",
                 "-c:a", "aac", "-b:a", "192k",
                 trimmed_path,
             ]

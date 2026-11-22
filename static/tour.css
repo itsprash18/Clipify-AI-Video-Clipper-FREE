@@ -16,6 +16,7 @@
 
 /* Dynamic Spotlight with section color pulse */
 #tourSpotlight {
+  display: none;
   position: fixed;
   pointer-events: none;
   border-radius: 16px;

@@ -501,8 +501,19 @@
     if (p.includes('/live')) return 'live';
     if (p.includes('/narrate')) return 'narrate';
 
-    // 1. Check which DOM section is currently visible in single-page application
     const sections = ['beta', 'projects', 'editor', 'create'];
+
+    // 1. Check hash first
+    const h = (window.location.hash || '').replace('#', '').split('?')[0].toLowerCase();
+    if (sections.includes(h)) return h;
+
+    // 2. Check active navigation link in sidebar
+    const activeNav = document.querySelector('[data-nav].active');
+    if (activeNav && activeNav.dataset.nav && sections.includes(activeNav.dataset.nav)) {
+      return activeNav.dataset.nav;
+    }
+
+    // 3. Check which DOM section is currently visible
     for (const s of sections) {
       const el = document.getElementById(s);
       if (el) {
@@ -512,16 +523,6 @@
         }
       }
     }
-
-    // 2. Check active navigation link in sidebar
-    const activeNav = document.querySelector('[data-nav].active');
-    if (activeNav && activeNav.dataset.nav && sections.includes(activeNav.dataset.nav)) {
-      return activeNav.dataset.nav;
-    }
-
-    // 3. Check hash
-    const h = (window.location.hash || '').replace('#', '').toLowerCase();
-    if (sections.includes(h)) return h;
 
     return 'create';
   }
@@ -722,6 +723,7 @@
 
     spotlightEl = document.createElement('div');
     spotlightEl.id = 'tourSpotlight';
+    spotlightEl.style.display = 'none';
     overlayEl.appendChild(spotlightEl);
 
     // SVG container for animated curved dotted line
@@ -881,6 +883,9 @@
     if (svgEl) {
       svgEl.classList.remove('visible');
       svgEl.style.display = 'none';
+    }
+    if (spotlightEl) {
+      spotlightEl.style.display = 'none';
     }
     const theme = CONTEXT_THEMES[currentContext] || CONTEXT_THEMES['create'];
     tourSteps = theme.steps;
@@ -1082,6 +1087,9 @@
     bindNavLinks();
   }
 
-  window.startClipifyTour = (ctx) => startTour(true, ctx);
+  window.startClipifyTour = function (arg1, arg2) {
+    const ctx = typeof arg1 === 'string' ? arg1 : (typeof arg2 === 'string' ? arg2 : null);
+    startTour(true, ctx);
+  };
   window.showSupportModal = () => showSupportModal();
 })();

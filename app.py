@@ -2678,7 +2678,7 @@ def import_youtube():
                        "--progress-template", "download:[clip-prog] %(progress._percent_str)s|%(progress.downloaded_bytes)s|%(progress.total_bytes|progress.total_bytes_estimate)s|%(progress.speed)s|%(progress.eta)s",
                        "--restrict-filenames", "--merge-output-format", "mp4", "--max-filesize", "4G",
                        "--socket-timeout", "20", "--retries", "3", "--fragment-retries", "3",
-                       "-f", "bestvideo[height<=1080][protocol^=http][protocol!*=m3u8]+bestaudio[protocol^=http][protocol!*=m3u8]/bestvideo[height<=1080][protocol!*=m3u8]+bestaudio[protocol!*=m3u8]/best[height<=1080][protocol!*=m3u8]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
+                       "-f", "bestvideo[height<=1080]+bestaudio/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[height<=1080]/bestvideo+bestaudio/best",
                        "--ffmpeg-location", str(Path(ffmpeg_path).parent)]
             node_binary = shutil.which("node") or shutil.which("node.exe")
             if node_binary:
@@ -4390,7 +4390,7 @@ def cache_clear():
         "message": f"Successfully cleared {formatted} of disk space ({yt_deleted} YouTube video(s) and {cache_deleted} cache file(s) removed)."
     })
 
-APP_VERSION = "v4.0.10"
+APP_VERSION = "v4.0.11"
 GITHUB_REPO = "sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE"
 
 
@@ -4934,107 +4934,105 @@ def _get_fastest_ollama_model() -> tuple[str, str | None]:
     return sorted_models[0], None
 
 
-_CLIPPY_SYSTEM_PROMPT = """You are Clippy AI, the cheerful, smart, and technical in-app assistant for Clipify AI.
-You know everything about the Clipify AI desktop application.
-Key details:
-- Clipify AI is 100% free, private, and local-first. No API keys or subscriptions needed.
-- Pipeline: WhisperX + Silero VAD for transcription and word timestamps; ClipsAI for highlight & hook detection; MTCNN/MediaPipe for face tracking and 9:16 vertical re-framing.
-- Multi-Speaker Framing: Split-Screen Podcasting (vertical stack), Picture-in-Picture, Gaming Mode (facecam on top, gameplay on bottom).
-- Live Studio (/live): Real-time RTMP stream ingestion (rtmp://localhost:1935/live) from OBS/vMix with audio peak detection and instant replay clipping.
-- Narration Studio (/narrate): Kokoro neural TTS voiceovers paired with gameplay/satisfying background video library or custom user video folders.
-- Beta Lab: Timed & draggable text overlay on video with start/end time markers, timeline bar, playhead sync, and non-destructive FFmpeg burn-in.
-- Model Hub: Ollama model management (Qwen 2.5:3b, Llama 3.2, DeepSeek-R1). Fastest model is Qwen 2.5:3b or 1.5b.
-- Cache Management: 'Clear Cache' button safely clears temporary transcripts and downloaded YouTube videos to free disk space without deleting saved Shorts.
-Always be helpful, concise, cheerful, and format answers with clear markdown points.
+_CLIPPY_SYSTEM_PROMPT = """You are the official in-app AI assistant for Clipify AI.
+You talk naturally, concisely, warmly, and helpfully like a knowledgeable human assistant.
+Never dump overwhelming bulleted feature lists for simple greetings (like "hi", "hello") or casual comments (like "im bored"). Reply normally and ask what they'd like to create!
+
+When the user asks how to use any feature (e.g. clipping live streams, adding text overlays in Beta Lab, creating AI voiceovers, or generating vertical shorts):
+1. Give a simple, clear explanation in plain English.
+2. Remind the user to click the "App Guide" button on the left sidebar if they want a guided, step-by-step interactive walkthrough.
+3. Include an action navigation tag on its own line:
+   - For live streaming / OBS: [NAVIGATE:live]
+   - For beta features / draggable text overlays: [NAVIGATE:beta]
+   - For narration / voiceovers: [NAVIGATE:narrate]
+   - For creating shorts / importing videos: [NAVIGATE:create]
+   - For video editing / branding / projects: [NAVIGATE:editor]
+
+App facts:
+- Clipify AI is 100% free, private, local-first. No API keys or paid tiers.
+- Live Studio (/live): Ingests OBS RTMP stream at rtmp://localhost:1935/live for instant highlight clipping.
+- Narration Studio (/narrate): Pairs Kokoro neural voices with gameplay backgrounds.
+- Beta Lab (#beta): Draggable & timed custom text overlays burned non-destructively.
+- Create Shorts (#create): AI highlight detection (WhisperX + ClipsAI + face tracking).
 """
 
 
 def _clippy_builtin_fallback(user_query: str) -> str:
-    """Provides high-quality, comprehensive responses when Ollama is offline or uninstalled."""
-    q = user_query.lower()
+    """Provides natural, human-like responses when Ollama is offline or uninstalled."""
+    q = user_query.lower().strip()
+
+    # Casual greetings
+    if q in ("hi", "hello", "hey", "yo", "sup", "howdy", "good morning", "good evening") or q.startswith(("hi ", "hello ", "hey ")):
+        return "Hey there! How can I help you today with your clips, live streams, or editing?"
+
+    if "bored" in q:
+        return "Let's make something cool! You can import a video to create quick viral Shorts, test out voiceovers in Narration Studio, or clip highlights from Live Studio. What are you in the mood to create?"
+
+    if any(k in q for k in ("live", "obs", "rtmp", "stream")):
+        return (
+            "[NAVIGATE:live]\n"
+            "I've opened the Live Studio page for you!\n\n"
+            "To clip your live stream, just set OBS to stream to `rtmp://localhost:1935/live`. "
+            "Clipify AI will automatically monitor audio excitement and create instant clips while you broadcast.\n\n"
+            "If you'd like a step-by-step walkthrough, just click on **App Guide** from the left menu!"
+        )
 
     if any(k in q for k in ("text", "beta", "draggable", "drag", "timing", "overlay")):
         return (
-            "### ✍️ How to Add Draggable & Timed Text in Beta Lab\n\n"
-            "You can easily customize your clips with interactive text overlays:\n"
-            "1. Open **Beta Lab** on any generated Short.\n"
-            "2. Under the video player, click **'+ Add Text Overlay'**.\n"
-            "3. **Drag the text** directly on the video player to position it anywhere!\n"
-            "4. **Set Start & End Time**: Use the **'Set to Playhead'** buttons to snap text appearance to your current video playback position.\n"
-            "5. Adjust **Font Size, Text Color**, or enable a **Background Banner** pill.\n"
-            "6. Click **'Burn Text into Video'** to produce a permanent high-definition render!"
-        )
-    if any(k in q for k in ("live", "obs", "rtmp", "stream")):
-        return (
-            "### 🔴 How Live Studio Works\n\n"
-            "**Live Studio** (`/live`) enables real-time clipping directly from your broadcasting software:\n"
-            "1. In **OBS Studio**, open *Settings* -> *Stream*.\n"
-            "2. Set Service to **Custom**, Server to `rtmp://localhost:1935/live`, and Stream Key to `stream`.\n"
-            "3. Start Streaming in OBS. Live Studio will instantly show your live broadcast!\n"
-            "4. Clipify AI monitors the stream for audio hype and action peaks, creating instant highlight clips while you broadcast."
-        )
-    if any(k in q for k in ("narrat", "voice", "tts", "kokoro", "script")):
-        return (
-            "### 🎙️ Narration Studio (`/narrate`)\n\n"
-            "Turn scripts into viral vertical videos with AI voiceover:\n"
-            "1. **Enter or Generate a Script**: Type your text or click 'Generate Script' with Ollama.\n"
-            "2. **Choose a Voice**: Select from Kokoro neural voices (American or British, male or female).\n"
-            "3. **Select Background Video**: Choose from the built-in library (parkour, slime, subway) or click **'Select Custom Folder'** to use your own gameplay footage.\n"
-            "4. Click **'Generate Narrated Short'** to synthesize speech, burn captions, and export a ready-to-post 9:16 video!"
-        )
-    if any(k in q for k in ("cache", "clean", "disk", "space", "delete", "temp", "storage")):
-        return (
-            "### 🧹 How to Clear Cache & Free Up Disk Space\n\n"
-            "1. Go to the sidebar navigation and click **'Settings'** or **'Cache Manager'**.\n"
-            "2. Click **'Clear Cache'**.\n"
-            "3. Clipify AI will clean:\n"
-            "   - Temporary audio extractions\n"
-            "   - Whisper model working cache\n"
-            "   - Downloaded raw YouTube input files\n"
-            "4. *Note:* Your saved finished Shorts and projects are never deleted!"
-        )
-    if any(k in q for k in ("model", "ollama", "fastest", "slow", "gpu", "speed", "qwen", "llama")):
-        return (
-            "### ⚡ Ollama Models & Performance Guide\n\n"
-            "- **Fastest Model**: `qwen2.5:3b` or `qwen2.5:1.5b`. These offer lightning-fast responses (~1 second) with great reasoning.\n"
-            "- **Balanced Quality**: `qwen2.5:7b` or `llama3.2:3b`.\n"
-            "- **How to Install**: Open a terminal and run `ollama pull qwen2.5:3b`.\n"
-            "- **GPU Acceleration**: If you have an NVIDIA GPU with CUDA, Ollama offloads automatically to VRAM for maximum speed."
-        )
-    if any(k in q for k in ("font", "caption", "subtitle", "style", "color")):
-        return (
-            "### 🎨 Subtitles & Styling Options\n\n"
-            "- **Fonts Available**: Montserrat (modern), Komika Axis (viral YouTuber style), Anton (bold punchy), Impact, and Roboto.\n"
-            "- **Karaoke Highlighting**: Word-by-word active highlighting in yellow, cyan, emerald, or custom colors.\n"
-            "- **Formatting**: Choose between 1-line, 2-line, or 3-line word chunks to optimize readability on mobile screens."
-        )
-    if any(k in q for k in ("podcas", "split", "gaming", "face", "crop", "framing")):
-        return (
-            "### 📱 Smart Framing & Face Tracking Modes\n\n"
-            "- **Auto 9:16 Single Speaker**: Keeps the active speaker centered in vertical frame.\n"
-            "- **Split Screen Podcasting**: Stacks host on top and guest on bottom when two people are speaking.\n"
-            "- **Gaming Mode**: Detects the player's facecam box and places it on top while keeping gameplay on bottom.\n"
-            "- **Picture-in-Picture (PiP)**: Insets the speaker in a corner box over background media."
-        )
-    if any(k in q for k in ("10%", "stuck", "error", "problem", "fail", "freeze")):
-        return (
-            "### 🛠️ Troubleshooting & Fixes\n\n"
-            "- **Stuck at 10% during first run**: The first time you run Clipify AI, it downloads the Whisper speech model (~150MB) and Hugging Face weights. Subsequent jobs run in seconds.\n"
-            "- **Ollama not connected**: Run `ollama serve` or open Ollama from your Windows Start Menu.\n"
-            "- **Audio errors**: Ensure your source video has an audible sound track.\n"
-            "- **Update**: Use the in-app **'Update'** button to receive instant zero-reinstall patches!"
+            "[NAVIGATE:beta]\n"
+            "I've opened Beta Lab for you!\n\n"
+            "Here you can add draggable text onto your shorts, drag it anywhere on the video player, "
+            "and use the playhead buttons to set exact start and end times before burning it in.\n\n"
+            "For a quick guided tour, click **App Guide** on the left menu!"
         )
 
+    if any(k in q for k in ("narrat", "voice", "tts", "kokoro", "script")):
+        return (
+            "[NAVIGATE:narrate]\n"
+            "I've opened Narration Studio for you!\n\n"
+            "You can type or generate a script, choose a neural voice (like Kokoro), "
+            "and pair it with satisfying gameplay backgrounds.\n\n"
+            "Feel free to click **App Guide** on the left sidebar for an interactive tour!"
+        )
+
+    if any(k in q for k in ("create", "import", "short", "youtube", "link", "url", "make clip")):
+        return (
+            "[NAVIGATE:create]\n"
+            "I've opened the Create section for you!\n\n"
+            "Just paste any YouTube link or select a local video file, choose your preferred duration and framing, "
+            "and click Start Clipping.\n\n"
+            "You can also click **App Guide** on the left menu for a complete walkthrough!"
+        )
+
+    if any(k in q for k in ("edit", "editor", "project", "review", "brand", "logo", "watermark")):
+        return (
+            "[NAVIGATE:editor]\n"
+            "I've switched to the Editor for you!\n\n"
+            "Here you can preview your finished Shorts, adjust framing, add custom logos and watermarks, "
+            "and publish directly to YouTube Shorts, TikTok, or Instagram.\n\n"
+            "Click **App Guide** on the left menu if you'd like an interactive walkthrough!"
+        )
+
+    if any(k in q for k in ("cache", "clean", "disk", "space", "delete", "temp", "storage")):
+        return (
+            "To free up disk space safely, click **Clear Cache** in the left sidebar navigation. "
+            "Clipify AI will clean up temporary audio extractions and working cache while preserving all your saved Shorts and projects!"
+        )
+
+    if any(k in q for k in ("model", "ollama", "fastest", "speed", "qwen", "llama")):
+        return (
+            "For the fastest local AI speed, we recommend `qwen2.5:3b` or `qwen2.5:1.5b`. "
+            "They respond almost instantly while providing excellent reasoning. "
+            "You can install them by running `ollama pull qwen2.5:3b` in your terminal."
+        )
+
+    if any(k in q for k in ("thank", "thanks", "awesome", "great", "cool")):
+        return "You're very welcome! Let me know if you need any other help creating your clips."
+
     return (
-        "### 👋 Hello! I'm Clippy AI, your Clipify AI assistant!\n\n"
-        "I can help you with anything in the app:\n"
-        "- 🎬 **Creating Shorts**: How to import videos and customize vertical reframing\n"
-        "- ✍️ **Beta Lab Text Editor**: How to drag, time, and burn custom text onto clips\n"
-        "- 🔴 **Live Studio**: How to connect OBS RTMP for real-time stream clipping\n"
-        "- 🎙️ **Narration Studio**: How to synthesize Kokoro TTS voiceovers over gameplay\n"
-        "- ⚡ **Models & Speed**: Choosing the fastest Ollama model\n"
-        "- 🧹 **Cache Management**: Freeing disk space safely\n\n"
-        "What would you like to know?"
+        "I'm here to help you get the most out of Clipify AI! "
+        "You can ask me how to clip live streams, add text in Beta Lab, generate voiceovers, or create viral shorts. "
+        "You can also click **App Guide** on the left menu anytime for an interactive walkthrough!"
     )
 
 
@@ -5098,6 +5096,15 @@ def clippy_chat():
                     chat_res = json.loads(resp.read().decode("utf-8", errors="replace"))
                     msg = chat_res.get("message", {}).get("content", "").strip()
                     if msg:
+                        low_m = message.lower()
+                        if any(k in low_m for k in ("live", "obs", "rtmp", "stream")) and "[NAVIGATE:" not in msg:
+                            msg = f"[NAVIGATE:live]\n{msg}\n\n*Tip: Click **App Guide** on the left menu for a step-by-step walkthrough!*"
+                        elif any(k in low_m for k in ("beta", "text overlay", "draggable text", "overlay")) and "[NAVIGATE:" not in msg:
+                            msg = f"[NAVIGATE:beta]\n{msg}\n\n*Tip: Click **App Guide** on the left menu for a step-by-step walkthrough!*"
+                        elif any(k in low_m for k in ("narrat", "voiceover", "kokoro")) and "[NAVIGATE:" not in msg:
+                            msg = f"[NAVIGATE:narrate]\n{msg}\n\n*Tip: Click **App Guide** on the left menu for a step-by-step walkthrough!*"
+                        elif any(k in low_m for k in ("create short", "import video", "how to clip")) and "[NAVIGATE:" not in msg and "live" not in low_m:
+                            msg = f"[NAVIGATE:create]\n{msg}\n\n*Tip: Click **App Guide** on the left menu for a step-by-step walkthrough!*"
                         return jsonify({
                             "ok": True,
                             "reply": msg,

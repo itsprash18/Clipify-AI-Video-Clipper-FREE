@@ -2762,7 +2762,10 @@ function navigateTo(id) {
 
 $('#navGuideLink')?.addEventListener('click', (e) => {
   e.preventDefault();
-  if (window.startClipifyTour) window.startClipifyTour();
+  const activeNav = document.querySelector('[data-nav].active')?.dataset?.nav;
+  const h = (window.location.hash || '').replace('#', '').split('?')[0].toLowerCase();
+  const ctx = activeNav || h || null;
+  if (window.startClipifyTour) window.startClipifyTour(ctx);
 });
 
 $('#previewReview')?.addEventListener('click', (e) => {

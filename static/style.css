@@ -3047,35 +3047,40 @@ footer {
 }
 
 /* ==========================================================================
-   CLIPPY AI - SMART RIGHT-SIDE EXPANDABLE DRAWER & CHAT
+   CLIPPY AI - SLEEK OBSIDIAN RIGHT-SIDE ASSISTANT & CHAT
    ========================================================================== */
 
+/* Ultra-minimalist Edge Toggle Arrow Tab (Flush with right screen edge, zero control collisions) */
 .clippy-toggle-btn {
   position: fixed;
   right: 0;
-  top: 50%;
+  top: 36%;
   transform: translateY(-50%);
-  z-index: 9990;
+  z-index: 9995;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(6, 95, 70, 0.95));
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  justify-content: center;
+  width: 28px;
+  height: 52px;
+  background: rgba(18, 22, 28, 0.94);
+  color: var(--accent, #d7bb94);
+  border: 1px solid rgba(215, 187, 148, 0.35);
   border-right: none;
-  border-radius: 30px 0 0 30px;
-  padding: 10px 14px 10px 12px;
+  border-radius: 9px 0 0 9px;
+  padding: 0;
   cursor: pointer;
-  box-shadow: -4px 6px 22px rgba(0, 0, 0, 0.45), 0 0 15px rgba(16, 185, 129, 0.4);
+  box-shadow: -3px 3px 14px rgba(0, 0, 0, 0.5), inset 0 0 8px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(12px);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s, box-shadow 0.25s;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s, border-color 0.2s, box-shadow 0.22s, width 0.18s;
   user-select: none;
 }
 
 .clippy-toggle-btn:hover {
-  transform: translateY(-50%) translateX(-6px);
-  background: linear-gradient(135deg, rgba(34, 197, 94, 1), rgba(5, 150, 105, 1));
-  box-shadow: -6px 8px 28px rgba(0, 0, 0, 0.55), 0 0 22px rgba(34, 197, 94, 0.6);
+  width: 32px;
+  background: rgba(26, 32, 42, 0.98);
+  border-color: rgba(215, 187, 148, 0.65);
+  color: #fff4e3;
+  box-shadow: -4px 4px 18px rgba(0, 0, 0, 0.65), 0 0 12px rgba(215, 187, 148, 0.25);
 }
 
 .clippy-toggle-btn.clippy-toggle-hidden {
@@ -3085,63 +3090,39 @@ footer {
 }
 
 .clippy-toggle-arrow {
-  font-size: 16px;
-  font-weight: 900;
+  font-size: 20px;
+  font-weight: 700;
   line-height: 1;
-  transition: transform 0.2s;
-  color: #ecfdf5;
+  transition: transform 0.2s ease;
+  color: inherit;
+  margin-right: 1px;
 }
 
 .clippy-toggle-btn:hover .clippy-toggle-arrow {
-  transform: translateX(-3px);
-}
-
-.clippy-toggle-content {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.clippy-toggle-avatar {
-  font-size: 17px;
-  display: inline-block;
-  animation: clippyTilt 3s ease-in-out infinite;
-}
-
-@keyframes clippyTilt {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-8deg); }
-  75% { transform: rotate(8deg); }
-}
-
-.clippy-toggle-text {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transform: translateX(-2px);
 }
 
 /* --- Drawer Container --- */
 .clippy-drawer {
   position: fixed;
   top: 0;
-  right: -430px;
-  width: 410px;
-  max-width: calc(100vw - 20px);
+  right: -420px;
+  width: 390px;
+  max-width: calc(100vw - 16px);
   height: 100vh;
-  background: rgba(13, 17, 23, 0.96);
-  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(13, 16, 21, 0.97);
+  border-left: 1px solid rgba(215, 187, 148, 0.2);
   box-shadow: none;
-  backdrop-filter: blur(20px);
-  z-index: 9999;
+  backdrop-filter: blur(24px);
+  z-index: 10005;
   display: flex;
   flex-direction: column;
-  transition: right 0.32s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.32s;
+  transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s;
 }
 
 .clippy-drawer.clippy-open {
   right: 0;
-  box-shadow: -15px 0 45px rgba(0, 0, 0, 0.75), -2px 0 10px rgba(16, 185, 129, 0.2);
+  box-shadow: -15px 0 45px rgba(0, 0, 0, 0.8), -2px 0 15px rgba(215, 187, 148, 0.15);
 }
 
 /* --- Drawer Header --- */
@@ -3149,48 +3130,33 @@ footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 18px;
+  padding: 14px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(22, 27, 34, 0.85);
+  background: rgba(18, 22, 29, 0.9);
 }
 
 .clippy-header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .clippy-avatar-box {
-  position: relative;
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 95, 70, 0.4));
-  border: 1px solid rgba(16, 185, 129, 0.4);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(215, 187, 148, 0.25);
   display: grid;
   place-items: center;
+  overflow: hidden;
 }
 
-.clippy-avatar-icon {
-  font-size: 20px;
-}
-
-.clippy-avatar-pulse {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #22c55e;
-  box-shadow: 0 0 8px #22c55e;
-  animation: clippyPulse 2s infinite;
-}
-
-@keyframes clippyPulse {
-  0% { transform: scale(0.9); opacity: 0.8; }
-  50% { transform: scale(1.4); opacity: 1; }
-  100% { transform: scale(0.9); opacity: 0.8; }
+.clippy-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 7px;
 }
 
 .clippy-title-info {
@@ -3200,9 +3166,9 @@ footer {
 }
 
 .clippy-title {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 700;
-  color: #f0fdf4;
+  color: var(--text, #f3eadf);
   margin: 0;
   line-height: 1.2;
 }
@@ -3211,29 +3177,30 @@ footer {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
-  color: #a7f3d0;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  font-size: 10.5px;
+  color: var(--accent, #d7bb94);
+  background: rgba(215, 187, 148, 0.1);
+  border: 1px solid rgba(215, 187, 148, 0.22);
   border-radius: 10px;
   padding: 1px 7px;
   width: fit-content;
 }
 
 .clippy-badge-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: #34d399;
+  background: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
 }
 
 .clippy-close-btn {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #94a3b8;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -3241,15 +3208,15 @@ footer {
 }
 
 .clippy-close-btn:hover {
-  background: rgba(239, 68, 68, 0.18);
-  border-color: rgba(239, 68, 68, 0.4);
-  color: #f87171;
+  background: rgba(215, 187, 148, 0.15);
+  border-color: rgba(215, 187, 148, 0.35);
+  color: #fff;
   transform: scale(1.05);
 }
 
 .clippy-close-arrow {
-  font-size: 16px;
-  font-weight: 900;
+  font-size: 17px;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -3260,28 +3227,28 @@ footer {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   scroll-behavior: smooth;
 }
 
 .clippy-messages::-webkit-scrollbar {
-  width: 5px;
+  width: 4px;
 }
 
 .clippy-messages::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(215, 187, 148, 0.2);
   border-radius: 4px;
 }
 
 .clippy-msg {
   display: flex;
   flex-direction: column;
-  max-width: 92%;
+  max-width: 90%;
   animation: clippyMsgFade 0.2s ease;
 }
 
 @keyframes clippyMsgFade {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -3294,32 +3261,33 @@ footer {
 }
 
 .clippy-msg-bubble {
-  padding: 12px 14px;
-  border-radius: 14px;
+  padding: 11px 14px;
+  border-radius: 12px;
   font-size: 13px;
   line-height: 1.5;
   word-break: break-word;
 }
 
 .clippy-msg-ai .clippy-msg-bubble {
-  background: rgba(26, 32, 44, 0.85);
+  background: rgba(20, 24, 32, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #e2e8f0;
-  border-top-left-radius: 4px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  color: #e2d9cc;
+  border-top-left-radius: 3px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
 }
 
 .clippy-msg-user .clippy-msg-bubble {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: rgba(40, 48, 62, 0.95);
+  border: 1px solid rgba(215, 187, 148, 0.3);
   color: #ffffff;
-  border-top-right-radius: 4px;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+  border-top-right-radius: 3px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
 }
 
 .clippy-msg-time {
   font-size: 10px;
   color: #64748b;
-  margin-top: 4px;
+  margin-top: 3px;
   padding: 0 4px;
 }
 
@@ -3329,7 +3297,7 @@ footer {
 
 /* Markdown styling inside bubbles */
 .clippy-msg-bubble p {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
 }
 
 .clippy-msg-bubble p:last-child {
@@ -3337,54 +3305,54 @@ footer {
 }
 
 .clippy-md-h3, .clippy-md-h4 {
-  margin: 6px 0 6px;
-  color: #6ee7b7;
-  font-size: 13.5px;
+  margin: 4px 0 4px;
+  color: var(--accent, #d7bb94);
+  font-size: 13px;
   font-weight: 700;
 }
 
 .clippy-msg-bubble ul {
-  margin: 6px 0 8px 18px;
+  margin: 4px 0 6px 16px;
   padding: 0;
 }
 
 .clippy-msg-bubble li {
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .clippy-msg-bubble code {
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(215, 187, 148, 0.15);
   padding: 2px 5px;
   border-radius: 4px;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11.5px;
-  color: #a7f3d0;
+  font-size: 11px;
+  color: #e6af2e;
 }
 
 .clippy-msg-bubble pre code {
   display: block;
-  padding: 8px 10px;
+  padding: 6px 8px;
   overflow-x: auto;
-  border-radius: 8px;
-  margin: 6px 0;
+  border-radius: 6px;
+  margin: 4px 0;
 }
 
 /* Suggestion Chips */
 .clippy-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
+  gap: 5px;
+  margin-top: 8px;
 }
 
 .clippy-chip {
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  color: #a7f3d0;
-  padding: 5px 10px;
-  border-radius: 12px;
-  font-size: 11.5px;
+  background: rgba(215, 187, 148, 0.08);
+  border: 1px solid rgba(215, 187, 148, 0.2);
+  color: var(--accent, #d7bb94);
+  padding: 4px 9px;
+  border-radius: 10px;
+  font-size: 11px;
   font-weight: 550;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -3392,71 +3360,85 @@ footer {
 }
 
 .clippy-chip:hover {
-  background: rgba(16, 185, 129, 0.28);
-  border-color: rgba(16, 185, 129, 0.5);
-  color: #ffffff;
+  background: rgba(215, 187, 148, 0.2);
+  border-color: rgba(215, 187, 148, 0.45);
+  color: #fff;
   transform: translateY(-1px);
 }
 
-/* Typing Indicator Animation */
+/* Typing / Thinking Indicator Animation */
 .clippy-typing-bubble {
-  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(20, 24, 32, 0.85);
+  border: 1px solid rgba(215, 187, 148, 0.18);
+  border-radius: 10px;
   width: fit-content;
 }
 
+.clippy-typing-label {
+  font-size: 11px;
+  color: var(--muted, #c9b9a4);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
 .clippy-typing-indicator {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 14px;
+  gap: 4px;
+  height: 12px;
 }
 
 .clippy-dot {
-  width: 7px;
-  height: 7px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: #34d399;
+  background: var(--accent, #d7bb94);
   display: inline-block;
-  animation: clippyDotBounce 1.4s infinite ease-in-out both;
+  animation: clippyDotPulse 1.3s infinite ease-in-out both;
 }
 
 .clippy-dot:nth-child(1) { animation-delay: -0.32s; }
 .clippy-dot:nth-child(2) { animation-delay: -0.16s; }
 .clippy-dot:nth-child(3) { animation-delay: 0s; }
 
-@keyframes clippyDotBounce {
+@keyframes clippyDotPulse {
   0%, 80%, 100% {
-    transform: translateY(0);
-    opacity: 0.35;
+    transform: scale(0.7);
+    opacity: 0.3;
   }
   40% {
-    transform: translateY(-6px);
+    transform: scale(1.15);
     opacity: 1;
-    background: #10b981;
+    background: #ffd89b;
+    box-shadow: 0 0 6px rgba(215, 187, 148, 0.6);
   }
 }
 
 /* --- Input Footer --- */
 .clippy-footer {
-  padding: 12px 16px 14px;
+  padding: 10px 14px 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(22, 27, 34, 0.95);
+  background: rgba(18, 22, 29, 0.95);
 }
 
 .clippy-input-box {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
-  background: rgba(13, 17, 23, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 12px;
-  padding: 6px 10px;
+  gap: 6px;
+  background: rgba(11, 14, 18, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 5px 8px;
   transition: border-color 0.18s, box-shadow 0.18s;
 }
 
 .clippy-input-box:focus-within {
-  border-color: #10b981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  border-color: var(--accent, #d7bb94);
+  box-shadow: 0 0 0 2px rgba(215, 187, 148, 0.15);
 }
 
 .clippy-input {
@@ -3465,11 +3447,11 @@ footer {
   border: none;
   outline: none;
   color: #f8fafc;
-  font-size: 13px;
+  font-size: 12.5px;
   font-family: inherit;
   resize: none;
-  max-height: 120px;
-  padding: 4px 0;
+  max-height: 100px;
+  padding: 3px 0;
   line-height: 1.4;
 }
 
@@ -3478,12 +3460,12 @@ footer {
 }
 
 .clippy-send-btn {
-  background: #10b981;
+  background: var(--accent, #d7bb94);
   border: none;
-  color: #ffffff;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  color: #12161c;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -3492,13 +3474,13 @@ footer {
 }
 
 .clippy-send-btn:hover {
-  background: #059669;
-  transform: scale(1.05);
+  background: #e8cca5;
+  transform: scale(1.04);
 }
 
 .clippy-footer-note {
-  font-size: 10.5px;
+  font-size: 10px;
   color: #64748b;
-  margin-top: 6px;
+  margin-top: 5px;
   text-align: center;
 }
