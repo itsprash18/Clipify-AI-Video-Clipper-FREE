@@ -1262,11 +1262,10 @@ def _render_transparent_watermark_image(
         txt_img = Image.new("RGBA", (int(tw) + pad * 2, int(th) + pad * 2), (0, 0, 0, 0))
         txt_draw = ImageDraw.Draw(txt_img)
         txt_draw.text((pad - bbox[0], pad - bbox[1]), text, font=font, fill=fill_color)
-        try:
-            resample_filter = getattr(Image, "Resampling", Image).BICUBIC
-        except AttributeError:
-            resample_filter = 3
-        rotated_txt = txt_img.rotate(angle, expand=True, resample=resample_filter)  # pyright: ignore[reportArgumentType] # type: ignore[arg-type]
+        resample_filter = getattr(Image, "Resampling", Image)
+        resample_mode = getattr(resample_filter, "BICUBIC", 3)
+        rotate_fn: Any = getattr(txt_img, "rotate")
+        rotated_txt = rotate_fn(angle, expand=True, resample=resample_mode)
         rw, rh = rotated_txt.size
         cx = target_pos[0] + tw // 2
         cy = target_pos[1] + th // 2
@@ -3134,6 +3133,8 @@ def apply_branding(job_id: str):
     clean = out_dir / clean_name
     base = clean if clean.exists() else source
 
+    raw_b = data.get("branding")
+    b: dict[str, Any] = raw_b if isinstance(raw_b, dict) else {}
     raw_framing = data.get("framing") if isinstance(data.get("framing"), dict) else b.get("framing")
     framing_raw: dict[str, Any] = raw_framing if isinstance(raw_framing, dict) else {}
     branding: dict[str, Any] = {

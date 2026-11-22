@@ -70,9 +70,15 @@
     container.id = 'clippyContainer';
     container.className = 'clippy-container';
     container.innerHTML = `
+      <!-- Backdrop Dimmer for Smooth Click-Outside Dismiss -->
+      <div id="clippyBackdrop" class="clippy-backdrop"></div>
+
       <!-- Minimalist Flush Edge Arrow Toggle Button -->
-      <button id="clippyToggleBtn" class="clippy-toggle-btn" title="Open Clipify AI Assistant" aria-label="Open Clipify AI assistant">
-        <span class="clippy-toggle-arrow">‹</span>
+      <button id="clippyToggleBtn" class="clippy-toggle-btn" title="Open Clipify AI Assistant" aria-label="Open Clipify AI assistant" type="button">
+        <span class="clippy-toggle-dot"></span>
+        <svg class="clippy-toggle-arrow-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
       </button>
 
       <!-- Slide-Out Sidebar Drawer -->
@@ -148,6 +154,7 @@
 
     // Bind DOM elements
     const toggleBtn = document.getElementById('clippyToggleBtn');
+    const backdrop = document.getElementById('clippyBackdrop');
     const closeBtn = document.getElementById('clippyCloseBtn');
     const clearBtn = document.getElementById('clippyClearBtn');
     const drawer = document.getElementById('clippyDrawer');
@@ -169,24 +176,45 @@
       renderWelcomeCard(messages);
     }
 
-    // Toggle Drawer
+    // Toggle Drawer with hardware acceleration & zero missed clicks
     function openDrawer() {
       state.open = true;
       drawer.classList.add('clippy-open');
+      if (backdrop) backdrop.classList.add('clippy-backdrop-active');
       toggleBtn.classList.add('clippy-toggle-hidden');
       drawer.setAttribute('aria-hidden', 'false');
-      setTimeout(() => input.focus(), 150);
+      setTimeout(() => input.focus(), 120);
     }
 
     function closeDrawer() {
       state.open = false;
       drawer.classList.remove('clippy-open');
+      if (backdrop) backdrop.classList.remove('clippy-backdrop-active');
       toggleBtn.classList.remove('clippy-toggle-hidden');
       drawer.setAttribute('aria-hidden', 'true');
     }
 
-    toggleBtn.addEventListener('click', openDrawer);
+    // Immediate 1-press trigger
+    let lastToggleTime = 0;
+    function handleToggle(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const now = Date.now();
+      if (now - lastToggleTime < 180) return;
+      lastToggleTime = now;
+      if (state.open) {
+        closeDrawer();
+      } else {
+        openDrawer();
+      }
+    }
+
+    toggleBtn.addEventListener('pointerdown', handleToggle);
+    toggleBtn.addEventListener('click', handleToggle);
     closeBtn.addEventListener('click', closeDrawer);
+    if (backdrop) backdrop.addEventListener('click', closeDrawer);
 
     // Clear history handler
     clearBtn.addEventListener('click', () => {

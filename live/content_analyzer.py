@@ -270,10 +270,34 @@ class ContentAnalyzer:
         if not clusters:
             return None
 
-        # Choose the most frequent/persistent cluster
-        hits = max(clusters, key=len)
-        if len(hits) < 2:
+        # Choose the best streamer facecam cluster:
+        # Avoid picking in-game character portraits (which typically sit in the bottom-left HUD with 0 drift)
+        # when a streamer webcam exists in the top-right, bottom-right, or has natural live human micro-motion.
+        def _cluster_streamer_score(cl: list[FaceBox]) -> float:
+            c_len = len(cl)
+            if c_len < 2:
+                return -1.0
+            c_cx = sum(h.cx for h in cl) / c_len
+            c_cy = sum(h.cy for h in cl) / c_len
+            c_drift = max(abs(h.cx - c_cx) + abs(h.cy - c_cy) for h in cl)
+            if c_drift > 0.14:
+                return -1.0
+            score = float(c_len)
+            # Streamers place webcam in top-right or bottom-right ~90% of the time
+            if c_cx >= 0.65:
+                score += 2.5
+            elif c_cx <= 0.30 and c_cy >= 0.70:
+                # Bottom-left is classic game HUD portrait / minimap location
+                score -= 1.5
+            # Real human streamers show natural micro-drift between sampled frames
+            if 0.003 <= c_drift <= 0.12:
+                score += 1.5
+            return score
+
+        valid_clusters = [cl for cl in clusters if len(cl) >= 2]
+        if not valid_clusters:
             return None
+        hits = max(valid_clusters, key=_cluster_streamer_score)
 
         avg_cx = sum(h.cx for h in hits) / len(hits)
         avg_cy = sum(h.cy for h in hits) / len(hits)

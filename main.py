@@ -5742,10 +5742,11 @@ def _compose_dual_person_split(source_path: str, output_path: str,
         c0_tracks = sum(1 for p in points if any(_role_of(t["cx"]) == 0 for t in p.get("tracks", [])))
         c1_tracks = sum(1 for p in points if any(_role_of(t["cx"]) == 1 for t in p.get("tracks", [])))
         sep = abs(centroids[1] - centroids[0])
+        simultaneous_dual = sum(1 for p in points if len(p.get("tracks", [])) >= 2)
 
-        # Dual split needs both speakers to have genuine presence and separation in the clip.
-        if c0_tracks < 3 or c1_tracks < 3 or sep < 0.18:
-            print(f"  [Framing] Dual-person split not applicable (c0={c0_tracks}, c1={c1_tracks}, sep={sep:.2f}); falling back to solo framing.")
+        # Dual split needs both speakers to have genuine presence, separation, and simultaneous co-occurrence in the clip.
+        if c0_tracks < 3 or c1_tracks < 3 or sep < 0.18 or simultaneous_dual < 2:
+            print(f"  [Framing] Dual-person split not applicable (c0={c0_tracks}, c1={c1_tracks}, sep={sep:.2f}, dual={simultaneous_dual}); falling back to solo framing.")
             return False
 
     if centroids is None:
@@ -5793,12 +5794,9 @@ def _compose_dual_person_split(source_path: str, output_path: str,
 
     max_x = max(0.0, scaled_w - target_w)
     max_y = max(0.0, scaled_h - panel_h)
-    if not top_kf:
-        top_x_val = max(0.0, min(max_x, (centroids[1] * scaled_w - target_w / 2.0)))
-        top_kf = [{"time": 0.0, "x": top_x_val, "y": max_y / 2.0}]
-    if not bottom_kf:
-        bot_x_val = max(0.0, min(max_x, (centroids[0] * scaled_w - target_w / 2.0)))
-        bottom_kf = [{"time": 0.0, "x": bot_x_val, "y": max_y / 2.0}]
+    if not top_kf or not bottom_kf:
+        print("  [Framing] Dual-person split: missing reliable keyframes for both subjects; falling back to solo framing.")
+        return False
 
     top_x_expr = _camera_expression(top_kf, "x", max_kf=30)
     top_y_expr = _camera_expression(top_kf, "y", max_kf=30)
