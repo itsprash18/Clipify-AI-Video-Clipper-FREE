@@ -4342,7 +4342,7 @@ def cache_clear():
         "message": f"Successfully cleared {formatted} of disk space ({yt_deleted} YouTube video(s) and {cache_deleted} cache file(s) removed)."
     })
 
-APP_VERSION = "v4.0.8"
+APP_VERSION = "v4.0.9"
 GITHUB_REPO = "sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE"
 
 
