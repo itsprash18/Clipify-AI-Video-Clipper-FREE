@@ -1417,7 +1417,7 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
         "OMP_STACKSIZE": "64M",
         "KMP_STACKSIZE": "64M",
         "WHISPERX_THREADS": os.getenv("WHISPERX_THREADS", str(max(4, os.cpu_count() or 4)) if fast_whisper else "4"),
-        "WHISPERX_LANGUAGE": os.getenv("WHISPERX_LANGUAGE", "en"),
+        "WHISPERX_LANGUAGE": (os.getenv("WHISPERX_LANGUAGE") or "en").strip().lower() or "en",
         "OMP_NUM_THREADS": str(max(4, os.cpu_count() or 4)) if fast_whisper else "4",
         "MKL_NUM_THREADS": str(max(4, os.cpu_count() or 4)) if fast_whisper else "4",
         "OPENBLAS_NUM_THREADS": str(max(4, os.cpu_count() or 4)) if fast_whisper else "4",
@@ -3731,6 +3731,193 @@ def open_output_folder():
         "opened": opened,
         "path": str(target_dir),
         "error": error_msg
+    })
+
+
+def _scan_cache_and_media() -> dict:
+    """Scans all storage locations for cached transcriptions, temporary files,
+    and imported YouTube media.
+    """
+    dirs = set()
+    dirs.add(USER_DATA_DIR.resolve())
+    dirs.add(ROOT.resolve())
+    local_app = os.environ.get("LOCALAPPDATA", "")
+    if local_app:
+        for name in ["ClippedAI", "ClipifyAI", os.path.join("Programs", "ClipifyAI")]:
+            p = Path(local_app) / name
+            if p.is_dir():
+                dirs.add(p.resolve())
+
+    yt_files: list[Path] = []
+    cache_files: list[Path] = []
+    empty_job_dirs: list[Path] = []
+
+    for base in dirs:
+        jobs_dir = base / "jobs"
+        if jobs_dir.is_dir():
+            for j in jobs_dir.iterdir():
+                if not j.is_dir():
+                    continue
+                inp = j / "input"
+                out = j / "output"
+                has_outputs = out.is_dir() and any(
+                    f.is_file() and f.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm"}
+                    for f in out.iterdir()
+                )
+                if inp.is_dir():
+                    for f in inp.iterdir():
+                        if not f.is_file():
+                            continue
+                        name_low = f.name.lower()
+                        if name_low.startswith("youtube.") or name_low.endswith((".part", ".ytdl", ".temp")):
+                            yt_files.append(f)
+                        elif name_low.endswith(("_transcription.pkl", ".pkl", ".tmp")):
+                            cache_files.append(f)
+
+                diag = j / "diagnostics"
+                if diag.is_dir():
+                    for f in diag.iterdir():
+                        if f.is_file() and f.suffix.lower() in {".log", ".jsonl", ".tmp"}:
+                            cache_files.append(f)
+
+                if not has_outputs and inp.is_dir():
+                    empty_job_dirs.append(j)
+
+        inp_base = base / "input"
+        if inp_base.is_dir():
+            for f in inp_base.iterdir():
+                if not f.is_file():
+                    continue
+                name_low = f.name.lower()
+                if name_low.startswith("youtube.") or name_low.endswith((".part", ".ytdl")):
+                    yt_files.append(f)
+                elif name_low.endswith(("_transcription.pkl", ".pkl", ".tmp")):
+                    cache_files.append(f)
+
+        c_dir = base / "cache"
+        if c_dir.is_dir():
+            for f in c_dir.rglob("*"):
+                if f.is_file():
+                    cache_files.append(f)
+
+        t_dir = base / "trash"
+        if t_dir.is_dir():
+            for f in t_dir.rglob("*"):
+                if f.is_file():
+                    cache_files.append(f)
+
+    yt_unique = list({p.resolve(): p for p in yt_files if p.exists()}.values())
+    cache_unique = list({p.resolve(): p for p in cache_files if p.exists()}.values())
+
+    yt_bytes = sum(p.stat().st_size for p in yt_unique if p.is_file())
+    cache_bytes = sum(p.stat().st_size for p in cache_unique if p.is_file())
+
+    def _format_bytes(b: int) -> str:
+        val = float(b)
+        for unit in ("B", "KB", "MB", "GB", "TB"):
+            if val < 1024.0 or unit == "TB":
+                return f"{val:.1f} {unit}" if unit in ("MB", "GB", "TB") else f"{int(val)} {unit}"
+            val /= 1024.0
+        return f"{b} B"
+
+    return {
+        "yt_files": yt_unique,
+        "cache_files": cache_unique,
+        "empty_job_dirs": empty_job_dirs,
+        "yt_count": len(yt_unique),
+        "yt_bytes": yt_bytes,
+        "yt_formatted": _format_bytes(yt_bytes),
+        "cache_count": len(cache_unique),
+        "cache_bytes": cache_bytes,
+        "cache_formatted": _format_bytes(cache_bytes),
+        "total_bytes": yt_bytes + cache_bytes,
+        "total_formatted": _format_bytes(yt_bytes + cache_bytes),
+    }
+
+
+@app.route("/api/cache/status", methods=["GET"])
+def cache_status():
+    """Returns storage usage of cache files and imported YouTube media."""
+    scan = _scan_cache_and_media()
+    return jsonify({
+        "ok": True,
+        "total_bytes": scan["total_bytes"],
+        "total_formatted": scan["total_formatted"],
+        "yt_count": scan["yt_count"],
+        "yt_bytes": scan["yt_bytes"],
+        "yt_formatted": scan["yt_formatted"],
+        "cache_count": scan["cache_count"],
+        "cache_bytes": scan["cache_bytes"],
+        "cache_formatted": scan["cache_formatted"],
+    })
+
+
+@app.route("/api/cache/clear", methods=["POST"])
+def cache_clear():
+    """Clears transcription cache, thumbnails, temporary files, and imported YouTube videos."""
+    scan = _scan_cache_and_media()
+    freed_bytes = 0
+    yt_deleted = 0
+    cache_deleted = 0
+
+    # 1. Delete imported YouTube videos
+    for p in scan["yt_files"]:
+        try:
+            if p.is_file():
+                sz = p.stat().st_size
+                p.unlink(missing_ok=True)
+                freed_bytes += sz
+                yt_deleted += 1
+        except Exception:
+            pass
+
+    # 2. Delete cache files
+    for p in scan["cache_files"]:
+        try:
+            if p.is_file():
+                sz = p.stat().st_size
+                p.unlink(missing_ok=True)
+                freed_bytes += sz
+                cache_deleted += 1
+        except Exception:
+            pass
+
+    # 3. Clean empty job dirs without outputs
+    for jd in scan["empty_job_dirs"]:
+        try:
+            inp = jd / "input"
+            if inp.is_dir() and not any(inp.iterdir()):
+                shutil.rmtree(jd, ignore_errors=True)
+        except Exception:
+            pass
+
+    # 4. Clean jobs dict in memory
+    with jobs_lock:
+        to_del = []
+        for jid, jinfo in jobs.items():
+            if jinfo.get("status") in {"uploaded", "finished", "error", "ready"}:
+                j_dir = JOBS / jid
+                if not j_dir.exists() or not any(j_dir.iterdir()):
+                    to_del.append(jid)
+        for jid in to_del:
+            jobs.pop(jid, None)
+
+    def _fmt(b: int) -> str:
+        val = float(b)
+        for unit in ("B", "KB", "MB", "GB", "TB"):
+            if val < 1024.0 or unit == "TB":
+                return f"{val:.1f} {unit}" if unit in ("MB", "GB", "TB") else f"{int(val)} {unit}"
+            val /= 1024.0
+        return f"{b} B"
+
+    formatted = _fmt(freed_bytes)
+    return jsonify({
+        "ok": True,
+        "freed_bytes": freed_bytes,
+        "freed_formatted": formatted,
+        "yt_removed": yt_deleted,
+        "cache_removed": cache_deleted,
+        "message": f"Successfully cleared {formatted} of disk space ({yt_deleted} YouTube video(s) and {cache_deleted} cache file(s) removed)."
     })
 
 APP_VERSION = "v4.0.8"

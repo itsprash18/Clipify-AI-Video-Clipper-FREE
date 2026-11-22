@@ -7,9 +7,10 @@
   <title>Clipify AI</title>
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png', v='4.0.7') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='4.0.7') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='studio.css', v='4.0.7') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='model_hub.css', v='4.0.7') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='tour.css', v='4.0.7') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='studio.css', v='4.0.8') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='model_hub.css', v='4.0.8') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='tour.css', v='4.0.8') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='cache_manager.css', v='4.0.8') }}">
 </head>
 
 <body>
@@ -85,6 +86,13 @@
           <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
         </svg>
         <span>Update</span> <span class="nav-ver-tag" id="navVersionTag">v4.0.8</span>
+      </a>
+      <a href="#cache" id="navClearCacheLink" title="Clear transcription cache & imported YouTube videos">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>
+        </svg>
+        <span>Clear Cache</span>
+        <span class="nav-cache-pill" style="display:none;"></span>
       </a>
       <a href="#guide" id="navGuideLink" title="Interactive Guided Tour of all Features">
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -335,7 +343,14 @@
               <div class="source-divider"><span>OR</span></div>
               <div class="youtube-import">
                 <div class="youtube-mark">▶</div>
-                <div><strong>Paste a YouTube link</strong><span>Download a video you have permission to use.</span>
+                <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;">
+                  <div><strong>Paste a YouTube link</strong><span>Download a video you have permission to use.</span></div>
+                  <button type="button" class="btn-clear-cache-link" title="Clear downloaded YouTube footage & cache">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                    <span>Clear Cache</span>
+                  </button>
                 </div>
                 <div class="youtube-input-row"><input id="youtubeUrl" name="youtube_url_no_autofill" type="url"
                     inputmode="url" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off" autocorrect="off"
@@ -845,7 +860,15 @@
                   style="display:inline-grid;place-items:center;width:24px;height:24px;border-radius:6px;background:rgba(255,255,255,0.08);color:#fff;font-size:0.75rem;font-weight:700;">01</span>
                 <strong style="font-size:1rem;color:#ffffff;">Source Footage</strong>
               </div>
-              <span style="font-size:0.75rem;color:var(--muted-2);">MP4 / MOV / MKV / YouTube</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <button type="button" class="btn-clear-cache-link" title="Clear downloaded YouTube footage & cache">
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                  <span>Clear Cache</span>
+                </button>
+                <span style="font-size:0.75rem;color:var(--muted-2);">MP4 / MOV / MKV / YouTube</span>
+              </div>
             </div>
 
             <div class="beta-upload-drop" id="betaDropZone"
@@ -1323,7 +1346,8 @@
   <script src="{{ url_for('static', filename='updater.js', v='4.0.7') }}"></script>
   <script src="{{ url_for('static', filename='model_hub.js', v='4.0.7') }}"></script>
   <script src="{{ url_for('static', filename='app.js', v='4.0.7') }}"></script>
-  <script src="{{ url_for('static', filename='tour.js', v='4.0.7') }}"></script>
+  <script src="{{ url_for('static', filename='tour.js', v='4.0.8') }}"></script>
+  <script src="{{ url_for('static', filename='cache_manager.js', v='4.0.8') }}"></script>
 </body>
 
 </html>

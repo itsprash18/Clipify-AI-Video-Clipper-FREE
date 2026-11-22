@@ -297,11 +297,11 @@ def _patch_clipsai_media_file() -> None:
 
             def safe_get_mime_primary_type(self):
                 ext = os.path.splitext(str(getattr(self, "_path", "")))[1].lower()
-                if ext in {".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v"}:
+                if ext in {".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v", ".flv", ".ts", ".m2ts"}:
                     return "video"
-                if ext in {".mp3", ".wav", ".aac", ".m4a", ".flac", ".ogg", ".opus"}:
+                if ext in {".mp3", ".wav", ".aac", ".m4a", ".flac", ".ogg", ".opus", ".wma"}:
                     return "audio"
-                if ext in {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"}:
+                if ext in {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".tiff"}:
                     return "image"
                 try:
                     t = orig_file_primary(self)
@@ -324,9 +324,12 @@ def _patch_clipsai_media_file() -> None:
                 if ext in media_map:
                     return media_map[ext]
                 try:
-                    return orig_file_mime(self)
+                    t = orig_file_mime(self)
+                    if t and not str(t).startswith("inode"):
+                        return t
                 except Exception:
-                    return "video/mp4"
+                    pass
+                return "video/mp4"
 
             File.get_mime_primary_type = safe_get_mime_primary_type
             File.get_mime_type = safe_get_mime_type
@@ -373,18 +376,75 @@ def _patch_whisper_tokenizer() -> None:
         if not getattr(faster_whisper.tokenizer.Tokenizer, "_clipify_safe_patched", False):
             orig_init = faster_whisper.tokenizer.Tokenizer.__init__
 
-            def safe_tokenizer_init(self, tokenizer, multilingual: bool, task=None, language=None):
+            def safe_tokenizer_init(self, *args, **kwargs):
+                if len(args) > 1:
+                    multilingual = args[1]
+                else:
+                    multilingual = kwargs.get("multilingual", True)
+
                 if multilingual:
-                    if not language or not isinstance(language, str) or language.strip().lower() in ("", "none", "null", "auto", "detect") or language not in faster_whisper.tokenizer._LANGUAGE_CODES:
-                        language = "en"
+                    lang = kwargs.get("language")
+                    if not lang or not isinstance(lang, str) or lang.strip().lower() in ("", "none", "null", "auto", "detect"):
+                        kwargs["language"] = "en"
+                    elif lang.strip().lower() not in faster_whisper.tokenizer._LANGUAGE_CODES:
+                        kwargs["language"] = "en"
+                    else:
+                        kwargs["language"] = lang.strip().lower()
+
+                    if len(args) >= 4:
+                        args_list = list(args)
+                        p_lang = args_list[3]
+                        if not p_lang or not isinstance(p_lang, str) or p_lang.strip().lower() in ("", "none", "null", "auto", "detect") or p_lang.strip().lower() not in faster_whisper.tokenizer._LANGUAGE_CODES:
+                            args_list[3] = "en"
+                        else:
+                            args_list[3] = p_lang.strip().lower()
+                        args = tuple(args_list)
+
+                    task = kwargs.get("task")
                     if not task or task not in faster_whisper.tokenizer._TASKS:
-                        task = "transcribe"
-                return orig_init(self, tokenizer, multilingual, task=task, language=language)
+                        kwargs["task"] = "transcribe"
+                    if len(args) >= 3:
+                        args_list = list(args)
+                        p_task = args_list[2]
+                        if not p_task or p_task not in faster_whisper.tokenizer._TASKS:
+                            args_list[2] = "transcribe"
+                        args = tuple(args_list)
+
+                return orig_init(self, *args, **kwargs)
 
             faster_whisper.tokenizer.Tokenizer.__init__ = safe_tokenizer_init
             faster_whisper.tokenizer.Tokenizer._clipify_safe_patched = True
     except Exception:
         pass
+
+    try:
+        import whisperx
+        if hasattr(whisperx, "load_align_model"):
+            orig_lam = whisperx.load_align_model
+            def safe_load_align_model(language_code, *a, **kw):
+                if not language_code or not isinstance(language_code, str) or language_code.strip().lower() in ("", "none", "null", "auto", "detect"):
+                    language_code = "en"
+                return orig_lam(language_code, *a, **kw)
+            whisperx.load_align_model = safe_load_align_model
+    except Exception:
+        pass
+
+    try:
+        from clipsai.transcribe.transcriber import Transcriber
+        if not getattr(Transcriber, "_clipify_safe_lang_patched", False):
+            orig_transcribe = Transcriber.transcribe
+            def safe_transcribe(self, audio_file_path, iso6391_lang_code=None, batch_size=16):
+                if not iso6391_lang_code or not isinstance(iso6391_lang_code, str) or iso6391_lang_code.strip().lower() in ("", "none", "null", "auto", "detect"):
+                    iso6391_lang_code = "en"
+                return orig_transcribe(self, audio_file_path, iso6391_lang_code=iso6391_lang_code, batch_size=batch_size)
+            Transcriber.transcribe = safe_transcribe
+            Transcriber._clipify_safe_lang_patched = True
+    except Exception:
+        pass
+
+
+# Apply patches immediately on module import
+_patch_clipsai_media_file()
 
 
 def _init_ml_runtime(feature: str = "The Clipify AI video pipeline") -> None:
