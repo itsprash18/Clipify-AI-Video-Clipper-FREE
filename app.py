@@ -3174,6 +3174,106 @@ def save_publish_credentials():
     return jsonify({"ok": saved, "platform": platform, "configured": True})
 
 
+def _resolve_publish_video(job_id: str, filename: str) -> tuple[Path | None, Path | None]:
+    """Resolve video path and sidecar metadata path across job directories, roots, and user data."""
+    if not filename:
+        return None, None
+
+    direct = Path(filename)
+    if direct.is_file():
+        meta = direct.parent / f"{direct.stem}.json"
+        return direct.resolve(), (meta.resolve() if meta.is_file() else None)
+
+    clean_name = Path(filename).name
+    stem = Path(clean_name).stem
+    candidates_names = [
+        clean_name,
+        f"{stem}.mp4",
+        f"{stem}_clean.mp4",
+        f"{stem}_edited.mp4",
+        f"{stem}.mov",
+        f"{stem}.mkv",
+        f"{stem}.webm",
+    ]
+    seen = set()
+    names = [n for n in candidates_names if not (n in seen or seen.add(n))]
+
+    search_dirs = []
+
+    # Priority 1: Specified job directory
+    if job_id:
+        jd = _safe_job_directory(job_id)
+        if jd and jd.is_dir():
+            search_dirs.extend([jd / "output", jd, jd / "input"])
+
+        local_appdata = os.environ.get("LOCALAPPDATA", "")
+        fallback_job_roots = [
+            USER_DATA_DIR / "jobs",
+            ROOT / "jobs",
+        ]
+        if local_appdata:
+            fallback_job_roots.extend([
+                Path(local_appdata) / "Programs" / "ClipifyAI" / "jobs",
+                Path(local_appdata) / "ClipifyAI" / "jobs",
+                Path(local_appdata) / "ClippedAI" / "jobs",
+            ])
+        for root in fallback_job_roots:
+            cand = root / job_id
+            if cand.is_dir():
+                search_dirs.extend([cand / "output", cand, cand / "input"])
+
+    # Priority 2: Common output directories
+    search_dirs.extend([
+        USER_DATA_DIR / "output",
+        ROOT / "output",
+        USER_DATA_DIR / "narrate clips",
+        USER_DATA_DIR / "input",
+    ])
+
+    for d in search_dirs:
+        try:
+            if not d.is_dir():
+                continue
+            for name in names:
+                f = d / name
+                if f.is_file():
+                    meta = d / f"{stem}.json"
+                    return f.resolve(), (meta.resolve() if meta.is_file() else None)
+        except OSError:
+            continue
+
+    # Priority 3: Scan all job folders under known job roots
+    all_job_roots = [JOBS, USER_DATA_DIR / "jobs", ROOT / "jobs"]
+    local_appdata = os.environ.get("LOCALAPPDATA", "")
+    if local_appdata:
+        all_job_roots.extend([
+            Path(local_appdata) / "Programs" / "ClipifyAI" / "jobs",
+            Path(local_appdata) / "ClipifyAI" / "jobs",
+            Path(local_appdata) / "ClippedAI" / "jobs",
+        ])
+
+    for jr in all_job_roots:
+        try:
+            if not jr.is_dir():
+                continue
+            for j in jr.iterdir():
+                if not j.is_dir():
+                    continue
+                for sub in ("output", ""):
+                    target_dir = j / sub if sub else j
+                    if not target_dir.is_dir():
+                        continue
+                    for name in names:
+                        f = target_dir / name
+                        if f.is_file():
+                            meta = target_dir / f"{stem}.json"
+                            return f.resolve(), (meta.resolve() if meta.is_file() else None)
+        except OSError:
+            continue
+
+    return None, None
+
+
 @app.post("/api/publish/upload")
 def publish_short():
     """Publish a generated Short to YouTube, TikTok, Instagram, or export as package."""
@@ -3190,16 +3290,28 @@ def publish_short():
     tags = data.get("tags") if isinstance(data.get("tags"), list) else []
     privacy = str(data.get("privacy", "public")).lower()
 
-    job_dir = _safe_job_directory(job_id)
-    if not job_dir or not job_dir.is_dir():
-        return jsonify({"ok": False, "error": "Project not found."}), 404
+    if not filename:
+        return jsonify({"ok": False, "error": "Missing filename parameter."}), 400
 
-    video_path = job_dir / "output" / filename
-    if not video_path.is_file():
-        return jsonify({"ok": False, "error": f"Video file '{filename}' not found."}), 404
+    video_path, metadata_path = _resolve_publish_video(job_id, filename)
+    if not video_path or not video_path.is_file():
+        return jsonify({"ok": False, "error": f"Video file not found: {filename}"}), 404
 
-    metadata_path = job_dir / "output" / f"{Path(filename).stem}.json"
-    meta_path_str = str(metadata_path) if metadata_path.is_file() else None
+    meta_path_str = str(metadata_path) if metadata_path and metadata_path.is_file() else None
+
+    # Load title / description / tags from sidecar metadata if not provided
+    if (not title or not description) and meta_path_str and Path(meta_path_str).is_file():
+        try:
+            with open(meta_path_str, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+            if not title:
+                title = meta.get("title", "")
+            if not description:
+                description = meta.get("description", "")
+            if not tags and isinstance(meta.get("tags"), list):
+                tags = meta.get("tags")
+        except Exception:
+            pass
 
     if platform == "youtube":
         res = publish_youtube_short(str(video_path), title or Path(filename).stem, description, tags, privacy)

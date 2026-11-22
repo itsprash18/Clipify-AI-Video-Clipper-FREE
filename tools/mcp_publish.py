@@ -18,17 +18,30 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-SETTINGS_FILE = ROOT_DIR / "settings" / "social_credentials.json"
+
+def _get_settings_file() -> Path:
+    try:
+        from clippedai_runtime import USER_DATA_DIR
+        return USER_DATA_DIR / "settings" / "social_credentials.json"
+    except Exception:
+        local = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+        cand = Path(local) / "ClipifyAI" / "settings" / "social_credentials.json"
+        if cand.parent.exists():
+            return cand
+        return ROOT_DIR / "settings" / "social_credentials.json"
+
+SETTINGS_FILE = _get_settings_file()
 
 
 def load_credentials() -> Dict[str, Any]:
     """Load social platform credentials from secure local settings."""
-    if SETTINGS_FILE.is_file():
-        try:
-            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
+    for s_file in (_get_settings_file(), ROOT_DIR / "settings" / "social_credentials.json"):
+        if s_file.is_file():
+            try:
+                with open(s_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                pass
     return {
         "youtube": {
             "enabled": False,
