@@ -152,3 +152,6 @@ test_videos/
 *.db
 wheels/
 *.apk
+scratch/
+.backup_pre_redesign/
+
