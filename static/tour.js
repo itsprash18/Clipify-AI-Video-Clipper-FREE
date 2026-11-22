@@ -28,13 +28,13 @@
       pos: 'right'
     },
     {
-      target: '#youtubeUrl',
+      target: '#youtubeUrl, #fetchUrl',
       title: '3. YouTube Link Ingestion',
       desc: 'Paste any public YouTube URL and click <b>Import</b> to download and process long videos automatically at full resolution.',
       pos: 'bottom'
     },
     {
-      target: '#navClearCacheLink, .btn-clear-cache-link',
+      target: '#navClearCacheLink, #create .btn-clear-cache-link, .btn-clear-cache-link',
       title: '4. Clear Cache & Temporary Footage',
       desc: 'Reclaim gigabytes of disk storage in 1 click! Safely purges cached Whisper transcriptions and downloaded YouTube video files without touching your finished shorts in <code>output/</code>.',
       pos: 'bottom'
@@ -168,31 +168,31 @@
     {
       target: '#betaDropZone, #betaFileInput',
       title: '1. Beta Source Footage Dropzone',
-      desc: 'Drop raw horizontal clips here to test the next-generation AI video processing engine.',
+      desc: 'Drag & drop raw horizontal clips here or browse files to test the next-generation AI video processing engine.',
       pos: 'bottom'
     },
     {
       target: '#betaYtUrl, #betaYtImportBtn',
       title: '2. Experimental YouTube Link Ingestion',
-      desc: 'Paste a video URL and click Fetch Link to test stream segmenting and live buffer downloads.',
+      desc: 'Paste any video URL and click <b>Import</b> to download and test experimental stream segmenting at full 1080p resolution.',
       pos: 'bottom'
     },
     {
-      target: '.btn-clear-cache-link',
+      target: '#beta .btn-clear-cache-link, .btn-clear-cache-link',
       title: '3. Clear Beta Cache & Storage',
-      desc: 'Clean downloaded YouTube test videos and Whisper caches with 1 click to keep your drives uncluttered.',
+      desc: 'Clean downloaded YouTube test videos and Whisper caches with 1 click to keep your drives clean without touching rendered shorts.',
       pos: 'bottom'
     },
     {
-      target: '#betaLayout, #betaSplitRatio',
+      target: '#betaSplitRatioRow, #betaSplitRatio, #betaLayout',
       title: '4. Two-Panel Split-Ratio Framing',
-      desc: 'Fine-tune exact split ratio percentages (e.g. 50/50, 60/40) for stacked horizontal-to-vertical compositions.',
+      desc: 'Fine-tune exact split ratio percentages (e.g. 50/50, 60/40) for stacked horizontal-to-vertical compositions with live drag handle.',
       pos: 'left'
     },
     {
       target: '#betaPremiumCaptions, #betaCaptionPreset',
       title: '5. Premium Motion Subtitles',
-      desc: 'Test kinetic typography styles with high-energy bouncy words, glowing strokes, and animated text transitions.',
+      desc: 'Test kinetic typography styles with high-energy scale-pop bouncy words, glowing strokes, and animated text transitions.',
       pos: 'left'
     },
     {
@@ -204,25 +204,31 @@
     {
       target: '#betaWatermarkEnabled, #betaWatermarkText',
       title: '7. Custom Watermark Branding',
-      desc: 'Overlay channel handles or custom text stamps with adjustable opacity and tilt angle.',
+      desc: 'Overlay channel handles or custom text stamps with adjustable opacity, angle tilt, and anchor positions.',
       pos: 'left'
     },
     {
       target: '#betaRunPipelineBtn',
       title: '8. Run Experimental AI Pipeline',
-      desc: 'Execute experimental segmentation and framing models with real-time profiling and GPU metrics.',
+      desc: 'Execute experimental segmentation and framing models with real-time profiling and live GPU acceleration metrics.',
       pos: 'top'
     },
     {
       target: '#betaPreviewFrame, #betaResultVideo',
-      title: '9. Real-Time Result Monitor',
-      desc: 'Watch the newly processed beta vertical Short inside the 9:16 interactive player frame.',
+      title: '9. Real-Time Result Monitor & Split Resizer',
+      desc: 'Watch the newly processed beta vertical Short inside the 9:16 interactive player frame with live draggable split resizer handle.',
+      pos: 'left'
+    },
+    {
+      target: '#betaTextEditorPanel, #betaTextInput, #betaApplyTextBtn',
+      title: '10. Draggable Text & Timeline Overlay',
+      desc: 'Brand or annotate your Short directly! Drag text overlay anywhere on the video preview, set start/end timestamps on the timeline, and adjust font, color, and background box.',
       pos: 'left'
     },
     {
       target: '#betaDownloadBtn, #betaOpenInEditor',
-      title: '10. Direct Download & Edit Actions',
-      desc: 'Download the rendered MP4 immediately or jump directly to the post-processing editor.',
+      title: '11. Direct Download & Edit Actions',
+      desc: 'Download the rendered MP4 immediately or jump directly to the full Post-Processing Editor.',
       pos: 'left'
     }
   ];
@@ -425,34 +431,275 @@
     }
   ];
 
-  // Helper to determine active workspace context
+  // Distinct section theming colors (designed for aesthetic, non-AI craft look)
+  const CONTEXT_THEMES = {
+    beta: {
+      name: 'Beta Testing Lab',
+      label: '🧪 Beta Lab',
+      steps: BETA_STEPS,
+      accent: '#22c55e',
+      accentLight: '#4ade80',
+      accentGlow: 'rgba(34, 197, 94, 0.45)',
+      badgeBg: 'rgba(34, 197, 94, 0.12)',
+      badgeBorder: 'rgba(34, 197, 94, 0.35)',
+    },
+    create: {
+      name: 'Create a Short',
+      label: '🎬 Create',
+      steps: CREATE_STEPS,
+      accent: '#f59e0b',
+      accentLight: '#fbbf24',
+      accentGlow: 'rgba(245, 158, 11, 0.45)',
+      badgeBg: 'rgba(245, 158, 11, 0.12)',
+      badgeBorder: 'rgba(245, 158, 11, 0.35)',
+    },
+    projects: {
+      name: 'Projects Workspace',
+      label: '📁 Projects',
+      steps: PROJECTS_STEPS,
+      accent: '#06b6d4',
+      accentLight: '#22d3ee',
+      accentGlow: 'rgba(6, 182, 212, 0.45)',
+      badgeBg: 'rgba(6, 182, 212, 0.12)',
+      badgeBorder: 'rgba(6, 182, 212, 0.35)',
+    },
+    editor: {
+      name: 'Post-Processing Editor',
+      label: '✂️ Editor',
+      steps: EDITOR_STEPS,
+      accent: '#a855f7',
+      accentLight: '#c084fc',
+      accentGlow: 'rgba(168, 85, 247, 0.45)',
+      badgeBg: 'rgba(168, 85, 247, 0.12)',
+      badgeBorder: 'rgba(168, 85, 247, 0.35)',
+    },
+    live: {
+      name: 'Live Studio',
+      label: '🔴 Live Studio',
+      steps: LIVE_STEPS,
+      accent: '#ef4444',
+      accentLight: '#f87171',
+      accentGlow: 'rgba(239, 68, 68, 0.45)',
+      badgeBg: 'rgba(239, 68, 68, 0.12)',
+      badgeBorder: 'rgba(239, 68, 68, 0.35)',
+    },
+    narrate: {
+      name: 'Narration Studio',
+      label: '🎙️ Narration Studio',
+      steps: NARRATE_STEPS,
+      accent: '#0284c7',
+      accentLight: '#38bdf8',
+      accentGlow: 'rgba(56, 189, 248, 0.45)',
+      badgeBg: 'rgba(56, 189, 248, 0.12)',
+      badgeBorder: 'rgba(56, 189, 248, 0.35)',
+    }
+  };
+
+  // Helper to accurately determine active workspace context
   function getCurrentPageContext() {
     const p = window.location.pathname.toLowerCase();
     if (p.includes('/live')) return 'live';
     if (p.includes('/narrate')) return 'narrate';
 
+    // 1. Check which DOM section is currently visible in single-page application
+    const sections = ['beta', 'projects', 'editor', 'create'];
+    for (const s of sections) {
+      const el = document.getElementById(s);
+      if (el) {
+        const style = window.getComputedStyle(el);
+        if (style.display !== 'none' && style.visibility !== 'hidden' && (el.classList.contains('visible') || el.offsetParent !== null)) {
+          return s;
+        }
+      }
+    }
+
+    // 2. Check active navigation link in sidebar
+    const activeNav = document.querySelector('[data-nav].active');
+    if (activeNav && activeNav.dataset.nav && sections.includes(activeNav.dataset.nav)) {
+      return activeNav.dataset.nav;
+    }
+
+    // 3. Check hash
     const h = (window.location.hash || '').replace('#', '').toLowerCase();
-    if (h === 'projects') return 'projects';
-    if (h === 'editor') return 'editor';
-    if (h === 'beta') return 'beta';
+    if (sections.includes(h)) return h;
+
     return 'create';
   }
 
-  function getStepsForContext(ctx) {
-    switch (ctx) {
-      case 'live':
-        return { name: 'Live Studio', label: '🔴 Live Studio', steps: LIVE_STEPS };
-      case 'narrate':
-        return { name: 'Narration Studio', label: '🎙️ Narration Studio', steps: NARRATE_STEPS };
-      case 'projects':
-        return { name: 'Projects Workspace', label: '📁 Projects', steps: PROJECTS_STEPS };
-      case 'editor':
-        return { name: 'Post-Processing Editor', label: '✂️ Editor', steps: EDITOR_STEPS };
-      case 'beta':
-        return { name: 'Beta Testing Lab', label: '🧪 Beta Lab', steps: BETA_STEPS };
-      default:
-        return { name: 'Create a Short', label: '🎬 Create', steps: CREATE_STEPS };
+  // Scoped, resilient target element locator
+  function findVisibleTarget(selectorString, currentContext) {
+    if (!selectorString) return null;
+    const parts = selectorString.split(',');
+
+    let sectionContainer = null;
+    if (currentContext === 'beta') {
+      sectionContainer = document.querySelector('#beta');
+    } else if (currentContext === 'projects') {
+      sectionContainer = document.querySelector('#projects');
+    } else if (currentContext === 'editor') {
+      sectionContainer = document.querySelector('#editor');
+    } else if (currentContext === 'create') {
+      sectionContainer = document.querySelector('#create') || document.querySelector('main');
     }
+
+    // 1. Prioritize elements inside the current workspace section container
+    if (sectionContainer) {
+      for (const p of parts) {
+        const sel = p.trim();
+        try {
+          const els = sectionContainer.querySelectorAll(sel);
+          for (let el of els) {
+            const resolved = resolveVisibleElement(el);
+            if (resolved) return resolved;
+          }
+        } catch (_) {}
+      }
+    }
+
+    // 2. Fall back to search globally in document
+    for (const p of parts) {
+      const sel = p.trim();
+      try {
+        const els = document.querySelectorAll(sel);
+        for (let el of els) {
+          const resolved = resolveVisibleElement(el);
+          if (resolved) return resolved;
+        }
+      } catch (_) {}
+    }
+
+    return null;
+  }
+
+  function resolveVisibleElement(el) {
+    if (!el) return null;
+
+    // Checkbox, radio, or file inputs: automatically target the enclosing visible label/toggle-row
+    if (el.tagName === 'INPUT' && (el.type === 'checkbox' || el.type === 'radio' || el.type === 'file' || el.type === 'hidden')) {
+      const parentLabel = el.closest('label') || el.closest('.toggle-row') || el.parentElement;
+      if (parentLabel) el = parentLabel;
+    }
+
+    // Must be in DOM and visible
+    if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') {
+      return null;
+    }
+
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 4 && rect.height > 4) {
+      return el;
+    }
+    return null;
+  }
+
+  // Position card comfortably with center-alignment on the orthogonal axis
+  function positionCard(rect, preferredPos, cardWidth, cardHeight) {
+    const margin = 20;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    let left, top;
+
+    if (preferredPos === 'bottom') {
+      top = rect.bottom + margin;
+      left = rect.left + (rect.width - cardWidth) / 2;
+      if (top + cardHeight > vh - margin) {
+        top = rect.top - cardHeight - margin;
+      }
+    } else if (preferredPos === 'top') {
+      top = rect.top - cardHeight - margin;
+      left = rect.left + (rect.width - cardWidth) / 2;
+      if (top < margin) {
+        top = rect.bottom + margin;
+      }
+    } else if (preferredPos === 'right') {
+      left = rect.right + margin;
+      top = rect.top + (rect.height - cardHeight) / 2;
+      if (left + cardWidth > vw - margin) {
+        left = rect.left - cardWidth - margin;
+      }
+    } else { // left
+      left = rect.left - cardWidth - margin;
+      top = rect.top + (rect.height - cardHeight) / 2;
+      if (left < margin) {
+        left = rect.right + margin;
+      }
+    }
+
+    left = Math.max(margin, Math.min(left, vw - cardWidth - margin));
+    top = Math.max(margin, Math.min(top, vh - cardHeight - margin));
+
+    return { left, top };
+  }
+
+  // Compute smooth, aesthetically curved cubic Bezier curve connecting card and spotlight anchor
+  function computeCurvedDottedConnector(cardRect, spotRect) {
+    const cMidX = cardRect.left + cardRect.width / 2;
+    const cMidY = cardRect.top + cardRect.height / 2;
+    const sMidX = spotRect.left + spotRect.width / 2;
+    const sMidY = spotRect.top + spotRect.height / 2;
+
+    let x1, y1, x2, y2, cx1, cy1, cx2, cy2;
+
+    const dx = sMidX - cMidX;
+    const dy = sMidY - cMidY;
+
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      if (dx > 0) {
+        // Target is to the RIGHT of card
+        x1 = cardRect.right;
+        y1 = Math.max(cardRect.top + 20, Math.min(cardRect.bottom - 20, cardRect.top + cardRect.height * 0.4));
+        x2 = spotRect.left;
+        y2 = Math.max(spotRect.top + 8, Math.min(spotRect.bottom - 8, sMidY));
+        const spanX = Math.max(60, (x2 - x1) * 0.55);
+        const verticalBow = (y2 >= y1) ? -25 : 25;
+        cx1 = x1 + spanX;
+        cy1 = y1 + verticalBow;
+        cx2 = x2 - spanX;
+        cy2 = y2 - verticalBow * 0.5;
+      } else {
+        // Target is to the LEFT of card
+        x1 = cardRect.left;
+        y1 = Math.max(cardRect.top + 20, Math.min(cardRect.bottom - 20, cardRect.top + cardRect.height * 0.4));
+        x2 = spotRect.right;
+        y2 = Math.max(spotRect.top + 8, Math.min(spotRect.bottom - 8, sMidY));
+        const spanX = Math.max(60, (x1 - x2) * 0.55);
+        const verticalBow = (y2 >= y1) ? -25 : 25;
+        cx1 = x1 - spanX;
+        cy1 = y1 + verticalBow;
+        cx2 = x2 + spanX;
+        cy2 = y2 - verticalBow * 0.5;
+      }
+    } else {
+      if (dy > 0) {
+        // Target is BELOW card
+        x1 = Math.max(cardRect.left + 24, Math.min(cardRect.right - 24, cMidX));
+        y1 = cardRect.bottom;
+        x2 = Math.max(spotRect.left + 8, Math.min(spotRect.right - 8, sMidX));
+        y2 = spotRect.top;
+        const spanY = Math.max(50, (y2 - y1) * 0.55);
+        const horizontalBow = (x2 >= x1) ? 30 : -30;
+        cx1 = x1 + horizontalBow;
+        cy1 = y1 + spanY;
+        cx2 = x2 - horizontalBow * 0.5;
+        cy2 = y2 - spanY;
+      } else {
+        // Target is ABOVE card
+        x1 = Math.max(cardRect.left + 24, Math.min(cardRect.right - 24, cMidX));
+        y1 = cardRect.top;
+        x2 = Math.max(spotRect.left + 8, Math.min(spotRect.right - 8, sMidX));
+        y2 = spotRect.bottom;
+        const spanY = Math.max(50, (y1 - y2) * 0.55);
+        const horizontalBow = (x2 >= x1) ? 30 : -30;
+        cx1 = x1 + horizontalBow;
+        cy1 = y1 - spanY;
+        cx2 = x2 - horizontalBow * 0.5;
+        cy2 = y2 + spanY;
+      }
+    }
+
+    const pathStr = `M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${cx1.toFixed(1)} ${cy1.toFixed(1)}, ${cx2.toFixed(1)} ${cy2.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+    return { pathStr, x1, y1, x2, y2 };
   }
 
   let currentContext = 'create';
@@ -461,6 +708,11 @@
   let overlayEl = null;
   let spotlightEl = null;
   let cardEl = null;
+  let svgEl = null;
+  let pathEl = null;
+  let anchorDotEl = null;
+  let anchorPulseEl = null;
+  let cardDotEl = null;
   let supportModalOverlayEl = null;
 
   function initTourElements() {
@@ -472,6 +724,33 @@
     spotlightEl = document.createElement('div');
     spotlightEl.id = 'tourSpotlight';
     overlayEl.appendChild(spotlightEl);
+
+    // SVG container for animated curved dotted line
+    svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svgEl.id = 'tourConnectorSvg';
+    svgEl.setAttribute('class', 'tour-connector-svg');
+
+    pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    pathEl.id = 'tourConnectorPath';
+    pathEl.setAttribute('class', 'tour-connector-path');
+    svgEl.appendChild(pathEl);
+
+    anchorPulseEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    anchorPulseEl.id = 'tourAnchorPulse';
+    anchorPulseEl.setAttribute('class', 'tour-anchor-pulse');
+    svgEl.appendChild(anchorPulseEl);
+
+    anchorDotEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    anchorDotEl.id = 'tourAnchorDot';
+    anchorDotEl.setAttribute('class', 'tour-anchor-dot');
+    svgEl.appendChild(anchorDotEl);
+
+    cardDotEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    cardDotEl.id = 'tourCardDot';
+    cardDotEl.setAttribute('class', 'tour-card-dot');
+    svgEl.appendChild(cardDotEl);
+
+    overlayEl.appendChild(svgEl);
 
     cardEl = document.createElement('div');
     cardEl.id = 'tourCard';
@@ -490,11 +769,8 @@
       else if (e.key === 'ArrowLeft') prevStep();
     });
 
-    window.addEventListener('resize', () => {
-      if (overlayEl && overlayEl.classList.contains('active')) {
-        renderCurrentStep();
-      }
-    });
+    window.addEventListener('resize', updateSpotlightAndConnector);
+    window.addEventListener('scroll', updateSpotlightAndConnector, { passive: true });
 
     document.body.appendChild(overlayEl);
   }
@@ -508,7 +784,7 @@
     }
 
     currentContext = contextOverride || getCurrentPageContext();
-    const info = getStepsForContext(currentContext);
+    const info = CONTEXT_THEMES[currentContext] || CONTEXT_THEMES['create'];
     tourSteps = info.steps;
 
     initTourElements();
@@ -522,6 +798,7 @@
     if (!overlayEl) return;
     overlayEl.classList.remove('active');
     overlayEl.style.display = 'none';
+    if (svgEl) svgEl.style.display = 'none';
     localStorage.setItem(TOUR_STORAGE_KEY, 'true');
   }
 
@@ -542,51 +819,62 @@
     }
   }
 
-  function switchTourContext(targetCtx) {
-    if (targetCtx === 'live') {
-      if (window.location.pathname.toLowerCase().includes('/live')) {
-        currentContext = 'live';
-        tourSteps = LIVE_STEPS;
-        currentStepIndex = 0;
-        renderCurrentStep();
-      } else {
-        window.location.href = '/live#guide';
-      }
+  function updateConnectorCurve(theme) {
+    if (!svgEl || !pathEl || !cardEl || !spotlightEl) return;
+    const cardRect = cardEl.getBoundingClientRect();
+    const spotRect = spotlightEl.getBoundingClientRect();
+
+    if (spotRect.width <= 4 || spotRect.height <= 4 || cardRect.width === 0) {
+      svgEl.style.display = 'none';
       return;
     }
+    svgEl.style.display = 'block';
 
-    if (targetCtx === 'narrate') {
-      if (window.location.pathname.toLowerCase().includes('/narrate')) {
-        currentContext = 'narrate';
-        tourSteps = NARRATE_STEPS;
-        currentStepIndex = 0;
-        renderCurrentStep();
-      } else {
-        window.location.href = '/narrate#guide';
-      }
-      return;
-    }
+    pathEl.setAttribute('stroke', theme.accentLight);
+    pathEl.style.filter = `drop-shadow(0 0 7px ${theme.accentGlow})`;
+    anchorDotEl.setAttribute('fill', theme.accentLight);
+    anchorPulseEl.setAttribute('stroke', theme.accentLight);
+    cardDotEl.setAttribute('fill', theme.accentLight);
 
-    // Target is on index.html
-    const isIndex = !window.location.pathname.toLowerCase().includes('/live') && !window.location.pathname.toLowerCase().includes('/narrate');
-    if (!isIndex) {
-      window.location.href = '/#' + targetCtx;
-      return;
-    }
+    const conn = computeCurvedDottedConnector(cardRect, spotRect);
+    pathEl.setAttribute('d', conn.pathStr);
+    anchorDotEl.setAttribute('cx', conn.x2);
+    anchorDotEl.setAttribute('cy', conn.y2);
+    anchorPulseEl.setAttribute('cx', conn.x2);
+    anchorPulseEl.setAttribute('cy', conn.y2);
+    cardDotEl.setAttribute('cx', conn.x1);
+    cardDotEl.setAttribute('cy', conn.y1);
+  }
 
-    if (typeof window.navigateTo === 'function') {
-      window.navigateTo(targetCtx);
-    }
-    currentContext = targetCtx;
-    const info = getStepsForContext(targetCtx);
-    tourSteps = info.steps;
-    currentStepIndex = 0;
-    setTimeout(() => {
-      renderCurrentStep();
-    }, 80);
+  function updateSpotlightAndConnector() {
+    if (!overlayEl || !overlayEl.classList.contains('active')) return;
+    const theme = CONTEXT_THEMES[currentContext] || CONTEXT_THEMES['create'];
+    tourSteps = theme.steps;
+    const step = tourSteps[currentStepIndex];
+    if (!step) return;
+
+    const targetEl = findVisibleTarget(step.target, currentContext);
+    if (!targetEl) return;
+
+    const rect = targetEl.getBoundingClientRect();
+    const pad = 8;
+    spotlightEl.style.top = Math.max(0, rect.top - pad) + 'px';
+    spotlightEl.style.left = Math.max(0, rect.left - pad) + 'px';
+    spotlightEl.style.width = (rect.width + pad * 2) + 'px';
+    spotlightEl.style.height = (rect.height + pad * 2) + 'px';
+
+    const cardWidth = 360;
+    const cardHeight = cardEl.offsetHeight || 220;
+    const pos = positionCard(rect, step.pos, cardWidth, cardHeight);
+    cardEl.style.top = pos.top + 'px';
+    cardEl.style.left = pos.left + 'px';
+
+    updateConnectorCurve(theme);
   }
 
   function renderCurrentStep() {
+    const theme = CONTEXT_THEMES[currentContext] || CONTEXT_THEMES['create'];
+    tourSteps = theme.steps;
     const step = tourSteps[currentStepIndex];
     if (!step) return;
 
@@ -596,25 +884,15 @@
       return;
     }
 
-    // Attempt to locate target element
-    let targetEl = null;
-    const parts = step.target.split(',');
-    for (const p of parts) {
-      const el = document.querySelector(p.trim());
-      if (el && el.offsetParent !== null && !el.hidden) {
-        targetEl = el;
-        break;
-      }
-    }
-    if (!targetEl) {
-      for (const p of parts) {
-        const el = document.querySelector(p.trim());
-        if (el) {
-          targetEl = el;
-          break;
-        }
-      }
-    }
+    // Apply section color themes to overlay CSS custom properties
+    overlayEl.style.setProperty('--tour-accent', theme.accent);
+    overlayEl.style.setProperty('--tour-accent-light', theme.accentLight);
+    overlayEl.style.setProperty('--tour-accent-glow', theme.accentGlow);
+    overlayEl.style.setProperty('--tour-badge-bg', theme.badgeBg);
+    overlayEl.style.setProperty('--tour-badge-border', theme.badgeBorder);
+
+    // Locate visible target
+    let targetEl = findVisibleTarget(step.target, currentContext);
 
     if (!targetEl) {
       if (currentStepIndex < tourSteps.length - 1) {
@@ -644,24 +922,11 @@
       spotlightEl.style.height = (rect.height + pad * 2) + 'px';
       spotlightEl.style.borderRadius = '16px';
 
-      const info = getStepsForContext(currentContext);
-
-      const switcherHtml = `
-        <div class="tour-page-switcher">
-          <button type="button" class="tour-page-btn ${currentContext === 'create' ? 'active' : ''}" data-ctx="create">🎬 Create</button>
-          <button type="button" class="tour-page-btn ${currentContext === 'projects' ? 'active' : ''}" data-ctx="projects">📁 Projects</button>
-          <button type="button" class="tour-page-btn ${currentContext === 'editor' ? 'active' : ''}" data-ctx="editor">✂️ Editor</button>
-          <button type="button" class="tour-page-btn ${currentContext === 'beta' ? 'active' : ''}" data-ctx="beta">🧪 Beta Lab</button>
-          <button type="button" class="tour-page-btn ${currentContext === 'narrate' ? 'active' : ''}" data-ctx="narrate">🎙️ Narrate</button>
-          <button type="button" class="tour-page-btn ${currentContext === 'live' ? 'active' : ''}" data-ctx="live">🔴 Live</button>
-        </div>
-      `;
-
+      // Clean card without cross-page switcher bar
       cardEl.innerHTML = `
-        ${switcherHtml}
         <div class="tour-card-header">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span class="tour-context-badge">${info.label}</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="tour-context-badge">${theme.label}</span>
             <span class="tour-step-badge">COMPONENT ${currentStepIndex + 1} OF ${tourSteps.length}</span>
           </div>
           <button type="button" class="tour-skip-btn" id="tourSkipBtn">Skip</button>
@@ -678,58 +943,23 @@
         </div>
       `;
 
-      cardEl.querySelectorAll('.tour-page-btn').forEach(b => {
-        b.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const targetCtx = b.getAttribute('data-ctx');
-          switchTourContext(targetCtx);
-        });
-      });
-
       cardEl.querySelector('#tourSkipBtn')?.addEventListener('click', endTour);
       cardEl.querySelector('#tourPrevBtn')?.addEventListener('click', prevStep);
       cardEl.querySelector('#tourNextBtn')?.addEventListener('click', nextStep);
 
-      // Positioning logic
       const cardWidth = 360;
-      const cardHeight = cardEl.offsetHeight || 240;
-      const margin = 16;
-      let cardTop = 0;
-      let cardLeft = 0;
+      const cardHeight = cardEl.offsetHeight || 220;
+      const pos = positionCard(rect, step.pos, cardWidth, cardHeight);
 
-      if (step.pos === 'bottom') {
-        cardTop = rect.bottom + margin;
-        cardLeft = rect.left;
-        if (cardTop + cardHeight > window.innerHeight) {
-          cardTop = Math.max(margin, rect.top - cardHeight - margin);
-        }
-      } else if (step.pos === 'top') {
-        cardTop = rect.top - cardHeight - margin;
-        cardLeft = rect.left;
-        if (cardTop < margin) {
-          cardTop = rect.bottom + margin;
-        }
-      } else if (step.pos === 'right') {
-        cardLeft = rect.right + margin;
-        cardTop = rect.top;
-        if (cardLeft + cardWidth > window.innerWidth) {
-          cardLeft = Math.max(margin, rect.left - cardWidth - margin);
-        }
-      } else {
-        cardLeft = rect.left - cardWidth - margin;
-        cardTop = rect.top;
-        if (cardLeft < margin) {
-          cardLeft = rect.right + margin;
-        }
-      }
-
-      cardLeft = Math.max(margin, Math.min(cardLeft, window.innerWidth - cardWidth - margin));
-      cardTop = Math.max(margin, Math.min(cardTop, window.innerHeight - cardHeight - margin));
-
-      cardEl.style.top = cardTop + 'px';
-      cardEl.style.left = cardLeft + 'px';
+      cardEl.style.top = pos.top + 'px';
+      cardEl.style.left = pos.left + 'px';
       cardEl.style.display = 'block';
-    }, 100);
+
+      // Update animated curved dotted SVG line
+      requestAnimationFrame(() => {
+        updateConnectorCurve(theme);
+      });
+    }, 110);
   }
 
   // ==========================================
