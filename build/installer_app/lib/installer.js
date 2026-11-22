@@ -1153,6 +1153,11 @@ class Installer extends EventEmitter {
       }
     }
 
+    // Ensure Microsoft Visual C++ runtime DLLs are placed directly into the venv
+    // so PyTorch, OpenCV, soundfile and native extensions load on any Windows machine.
+    await this.ensureVcRedist();
+    this.injectVcDlls(venvDir);
+
     const requirements = path.join(this.options.installDir, 'requirements-runtime.txt');
     if (!fs.existsSync(requirements)) {
       this.finishPhase(id, 'error', 'requirements-runtime.txt missing');
@@ -1671,6 +1676,33 @@ class Installer extends EventEmitter {
       }
     );
     if (result.code !== 0) {
+      const outputText = output.join('\n');
+      if (/Visual C\+\+ Redistributable|vc_redist|vcruntime140|DLL load failed/i.test(outputText)) {
+        this.note('Detected missing Visual C++ dependencies; executing automatic remediation...', 'warn');
+        await this.ensureVcRedist();
+        this.injectVcDlls(expectedRuntime);
+
+        // Retry probe once after remediation
+        const retryResult = await this.runProcess(
+          venvPython,
+          ['-B', '-c', probe, expectedRuntime],
+          {
+            timeoutMs: 5 * 60 * 1000,
+            env: {
+              CLIPPEDAI_DATA_DIR: this.options.installDir,
+              CLIPPEDAI_RUNTIME: expectedRuntime,
+            },
+            onLine: (line) => {
+              this.note(`Runtime check (retry): ${line.trim().slice(0, 160)}`, 'info');
+            },
+          }
+        );
+        if (retryResult.code === 0) {
+          this.note(`AI runtime imports verified from ${expectedRuntime} after VC++ setup`, 'ok');
+          return;
+        }
+      }
+
       this.finishPhase(id, 'error', 'AI runtime import verification failed');
       const detail = output.slice(-6).join(' | ').slice(0, 900);
       throw new Error(
@@ -1678,6 +1710,66 @@ class Installer extends EventEmitter {
       );
     }
     this.note(`AI runtime imports verified from ${expectedRuntime}`, 'ok');
+  }
+
+  /** Copies essential Microsoft Visual C++ runtime DLLs directly into the target environment. */
+  injectVcDlls(targetDir) {
+    if (!targetDir || !fs.existsSync(targetDir)) return;
+    const vcDllNames = ['vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll', 'msvcp140_1.dll', 'msvcp140_2.dll'];
+    const candidates = [
+      this.options && this.options.installDir,
+      this.payloadRoot,
+      path.join(process.env.SystemRoot || 'C:\\Windows', 'System32'),
+    ].filter(Boolean);
+
+    for (const dll of vcDllNames) {
+      let src = null;
+      for (const dir of candidates) {
+        const candidate = path.join(dir, dll);
+        if (fs.existsSync(candidate)) {
+          src = candidate;
+          break;
+        }
+      }
+      if (src) {
+        for (const sub of ['', 'Scripts', path.join('Lib', 'site-packages')]) {
+          const destDir = path.join(targetDir, sub);
+          if (fs.existsSync(destDir)) {
+            try { fs.copyFileSync(src, path.join(destDir, dll)); } catch (_) {}
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Ensures the official Microsoft Visual C++ 2015-2022 Redistributable (x64) is present.
+   * If missing, downloads and installs it silently from Microsoft's CDN.
+   */
+  async ensureVcRedist() {
+    const systemRoot = process.env.SystemRoot || process.env.WINDIR || 'C:\\Windows';
+    const targetDll = path.join(systemRoot, 'System32', 'vcruntime140_1.dll');
+    if (fs.existsSync(targetDll)) {
+      return true;
+    }
+
+    this.note('Microsoft Visual C++ Redistributable (x64) missing; preparing official Microsoft runtime...', 'info');
+    const vcUrl = 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
+    const vcTempExe = path.join(os.tmpdir(), 'clipify-vc-redist.x64.exe');
+    try {
+      await this.downloadFile(vcUrl, vcTempExe, (done, total) => {
+        if (total > 0) this.updateByteProgress(done, total);
+      });
+      this.note('Installing Microsoft Visual C++ Redistributable silently...', 'pkg');
+      const res = await this.runProcess(vcTempExe, ['/install', '/quiet', '/norestart'], { timeoutMs: 180000 });
+      if (res.code === 0 || fs.existsSync(targetDll)) {
+        this.note('Microsoft Visual C++ Redistributable installed successfully', 'ok');
+        return true;
+      }
+    } catch (e) {
+      this.note(`Automatic VC++ Redistributable setup notice: ${e.message}`, 'warn');
+    }
+    return fs.existsSync(targetDll);
   }
 
   // --------------------------------------------------------- step: ollama
