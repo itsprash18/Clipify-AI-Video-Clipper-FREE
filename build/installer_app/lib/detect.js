@@ -87,8 +87,9 @@ const RUNTIME_MODELS = CATALOG.models.map((model) => ({
   tags: model.tags,
 }));
 
-/** Real measured sizes for the runtime, used for the required-space estimate. */
-const RUNTIME_BYTES = 2.7 * 1024 ** 3;
+/** Real measured sizes for the runtime, used for the required-space estimate.
+ * Includes virtualenv size (~4.8GB) + pip download cache & wheel unpack scratch space. */
+const RUNTIME_BYTES = 5.8 * 1024 ** 3;
 const NARRATION_MODEL_BYTES = 13 * 1024 ** 2;
 const OLLAMA_BYTES = 1.0 * 1024 ** 3;
 const DEFAULT_ID = 'qwen2.5:3b';

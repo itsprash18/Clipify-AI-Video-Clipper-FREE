@@ -280,6 +280,44 @@ def _auto_install_package(package_name: str, import_name: Optional[str] = None) 
             return False
 
 
+def _patch_clipsai_media_file() -> None:
+    """Prevent clipsai from crashing when python-magic returns 'inode' or 'application'.
+
+    python-magic-bin on Windows can return 'inode/x-empty' on empty files or fails on
+    certain containers, returning non-standard mime types. This patches MediaFile.check_exists
+    to allow known media extensions and checks for 0-byte files gracefully.
+    """
+    try:
+        from clipsai.media.media_file import MediaFile
+        if getattr(MediaFile, "_clipify_safe_patched", False):
+            return
+
+        orig_check = MediaFile.check_exists
+
+        def safe_media_check_exists(self):
+            path_str = str(getattr(self, "_path", ""))
+            if not os.path.exists(path_str):
+                return f"Media file '{path_str}' does not exist in the file system."
+            if os.path.isfile(path_str) and os.path.getsize(path_str) == 0:
+                return (
+                    f"Media file '{path_str}' is empty (0 bytes). "
+                    "The download was interrupted or disk space is full. Please re-import the video."
+                )
+            ext = os.path.splitext(path_str)[1].lower()
+            valid_media_exts = {
+                ".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v",
+                ".mp3", ".wav", ".aac", ".m4a", ".flac", ".ogg", ".opus"
+            }
+            if ext in valid_media_exts:
+                return None
+            return orig_check(self)
+
+        MediaFile.check_exists = safe_media_check_exists
+        MediaFile._clipify_safe_patched = True
+    except Exception:
+        pass
+
+
 def _init_ml_runtime(feature: str = "The Clipify AI video pipeline") -> None:
     """Prepare the ML runtime tier. Fails loudly when it is genuinely absent."""
     if _compiled_build:
@@ -290,6 +328,7 @@ def _init_ml_runtime(feature: str = "The Clipify AI video pipeline") -> None:
     _ensure_nltk_data_cache()
     _init_nltk()
     _ensure_cv2()
+    _patch_clipsai_media_file()
 
 # Suppress unnecessary warnings
 import warnings
@@ -831,6 +870,8 @@ def ensure_audio_stream(file_path: str) -> str:
     """
     if not file_path or not os.path.isfile(file_path):
         return file_path
+    if os.path.getsize(file_path) == 0:
+        return file_path
     if check_has_audio_stream(file_path):
         return file_path
 
@@ -1159,6 +1200,13 @@ def _clean_corrupted_hf_cache() -> int:
 
 def transcribe_with_progress(audio_file_path, transcriber):
     """Transcribe with progress tracking and safely handle a ClipsAI/WhisperX alignment edge case."""
+    if not os.path.exists(audio_file_path) or os.path.getsize(audio_file_path) == 0:
+        raise ValueError(
+            f"Cannot transcribe '{os.path.basename(audio_file_path)}': file is empty (0 bytes). "
+            "The download was interrupted or disk space was exhausted. Please re-import or re-download the video."
+        )
+
+    _patch_clipsai_media_file()
     print("Transcribing video...")
 
     try:
@@ -5978,11 +6026,20 @@ def find_input_videos_auto() -> List[Tuple[str, Optional[str]]]:
     input_dir_abs = os.path.abspath(INPUT_DIR)
     files = os.listdir(input_dir_abs) if os.path.isdir(input_dir_abs) else []
     video_extensions = {".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v"}
-    videos = sorted([f for f in files if os.path.splitext(f)[1].lower() in video_extensions])
-    if not videos:
+    all_matching = sorted([f for f in files if os.path.splitext(f)[1].lower() in video_extensions])
+    if not all_matching:
         raise FileNotFoundError(
             f"No supported video found in input directory '{input_dir_abs}'. "
             "Place a video in the input/ folder and run again."
+        )
+
+    # Filter out empty 0-byte video files (e.g. from failed downloads or full disk)
+    videos = [f for f in all_matching if os.path.getsize(os.path.join(input_dir_abs, f)) > 0]
+    if not videos:
+        empty_name = all_matching[0]
+        raise ValueError(
+            f"Input video '{empty_name}' is empty (0 bytes). "
+            "The download was interrupted or disk space was exhausted. Please re-import or re-download the video."
         )
     pickles = {f for f in files if f.endswith("_transcription.pkl")}
     result: List[Tuple[str, Optional[str]]] = []

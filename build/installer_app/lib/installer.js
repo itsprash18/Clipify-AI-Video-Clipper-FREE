@@ -1119,6 +1119,22 @@ class Installer extends EventEmitter {
     const venvPython = path.join(venvDir, 'Scripts', 'python.exe');
     fs.mkdirSync(path.dirname(venvDir), { recursive: true });
 
+    // Dedicate a temp directory on the target installation drive to prevent
+    // filling the user's primary C: drive (%TEMP%) during multi-GB pip downloads & wheel unpacking.
+    const pipTempDir = path.join(path.dirname(venvDir), '.clipify-pip-temp');
+    try { fs.mkdirSync(pipTempDir, { recursive: true }); } catch (_) {}
+    const pipEnv = {
+      TEMP: pipTempDir,
+      TMP: pipTempDir,
+      TMPDIR: pipTempDir,
+    };
+    let diskFullDetected = false;
+    const checkDiskError = (text) => {
+      if (/No space left on device|Errno 28|not enough space|disk full/i.test(text)) {
+        diskFullDetected = true;
+      }
+    };
+
     if (!fs.existsSync(venvPython)) {
       this.note('Creating an isolated Python environment for the AI libraries', 'info');
       this.updatePhase(id, 2, 'Creating the runtime');
@@ -1146,13 +1162,19 @@ class Installer extends EventEmitter {
       ['-m', 'pip', 'install', '--disable-pip-version-check', '--upgrade', 'pip', 'setuptools', 'wheel'],
       {
         timeoutMs: 15 * 60 * 1000,
+        env: pipEnv,
         onLine: (line) => {
           const trimmed = line.trim();
+          checkDiskError(trimmed);
           if (trimmed) this.note(trimmed.slice(0, 160), 'pkg');
         },
       }
     );
     if (pipUpgrade.code !== 0) {
+      if (diskFullDetected) {
+        this.finishPhase(id, 'error', 'Insufficient disk space ([Errno 28] No space left on device)');
+        throw new Error('Installation stopped: Insufficient disk space on drive ([Errno 28] No space left on device). Please free up at least 6 to 8 GB of free space or install to a drive with more space.');
+      }
       this.finishPhase(id, 'error', 'Python packaging tools could not be prepared');
       throw new Error(`pip upgrade failed (exit ${pipUpgrade.code})`);
     }
@@ -1210,6 +1232,7 @@ class Installer extends EventEmitter {
       pipArgs,
       {
         timeoutMs: 4 * 60 * 60 * 1000,
+        env: pipEnv,
         heartbeatMs: 15000,
         quietWarningMs: 180000,
         watchDirectory: path.join(venvDir, 'Lib', 'site-packages'),
@@ -1240,6 +1263,7 @@ class Installer extends EventEmitter {
         },
         onLine: (line) => {
           const trimmed = line.trim();
+          checkDiskError(trimmed);
           // Matches: "45.2/250.0 MB", "45.2 MB / 250.0 MB", "12.3 kB / 500 kB", "1.2/3.4 GB", etc.
           const match = trimmed.match(/([\d.]+)\s*(MB|GB|kB|KB|B)?\s*\/\s*([\d.]+)\s*(MB|GB|kB|KB|B)/i);
           if (match) {
@@ -1299,16 +1323,20 @@ class Installer extends EventEmitter {
       }
     );
     if (pipResult.code !== 0) {
+      if (diskFullDetected) {
+        this.finishPhase(id, 'error', 'Insufficient disk space ([Errno 28] No space left on device)');
+        throw new Error('Installation stopped: Insufficient disk space on drive ([Errno 28] No space left on device). Please free up at least 6 to 8 GB of free space or install to a drive with more space.');
+      }
       this.note('Initial pip install encountered an issue; purging pip cache and retrying with --no-cache-dir...', 'warn');
       try {
-        await this.runProcess(venvPython, ['-m', 'pip', 'cache', 'purge'], { timeoutMs: 30000 });
+        await this.runProcess(venvPython, ['-m', 'pip', 'cache', 'purge'], { timeoutMs: 30000, env: pipEnv });
       } catch (_) {}
 
       if (fs.existsSync(bundledSpacyWheel)) {
         await this.runProcess(
           venvPython,
           ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-cache-dir', '--no-deps', bundledSpacyWheel],
-          { timeoutMs: 5 * 60 * 1000 }
+          { timeoutMs: 5 * 60 * 1000, env: pipEnv }
         );
       }
 
@@ -1324,9 +1352,15 @@ class Installer extends EventEmitter {
         retryArgs,
         {
           timeoutMs: 4 * 60 * 60 * 1000,
+          env: pipEnv,
           heartbeatMs: 15000,
           quietWarningMs: 180000,
           watchDirectory: path.join(venvDir, 'Lib', 'site-packages'),
+          onLine: (line) => {
+            const trimmed = line.trim();
+            checkDiskError(trimmed);
+            if (trimmed) this.note(trimmed.slice(0, 150), 'pkg');
+          },
           onHeartbeat: ({ silentForMs, fileActivityAgoMs, processActive, quiet }) => {
             const idleSeconds = Math.floor(silentForMs / 1000);
             if (quiet && processActive) {
@@ -1342,6 +1376,10 @@ class Installer extends EventEmitter {
       );
 
       if (retryResult.code !== 0) {
+        if (diskFullDetected) {
+          this.finishPhase(id, 'error', 'Insufficient disk space ([Errno 28] No space left on device)');
+          throw new Error('Installation stopped: Insufficient disk space on drive ([Errno 28] No space left on device). Please free up at least 6 to 8 GB of free space or install to a drive with more space.');
+        }
         this.finishPhase(id, 'error', 'AI runtime install failed - see setup.log');
         throw new Error(`pip install failed (exit ${retryResult.code})`);
       }
@@ -1359,7 +1397,7 @@ class Installer extends EventEmitter {
           '-m', 'pip', 'install', '--disable-pip-version-check',
           '--force-reinstall', '--no-deps', 'python-magic-bin>=0.4.14',
         ],
-        { timeoutMs: 20 * 60 * 1000 }
+        { timeoutMs: 20 * 60 * 1000, env: pipEnv }
       );
       if (magicResult.code !== 0) {
         this.finishPhase(id, 'error', 'Windows libmagic runtime setup failed');
@@ -1374,7 +1412,7 @@ class Installer extends EventEmitter {
     const faceResult = await this.runProcess(
       venvPython,
       ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-deps', 'facenet-pytorch==2.6.0'],
-      { timeoutMs: 20 * 60 * 1000 }
+      { timeoutMs: 20 * 60 * 1000, env: pipEnv }
     );
     if (faceResult.code !== 0) {
       this.finishPhase(id, 'error', 'Face detection runtime install failed');
@@ -1382,6 +1420,13 @@ class Installer extends EventEmitter {
     }
 
     await this.verifyRuntime(venvPython, venvDir);
+
+    // Clean up temporary pip working directory
+    try {
+      if (fs.existsSync(pipTempDir)) {
+        fs.rmSync(pipTempDir, { recursive: true, force: true });
+      }
+    } catch (_) {}
 
     // Only now is the runtime genuinely usable, so record that. runtimeCompleteIn
     // looks for this marker, which means a runtime left half-built by an

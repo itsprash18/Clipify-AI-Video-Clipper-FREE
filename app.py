@@ -1354,6 +1354,10 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
     input_dir = job_dir / "input"
     output_dir = job_dir / "output"
     env = os.environ.copy()
+    ffmpeg_dir = str(Path(_ffmpeg_path()).parent)
+    current_path = env.get("PATH", "")
+    if ffmpeg_dir not in current_path:
+        env["PATH"] = f"{ffmpeg_dir};{current_path}"
     env.update({
         "PYTHONUNBUFFERED": "1",
         "CLIPPEDAI_INPUT_DIR": str(input_dir),
@@ -1424,6 +1428,23 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
     diagnostic_log = job_dir / "diagnostics" / "qwen-decisions.jsonl"
     diagnostic_log.parent.mkdir(parents=True, exist_ok=True)
     env["CLIPPEDAI_QWEN_DIAGNOSTIC_LOG"] = str(diagnostic_log)
+    input_videos = [
+        p for p in input_dir.iterdir()
+        if p.is_file() and p.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v"}
+    ] if input_dir.is_dir() else []
+    if input_videos and all(p.stat().st_size == 0 for p in input_videos):
+        msg = (
+            "The input video file is empty (0 bytes). "
+            "The download was interrupted or disk space was exhausted. Please re-import or re-download the video."
+        )
+        with jobs_lock:
+            job["status"] = "error"
+            job["stage"] = "Corrupted or Empty Video"
+            job["detail"] = msg
+            job["events"].append({"kind": "error", "message": msg})
+        emit(job_id, "error", msg)
+        return
+
     cmd = [*_pipeline_command(input_dir), "--auto", "--clips", str(clips),
            "--min-duration", str(min_duration), "--max-duration", str(max_duration)]
     emit(job_id, "log", f"Starting {mode} mode with {model or 'built-in heuristic AI'}; captions: {font}…")
@@ -2694,6 +2715,12 @@ def import_youtube():
                     jobs[job_id]["events"].append({"kind":"error","message":detail})
                 return
             target = max(videos, key=lambda p: p.stat().st_mtime)
+            if target.stat().st_size == 0:
+                detail = "Downloaded video file is empty (0 bytes). Your disk may be full or the download timed out."
+                with jobs_lock:
+                    jobs[job_id].update(status="error", stage="YouTube download failed", detail=detail, error=detail)
+                    jobs[job_id]["events"].append({"kind": "error", "message": detail})
+                return
             target = _ensure_video_has_audio(target)
             safe_name = secure_filename(target.name) or f"youtube_{job_id}.mp4"
             with jobs_lock:
@@ -2786,8 +2813,12 @@ def start():
         return jsonify({"error": "Job not found."}), 404
     input_dir = job_dir / "input"
     if input_dir.is_dir():
-        sources = sorted(p for p in input_dir.iterdir() if p.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm", ".avi"})
+        sources = sorted(p for p in input_dir.iterdir() if p.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v"})
         if sources:
+            if all(s.stat().st_size == 0 for s in sources):
+                return jsonify({
+                    "error": "The input video file is empty (0 bytes). The download may have failed or disk is full. Please re-import or re-download the video."
+                }), 400
             source_seconds = _media_duration_seconds(str(sources[0]))
             if source_seconds and source_seconds < min_duration:
                 fitted_max = max(6, int(source_seconds))
