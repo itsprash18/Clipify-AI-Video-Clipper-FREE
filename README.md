@@ -54,7 +54,7 @@ Everything runs on your computer—preserving **100% privacy**, with **zero mont
 
 | Package | Platform | Version | Size | Download | SHA-256 Checksum |
 | :--- | :---: | :---: | :---: | :--- | :--- |
-| **`Clipify.AI.Setup.4.0.10.exe`** | Windows 10/11 (64-bit) | `v4.0.10` | **332 MB** | [**Download Windows Installer**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v4.0.10/Clipify.AI.Setup.4.0.10.exe) | Verified Release Executable |
+| **`Clipify.AI.Setup.4.0.10.exe`** | Windows 10/11 (64-bit) | `v4.0.10` | **331.8 MB** | [**Download Windows Installer**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v4.0.10/Clipify.AI.Setup.4.0.10.exe) | `B3C39B2A10B7F4574967C92CCEBE4A4AA87E13B86BEFAEF168F4A4CEA2EE68A7` |
 | **`update-v4.0.10.zip`** | In-Place Hot Patch | `v4.0.10` | **3.3 MB** | [**Download Fast Update ZIP**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v4.0.10/update-v4.0.10.zip) | Fast in-place updater asset |
 | **`Clipify AI (beta).apk`** | Android 8.0+ | `v3.9.0` | **13.8 MB** | [**Download Android APK**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.9.0/Clipify.AI.beta.apk) | Community mobile companion |
 
