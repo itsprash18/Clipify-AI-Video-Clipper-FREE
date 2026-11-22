@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='narrate.css', v='20260921-3') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='narrate-polish.css', v='20260922-1') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='brand.css', v='20261018-3') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='tour.css', v='4.0.6') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='tour.css', v='4.0.7') }}">
 </head>
 <body>
 <aside class="sidebar narrate-sidebar">
@@ -47,11 +47,18 @@
   </a>
   <a href="/#update" id="navUpdateLink" title="Check GitHub for software updates">
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-    <span>Update</span> <span class="nav-ver-tag" id="navVersionTag">v4.0.6</span>
+    <span>Update</span> <span class="nav-ver-tag" id="navVersionTag">v4.0.7</span>
   </a>
   <a href="/#guide" id="navGuideLink" title="Interactive Guided Tour of all Features">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 16h-2v-2h2v2zm1.07-7.75l-.9.92C12.45 11.9 12 12.5 12 14h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
     <span>App Guide</span>
+  </a>
+  <a href="#support" id="navSupportLink" class="nav-support-link" title="Support Clipify AI — Star & Follow on GitHub">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+    </svg>
+    <span>Support Us</span>
+    <span class="nav-star-pill">★ Star</span>
   </a>
 </nav>
 
@@ -341,6 +348,6 @@
 
 <script src="{{ url_for('static', filename='forest_game.js', v='4.0.6') }}"></script>
 <script src="{{ url_for('static', filename='updater.js', v='4.0.6') }}"></script>
-<script src="{{ url_for('static', filename='tour.js', v='4.0.6') }}"></script>
+<script src="{{ url_for('static', filename='tour.js', v='4.0.7') }}"></script>
 <script src="{{ url_for('static', filename='narrate.js', v='20261113-1') }}"></script>
 </body></html>
