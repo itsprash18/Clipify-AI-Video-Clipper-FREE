@@ -281,18 +281,65 @@ def _auto_install_package(package_name: str, import_name: Optional[str] = None) 
 
 
 def _patch_clipsai_media_file() -> None:
-    """Prevent clipsai from crashing when python-magic returns 'inode' or 'application'.
+    """Prevent clipsai from crashing when python-magic returns 'inode' or fails on Windows.
 
-    python-magic-bin on Windows can return 'inode/x-empty' on empty files or fails on
-    certain containers, returning non-standard mime types. This patches MediaFile.check_exists
-    to allow known media extensions and checks for 0-byte files gracefully.
+    python-magic-bin on Windows can return 'inode/x-empty' or fail on non-standard media containers,
+    causing FileSystemObjectError: '...' is a valid File but is not a valid TemporalMediaFile
+    since it has file type 'inode' which isn't one of: ['audio', 'video', 'image'].
+    This patches clipsai.filesys.file.File and all media file classes to bypass python-magic
+    and resolve MIME types directly from file extension and FFprobe.
     """
     try:
-        from clipsai.media.media_file import MediaFile
-        if getattr(MediaFile, "_clipify_safe_patched", False):
-            return
+        from clipsai.filesys.file import File
+        if not getattr(File, "_clipify_safe_patched", False):
+            orig_file_primary = File.get_mime_primary_type
+            orig_file_mime = File.get_mime_type
 
-        orig_check = MediaFile.check_exists
+            def safe_get_mime_primary_type(self):
+                ext = os.path.splitext(str(getattr(self, "_path", "")))[1].lower()
+                if ext in {".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v"}:
+                    return "video"
+                if ext in {".mp3", ".wav", ".aac", ".m4a", ".flac", ".ogg", ".opus"}:
+                    return "audio"
+                if ext in {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"}:
+                    return "image"
+                try:
+                    t = orig_file_primary(self)
+                    if t in {"audio", "video", "image"}:
+                        return t
+                except Exception:
+                    pass
+                return "video"
+
+            def safe_get_mime_type(self):
+                ext = os.path.splitext(str(getattr(self, "_path", "")))[1].lower()
+                media_map = {
+                    ".mp4": "video/mp4", ".mov": "video/quicktime", ".mkv": "video/x-matroska",
+                    ".webm": "video/webm", ".avi": "video/x-msvideo", ".m4v": "video/x-m4v",
+                    ".mp3": "audio/mpeg", ".wav": "audio/wav", ".aac": "audio/aac",
+                    ".m4a": "audio/mp4", ".flac": "audio/flac", ".ogg": "audio/ogg",
+                    ".opus": "audio/opus", ".png": "image/png", ".jpg": "image/jpeg",
+                    ".jpeg": "image/jpeg", ".webp": "image/webp"
+                }
+                if ext in media_map:
+                    return media_map[ext]
+                try:
+                    return orig_file_mime(self)
+                except Exception:
+                    return "video/mp4"
+
+            File.get_mime_primary_type = safe_get_mime_primary_type
+            File.get_mime_type = safe_get_mime_type
+            File._clipify_safe_patched = True
+    except Exception:
+        pass
+
+    try:
+        from clipsai.media.media_file import MediaFile
+        from clipsai.media.temporal_media_file import TemporalMediaFile
+        from clipsai.media.audio_file import AudioFile
+        from clipsai.media.video_file import VideoFile
+        from clipsai.media.audiovideo_file import AudioVideoFile
 
         def safe_media_check_exists(self):
             path_str = str(getattr(self, "_path", ""))
@@ -301,19 +348,41 @@ def _patch_clipsai_media_file() -> None:
             if os.path.isfile(path_str) and os.path.getsize(path_str) == 0:
                 return (
                     f"Media file '{path_str}' is empty (0 bytes). "
-                    "The download was interrupted or disk space is full. Please re-import the video."
+                    "The download was interrupted or disk space is full. Please re-import or re-download the video."
                 )
-            ext = os.path.splitext(path_str)[1].lower()
-            valid_media_exts = {
-                ".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v",
-                ".mp3", ".wav", ".aac", ".m4a", ".flac", ".ogg", ".opus"
-            }
-            if ext in valid_media_exts:
-                return None
-            return orig_check(self)
+            return None
 
         MediaFile.check_exists = safe_media_check_exists
+        TemporalMediaFile.check_exists = safe_media_check_exists
+        AudioFile.check_exists = safe_media_check_exists
+        VideoFile.check_exists = safe_media_check_exists
+        AudioVideoFile.check_exists = safe_media_check_exists
         MediaFile._clipify_safe_patched = True
+    except Exception:
+        pass
+
+    _patch_whisper_tokenizer()
+
+
+def _patch_whisper_tokenizer() -> None:
+    """Ensure faster_whisper Tokenizer and WhisperX never crash on invalid or empty language codes.
+    Prevents: ValueError: '' is not a valid language code (accepted language codes: ...)
+    """
+    try:
+        import faster_whisper.tokenizer
+        if not getattr(faster_whisper.tokenizer.Tokenizer, "_clipify_safe_patched", False):
+            orig_init = faster_whisper.tokenizer.Tokenizer.__init__
+
+            def safe_tokenizer_init(self, tokenizer, multilingual: bool, task=None, language=None):
+                if multilingual:
+                    if not language or not isinstance(language, str) or language.strip().lower() in ("", "none", "null", "auto", "detect") or language not in faster_whisper.tokenizer._LANGUAGE_CODES:
+                        language = "en"
+                    if not task or task not in faster_whisper.tokenizer._TASKS:
+                        task = "transcribe"
+                return orig_init(self, tokenizer, multilingual, task=task, language=language)
+
+            faster_whisper.tokenizer.Tokenizer.__init__ = safe_tokenizer_init
+            faster_whisper.tokenizer.Tokenizer._clipify_safe_patched = True
     except Exception:
         pass
 
@@ -1320,17 +1389,13 @@ def transcribe_with_progress(audio_file_path, transcriber):
 
                     t_kwargs["progress_callback"] = _on_whisper_progress
                     t_kwargs["print_progress"] = False
+                    _patch_whisper_tokenizer()
                     user_lang = os.getenv("WHISPERX_LANGUAGE")
-                    if user_lang:
-                        user_lang = user_lang.strip().lower()
-                        if user_lang in ("", "none", "null", "auto", "detect"):
-                            user_lang = None
-                    if user_lang is None and fast_env:
+                    if not user_lang or not isinstance(user_lang, str) or user_lang.strip().lower() in ("", "none", "null", "auto", "detect"):
                         user_lang = "en"
-                    if user_lang:
-                        t_kwargs["language"] = user_lang
-                    elif t_kwargs.get("language") in ("", "none", "null", "auto", "detect"):
-                        t_kwargs["language"] = None
+                    else:
+                        user_lang = user_lang.strip().lower()
+                    t_kwargs["language"] = user_lang
                     res = orig_model_transcribe(audio_in, *t_args, **t_kwargs)
                     print("  [Align] Speech decoding completed (100%). Aligning word timestamps with audio...", flush=True)
                     return res
@@ -1565,23 +1630,18 @@ def create_transcriber(model_size: str) -> "Transcriber":
         else:
             asr_opts.setdefault("temperatures", [0.0, 0.2, 0.4, 0.6])
         kwargs["asr_options"] = asr_opts
+        _patch_whisper_tokenizer()
         raw_lang = os.getenv("WHISPERX_LANGUAGE")
-        if raw_lang:
-            raw_lang = raw_lang.strip().lower()
-            if raw_lang in ("", "none", "null", "auto", "detect"):
-                raw_lang = None
-        else:
+        if not raw_lang or not isinstance(raw_lang, str) or raw_lang.strip().lower() in ("", "none", "null", "auto", "detect"):
             raw_lang = "en"
+        else:
+            raw_lang = raw_lang.strip().lower()
 
         existing_lang = kwargs.get("language")
-        if existing_lang is not None:
-            if isinstance(existing_lang, str):
-                existing_lang = existing_lang.strip().lower()
-                if existing_lang in ("", "none", "null", "auto", "detect"):
-                    existing_lang = None
-            kwargs["language"] = existing_lang
-        else:
+        if not existing_lang or not isinstance(existing_lang, str) or existing_lang.strip().lower() in ("", "none", "null", "auto", "detect"):
             kwargs["language"] = raw_lang
+        else:
+            kwargs["language"] = existing_lang.strip().lower()
 
         # Check local HuggingFace cache to prevent ProtocolError/ConnectionResetError (10054)
         hf_cache = Path.home() / ".cache" / "huggingface" / "hub"
@@ -1713,6 +1773,7 @@ def create_transcriber(model_size: str) -> "Transcriber":
 
     whisperx.load_model = load_model_with_silero
     try:
+        _patch_clipsai_media_file()
         from clipsai import Transcriber
 
         return Transcriber(model_size=model_size)

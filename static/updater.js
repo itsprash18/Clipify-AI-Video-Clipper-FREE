@@ -22,8 +22,8 @@
     let updateState = {
       checked: false,
       updateAvailable: false,
-      latestVersion: 'v4.0.6',
-      currentVersion: 'v4.0.6',
+      latestVersion: 'v4.0.8',
+      currentVersion: 'v4.0.8',
       releaseUrl: 'https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases',
       releaseName: '',
       notes: '',
@@ -51,8 +51,8 @@
         updateState = {
           checked: true,
           updateAvailable: !!data.update_available,
-          latestVersion: data.latest_version || 'v4.0.6',
-          currentVersion: data.current_version || 'v4.0.6',
+          latestVersion: data.latest_version || 'v4.0.8',
+          currentVersion: data.current_version || 'v4.0.8',
           releaseUrl: data.release_url || updateState.releaseUrl,
           releaseName: data.release_name || '',
           notes: data.body || '',
@@ -60,8 +60,8 @@
           gitBehind: !!data.git_behind
         };
 
-        if (badge) badge.textContent = data.current_version || 'v4.0.6';
-        if (navVersionTag) navVersionTag.textContent = data.current_version || 'v4.0.6';
+        if (badge) badge.textContent = data.current_version || 'v4.0.8';
+        if (navVersionTag) navVersionTag.textContent = data.current_version || 'v4.0.8';
 
         if (updateState.updateAvailable) {
           if (card) card.classList.add('has-update');

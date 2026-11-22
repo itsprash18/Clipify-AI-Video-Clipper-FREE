@@ -1432,10 +1432,10 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
         p for p in input_dir.iterdir()
         if p.is_file() and p.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v"}
     ] if input_dir.is_dir() else []
-    if input_videos and all(p.stat().st_size == 0 for p in input_videos):
+    if input_videos and all(p.stat().st_size < 1024 for p in input_videos):
         msg = (
-            "The input video file is empty (0 bytes). "
-            "The download was interrupted or disk space was exhausted. Please re-import or re-download the video."
+            "The input video file is incomplete or empty (< 1 KB). "
+            "The download may still be running, was interrupted, or disk space was exhausted. Please wait for the download to finish or re-import the video."
         )
         with jobs_lock:
             job["status"] = "error"
@@ -2815,9 +2815,9 @@ def start():
     if input_dir.is_dir():
         sources = sorted(p for p in input_dir.iterdir() if p.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v"})
         if sources:
-            if all(s.stat().st_size == 0 for s in sources):
+            if all(s.stat().st_size < 1024 for s in sources):
                 return jsonify({
-                    "error": "The input video file is empty (0 bytes). The download may have failed or disk is full. Please re-import or re-download the video."
+                    "error": "The input video file is incomplete or empty (< 1 KB). The download may still be running, was interrupted, or disk space was exhausted. Please wait for the download to finish or re-import the video."
                 }), 400
             source_seconds = _media_duration_seconds(str(sources[0]))
             if source_seconds and source_seconds < min_duration:
@@ -3733,7 +3733,7 @@ def open_output_folder():
         "error": error_msg
     })
 
-APP_VERSION = "v4.0.7"
+APP_VERSION = "v4.0.8"
 GITHUB_REPO = "sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE"
 
 

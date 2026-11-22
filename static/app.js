@@ -3125,6 +3125,7 @@ function initBetaTestingSection() {
   let betaState = {
     sourceFile: null,
     jobId: null,
+    downloading: false,
     running: false,
     outputs: [],
     selectedClip: null,
@@ -3276,6 +3277,11 @@ function initBetaTestingSection() {
       if (!url) return alert('Enter a valid YouTube URL first.');
       ytImportBtn.disabled = true;
       ytImportBtn.textContent = 'Fetching...';
+      betaState.downloading = true;
+      if (runBtn) {
+        runBtn.disabled = true;
+        runBtn.textContent = '⏳ Downloading YouTube video…';
+      }
       try {
         const res = await fetch('/api/import-youtube', {
           method: 'POST',
@@ -3303,11 +3309,21 @@ function initBetaTestingSection() {
               const sd = await sr.json();
               if (sd.status === 'uploaded') {
                 clearInterval(pollTimer);
+                betaState.downloading = false;
                 sourceName.textContent = sd.filename || 'YouTube Video';
                 sourceMeta.textContent = `Project ${jobId} · Ready to Clip`;
+                if (runBtn) {
+                  runBtn.disabled = false;
+                  runBtn.textContent = 'Run Beta AI Pipeline';
+                }
                 resolve();
               } else if (sd.status === 'error') {
                 clearInterval(pollTimer);
+                betaState.downloading = false;
+                if (runBtn) {
+                  runBtn.disabled = false;
+                  runBtn.textContent = 'Run Beta AI Pipeline';
+                }
                 reject(new Error(sd.detail || sd.error || 'YouTube download failed'));
               } else {
                 sourceName.textContent = sd.stage || 'Downloading YouTube video...';
@@ -3316,6 +3332,11 @@ function initBetaTestingSection() {
             } catch (err) {
               if (pollCount > 180) {
                 clearInterval(pollTimer);
+                betaState.downloading = false;
+                if (runBtn) {
+                  runBtn.disabled = false;
+                  runBtn.textContent = 'Run Beta AI Pipeline';
+                }
                 reject(err);
               }
             }
@@ -3325,6 +3346,11 @@ function initBetaTestingSection() {
         dropZone.style.display = 'block';
         sourceInfo.style.display = 'none';
         betaState.jobId = null;
+        betaState.downloading = false;
+        if (runBtn) {
+          runBtn.disabled = false;
+          runBtn.textContent = 'Run Beta AI Pipeline';
+        }
         alert(err.message || 'Failed to import YouTube video');
       } finally {
         ytImportBtn.disabled = false;
@@ -3335,6 +3361,10 @@ function initBetaTestingSection() {
 
   if (runBtn) {
     runBtn.addEventListener('click', async () => {
+      if (betaState.downloading) {
+        alert('YouTube video is still downloading. Please wait for the download to finish before running the pipeline.');
+        return;
+      }
       if (!betaState.sourceFile && !betaState.jobId) {
         alert('Please select a video file or fetch a YouTube link first.');
         return;
