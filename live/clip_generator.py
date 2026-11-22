@@ -139,7 +139,7 @@ class LiveClipGenerator:
             f"Subscribe and drop a like for more viral stream highlights!"
         )
 
-        base_tags = ["#Shorts", "#Gaming", "#LiveStream", "#ViralShorts", "#ClipifyAI", "#Highlights", "#TwitchClips", "#YouTubeShorts", "#Gamer"]
+        base_tags = ["#Shorts", "#Gaming", "#LiveStream", "#ViralShorts", "#ClipifyAI", "#Highlights", "#KickClips", "#KickLive", "#TwitchClips", "#YouTubeShorts", "#Gamer"]
         low_t = (clean_title + " " + " ".join(t.get("text", "") for t in (transcripts or []))).lower()
         if any(w in low_t for w in ["gta", "car", "drift", "speed", "drive"]):
             base_tags.extend(["#GTA5", "#GTAV", "#Drift", "#Clutch"])

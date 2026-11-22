@@ -53,7 +53,7 @@
     {
       target: '#navLiveLink',
       title: '7. Live Studio: Real-Time Stream Clipping',
-      desc: 'Connect live streams from YouTube Live, TikTok Live, Twitch, or OBS Studio via RTMP stream key. Features real-time Whisper speech transcription, automatic viral climax spike detection, and instant vertical Short production while the stream is broadcasting.',
+      desc: 'Connect live streams from YouTube Live, Twitch, Kick Live, or OBS Studio via RTMP stream key. Features real-time Whisper speech transcription, automatic viral climax spike detection, and instant vertical Short production while the stream is broadcasting.',
       pos: 'right',
       actionButton: { text: 'Open Live Studio ↗', url: '/live' }
     },
@@ -155,7 +155,7 @@
     {
       target: '.live-source-panel, .source-tabs',
       title: '1. Stream Source: Multi-Platform Ingestion',
-      desc: 'Connect live streams by entering YouTube Live, TikTok Live, or Twitch broadcast URLs, or stream directly from OBS Studio via local RTMP stream key.',
+      desc: 'Connect live streams by entering YouTube Live, Twitch, or Kick Live broadcast URLs, or stream directly from OBS Studio via local RTMP stream key.',
       pos: 'bottom'
     },
     {

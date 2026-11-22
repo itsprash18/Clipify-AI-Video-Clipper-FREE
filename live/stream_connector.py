@@ -32,6 +32,10 @@ TWITCH_LIVE_REGEX = re.compile(
     r"^(https?://)?(www\.)?twitch\.tv/([\w.-]+)",
     re.IGNORECASE,
 )
+KICK_LIVE_REGEX = re.compile(
+    r"^(https?://)?(www\.)?kick\.com/([\w.-]+)",
+    re.IGNORECASE,
+)
 
 
 def _hidden_flags() -> int:
@@ -114,6 +118,10 @@ class StreamConnector:
             if not self.source_url:
                 return False, "Please enter a Twitch live URL or channel name."
             return True, ""
+        elif self.source_type == "kick":
+            if not self.source_url:
+                return False, "Please enter a Kick live URL or channel name."
+            return True, ""
         elif self.source_type == "tiktok":
             if not self.source_url:
                 return False, "Please enter a TikTok live URL or username."
@@ -191,6 +199,40 @@ class StreamConnector:
                 logger.warning("Twitch metadata probe failed: %s", e)
                 channel_name = clean_url.rstrip("/").split("/")[-1]
                 self.stream_metadata["title"] = f"Twitch Live: {channel_name}"
+                self.stream_metadata["author"] = channel_name
+
+        elif self.source_type == "kick":
+            clean_url = self.source_url.strip()
+            if not clean_url.startswith("http"):
+                clean_url = f"https://kick.com/{clean_url.lstrip('@')}"
+            try:
+                cmd = [
+                    self.python_bin, "-m", "yt_dlp",
+                    "--dump-json", "--no-warnings", "--no-playlist",
+                    "--socket-timeout", "10",
+                    clean_url,
+                ]
+                proc = subprocess.run(
+                    cmd, capture_output=True, text=True,
+                    timeout=15, creationflags=_hidden_flags(),
+                )
+                if proc.returncode == 0 and proc.stdout.strip():
+                    data = json.loads(proc.stdout.strip().splitlines()[0])
+                    self.stream_metadata["title"] = data.get("title", f"Kick Live: {data.get('uploader', clean_url)}")
+                    self.stream_metadata["author"] = data.get("uploader", "")
+                    self.stream_metadata["is_live"] = bool(data.get("is_live", True))
+                    if data.get("width") and data.get("height"):
+                        self.stream_metadata["resolution"] = f"{data['width']}x{data['height']}"
+                    if data.get("fps"):
+                        self.stream_metadata["fps"] = data["fps"]
+                else:
+                    channel_name = clean_url.rstrip("/").split("/")[-1]
+                    self.stream_metadata["title"] = f"Kick Live: {channel_name}"
+                    self.stream_metadata["author"] = channel_name
+            except Exception as e:
+                logger.warning("Kick metadata probe failed: %s", e)
+                channel_name = clean_url.rstrip("/").split("/")[-1]
+                self.stream_metadata["title"] = f"Kick Live: {channel_name}"
                 self.stream_metadata["author"] = channel_name
 
         elif self.source_type == "obs":
@@ -309,6 +351,50 @@ class StreamConnector:
             return False, [], "Twitch stream resolution timed out (25s)."
         except Exception as e:
             logger.exception("Error resolving Twitch stream: %s", e)
+            return False, [], str(e)
+
+    def _resolve_kick_stream(self) -> tuple[bool, list[str], str]:
+        """Resolve Kick Live stream manifests using yt-dlp."""
+        self._notify_status("resolving", "Resolving Kick Live stream feed...")
+        clean_url = self.source_url.strip()
+        if not clean_url.startswith("http"):
+            clean_url = f"https://kick.com/{clean_url.lstrip('@')}"
+        try:
+            cmd = [
+                self.python_bin, "-m", "yt_dlp",
+                "-g", "--no-warnings", "--no-playlist",
+                "-f", "best[height<=1080]/best",
+                "--socket-timeout", "15",
+                clean_url,
+            ]
+            proc = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=25,
+                creationflags=_hidden_flags(),
+            )
+            if proc.returncode != 0:
+                err = proc.stderr.strip()
+                logger.warning("yt-dlp Kick stream resolution failed: %s", err)
+                clean_err = "Kick channel is offline or link is invalid."
+                if "does not exist" in err or "404" in err:
+                    clean_err = "Kick channel does not exist."
+                elif "is offline" in err or "offline" in err:
+                    clean_err = "This Kick stream is currently offline."
+                elif err:
+                    first_err_line = [l for l in err.splitlines() if "ERROR:" in l]
+                    if first_err_line:
+                        clean_err = first_err_line[0].replace("ERROR: [kick]", "").strip()
+                return False, [], clean_err
+
+            lines = [l.strip() for l in proc.stdout.strip().splitlines() if l.strip().startswith("http")]
+            if not lines:
+                return False, [], "No playable stream URL returned for Kick stream."
+
+            logger.info("yt-dlp resolved Kick stream manifest URL: %s", lines[0][:80])
+            return True, lines, ""
+        except subprocess.TimeoutExpired:
+            return False, [], "Kick stream resolution timed out (25s)."
+        except Exception as e:
+            logger.exception("Error resolving Kick stream: %s", e)
             return False, [], str(e)
 
     def _resolve_tiktok_stream(self) -> tuple[bool, list[str], str]:
@@ -444,6 +530,14 @@ class StreamConnector:
                     break
             elif self.source_type == "twitch":
                 ok, stream_urls, err_msg = self._resolve_twitch_stream()
+                if not ok:
+                    self.last_error = err_msg
+                    self._notify_status("failed", err_msg)
+                    if self.on_error:
+                        self.on_error(err_msg)
+                    break
+            elif self.source_type == "kick":
+                ok, stream_urls, err_msg = self._resolve_kick_stream()
                 if not ok:
                     self.last_error = err_msg
                     self._notify_status("failed", err_msg)

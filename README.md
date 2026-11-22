@@ -65,7 +65,7 @@ Get-FileHash ".\Clipify.AI.Setup.4.0.7.exe" -Algorithm SHA256
 ## 🌟 Key Features
 
 ### 1. 🔴 Live Studio [BETA] (Real-Time Livestream AI Clipper)
-- **Live Ingestion**: Connect directly to any **YouTube Live** stream or local **OBS Studio** via RTMP (`rtmp://127.0.0.1:1935/live`).
+- **Live Ingestion**: Connect directly to any **YouTube Live**, **Twitch Live**, or **Kick Live** stream, or local **OBS Studio** via RTMP (`rtmp://127.0.0.1:1935/live`).
 - **Watch Like The Stream**: Integrated live stream player with real audio and video playback, plus a snapshot diagnostic view.
 - **Instant & Batch Clipping**: Dedicated `⚡ Clip Highlight` (15s, 30s, 60s) and `🎬 Generate 4 Clips` batch partitioning to extract viral moments on the fly.
 - **Smart AI Reframing & Gaming Layout**: Intelligently detects gameplay and facecam to render 58% gameplay / 42% reaction split-screens.

@@ -139,9 +139,35 @@
 
 .source-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-bottom: 16px;
+}
+
+@media (max-width: 1080px) {
+  .source-tabs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .source-tabs {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kick-tab-icon {
+  background: rgba(83, 252, 24, 0.08) !important;
+  border-color: rgba(83, 252, 24, 0.25) !important;
+}
+
+.source-tab[data-source="kick"]:hover {
+  border-color: rgba(83, 252, 24, 0.4);
+}
+
+.source-tab[data-source="kick"].active {
+  border-color: #53fc18;
+  box-shadow: 0 0 0 1px #53fc18, 0 4px 16px rgba(83, 252, 24, 0.2);
 }
 
 .source-tab {

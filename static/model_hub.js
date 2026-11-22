@@ -629,14 +629,27 @@
         alert('Please enter a Hugging Face API token');
         return;
       }
+      if (token.includes('huggingface.co/settings/tokens') && !token.includes('hf_')) {
+        alert('You pasted the settings page URL. Please copy an Access Token from that page (starts with hf_...) and paste it here.');
+        return;
+      }
       btnSaveHfToken.disabled = true;
       btnSaveHfToken.textContent = 'Verifying…';
       try {
-        const res = await fetch('/api/models/verify-hf', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: token })
-        });
+        let res;
+        try {
+          res = await fetch('/api/models/huggingface/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+          });
+        } catch (_) {
+          res = await fetch('/api/models/verify-hf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+          });
+        }
         const data = await res.json();
         if (data.ok) {
           alert('✓ Hugging Face Token verified and saved successfully!');
