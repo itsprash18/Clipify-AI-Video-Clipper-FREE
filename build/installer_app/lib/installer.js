@@ -426,6 +426,11 @@ class Installer extends EventEmitter {
           } else {
             p = 10;
           }
+        } else if (this.taskStartedAt && phase.id === 'runtime') {
+          // Continuous progress guarantee: advance smoothly so the bar never freezes on 10%
+          const elapsed = (Date.now() - this.taskStartedAt) / 1000;
+          const timeP = Math.min(95, Math.max(12, Math.round(95 * (1 - Math.exp(-elapsed / 600)))));
+          p = Math.max(p, timeP);
         }
         done += phase.weight * (Math.max(0, Math.min(99, p)) / 100);
       }
@@ -1220,12 +1225,32 @@ class Installer extends EventEmitter {
       }
     }
 
-    const pipArgs = ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-input', '--timeout', '60', '--progress-bar', 'on'];
+    const sitePackagesDir = path.join(venvDir, 'Lib', 'site-packages');
+    const pipArgs = ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-input', '--timeout', '120', '--retries', '10', '--prefer-binary', '--progress-bar', 'on'];
     pipArgs.push('--extra-index-url', 'https://download.pytorch.org/whl/cpu');
     if (fs.existsSync(wheelsDir)) {
       pipArgs.push('--find-links', wheelsDir);
     }
     pipArgs.push('-r', effectiveRequirements);
+
+    const updatePipRuntimeProgress = (silentForMs) => {
+      let installedCount = 0;
+      try {
+        if (fs.existsSync(sitePackagesDir)) {
+          installedCount = fs.readdirSync(sitePackagesDir).filter(f => f.endsWith('.dist-info')).length;
+        }
+      } catch (_) {}
+
+      let currentRuntimePercent = 12;
+      if (installedCount > 0) {
+        const pkgRatio = Math.min(1.0, installedCount / 45);
+        currentRuntimePercent = Math.min(95, Math.max(35, Math.round(35 + pkgRatio * 60)));
+      } else if (this.taskStartedAt) {
+        const elapsedSec = (Date.now() - this.taskStartedAt) / 1000;
+        currentRuntimePercent = Math.min(35, Math.max(12, Math.round(12 + 23 * (1 - Math.exp(-elapsedSec / 240)))));
+      }
+      this.updatePhase(id, currentRuntimePercent, `Installing AI libraries (${installedCount > 0 ? `${installedCount} packages installed` : 'downloading packages'})`);
+    };
 
     const pipResult = await this.runProcess(
       venvPython,
@@ -1235,13 +1260,14 @@ class Installer extends EventEmitter {
         env: pipEnv,
         heartbeatMs: 15000,
         quietWarningMs: 180000,
-        watchDirectory: path.join(venvDir, 'Lib', 'site-packages'),
+        watchDirectory: sitePackagesDir,
         onHeartbeat: ({ silentForMs, fileActivityAgoMs, processActive, quiet }) => {
           const idleSeconds = Math.floor(silentForMs / 1000);
           const writingPackages = fileActivityAgoMs <= 30000;
           this.activeItem = writingPackages
             ? `Installing AI libraries; package files are changing (${idleSeconds}s since console output)`
             : `Installing AI libraries; child process ${processActive ? 'is actively running' : 'has stopped'} (${idleSeconds}s since console output)`;
+          updatePipRuntimeProgress(silentForMs);
           if (quiet) {
             if (processActive) {
               this.throttledNote(
@@ -1305,16 +1331,23 @@ class Installer extends EventEmitter {
             const size = parseFloat(dlMatch[2]) * unit;
             this.bytesTotal = size;
             this.bytesDone = 0;
-            this.activeItem = `Downloading ${dlMatch[1]}`;
-            this.note(`Downloading ${dlMatch[1]} (${dlMatch[2]} ${dlMatch[3]})`, 'pkg');
+            const cleanDlName = dlMatch[1].replace(/%2B/g, '+');
+            this.activeItem = `Downloading ${cleanDlName}`;
+            this.note(`Downloading ${cleanDlName} (${dlMatch[2]} ${dlMatch[3]})`, 'pkg');
+            this.emitProgress();
+          } else if (/^Installing collected packages/i.test(trimmed)) {
+            this.activeTask = 'Installing collected AI packages';
+            this.activeItem = 'Unpacking wheels into virtualenv…';
+            this.updatePhase(id, 40, 'Unpacking wheels into virtualenv');
+            this.note('Unpacking and configuring AI wheels into isolated environment', 'info');
             this.emitProgress();
           } else if (/^(Collecting|Installing|Building|Using cached|Downloading)/.test(trimmed)) {
-            const clean = trimmed.replace(/\s+/g, ' ');
+            const clean = trimmed.replace(/%2B/g, '+').replace(/\s+/g, ' ');
             this.note(clean.slice(0, 150), 'pkg');
             this.activeItem = clean.slice(0, 70);
             this.emitProgress();
           } else if (trimmed) {
-            const clean = trimmed.replace(/\s+/g, ' ');
+            const clean = trimmed.replace(/%2B/g, '+').replace(/\s+/g, ' ');
             this.note(clean.slice(0, 150), 'pkg');
             this.activeItem = clean.slice(0, 70);
             this.emitProgress();
@@ -1340,7 +1373,7 @@ class Installer extends EventEmitter {
         );
       }
 
-      const retryArgs = ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-input', '--timeout', '60', '--no-cache-dir', '--progress-bar', 'on'];
+      const retryArgs = ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-input', '--timeout', '120', '--retries', '10', '--prefer-binary', '--no-cache-dir', '--progress-bar', 'on'];
       retryArgs.push('--extra-index-url', 'https://download.pytorch.org/whl/cpu');
       if (fs.existsSync(wheelsDir)) {
         retryArgs.push('--find-links', wheelsDir);
@@ -1355,14 +1388,26 @@ class Installer extends EventEmitter {
           env: pipEnv,
           heartbeatMs: 15000,
           quietWarningMs: 180000,
-          watchDirectory: path.join(venvDir, 'Lib', 'site-packages'),
+          watchDirectory: sitePackagesDir,
           onLine: (line) => {
             const trimmed = line.trim();
             checkDiskError(trimmed);
-            if (trimmed) this.note(trimmed.slice(0, 150), 'pkg');
+            if (/^Installing collected packages/i.test(trimmed)) {
+              this.activeTask = 'Installing collected AI packages';
+              this.activeItem = 'Unpacking wheels into virtualenv…';
+              this.updatePhase(id, 40, 'Unpacking wheels into virtualenv');
+              this.note('Unpacking and configuring AI wheels into isolated environment', 'info');
+              this.emitProgress();
+            } else if (trimmed) {
+              const clean = trimmed.replace(/%2B/g, '+').replace(/\s+/g, ' ');
+              this.note(clean.slice(0, 150), 'pkg');
+              this.activeItem = clean.slice(0, 70);
+              this.emitProgress();
+            }
           },
           onHeartbeat: ({ silentForMs, fileActivityAgoMs, processActive, quiet }) => {
             const idleSeconds = Math.floor(silentForMs / 1000);
+            updatePipRuntimeProgress(silentForMs);
             if (quiet && processActive) {
               this.throttledNote(
                 'runtime-retry-quiet',

@@ -1169,38 +1169,63 @@ body[data-weather="night"] #dino { background: linear-gradient(180deg, #22314a, 
 
 /* ------------------------------------------------------------------ music */
 
-/* Transparent: the world shows through, so only the controls carry a surface. */
+/* Unified card: the disc and controls are housed seamlessly together in one frosted card. */
 .music {
   position: relative;
   z-index: 3;
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 12px;
   margin: 0 26px 8px;
-  padding: 4px 6px;
+  padding: 8px 14px;
   width: fit-content;
-  max-width: 460px;
-  background: none;
-  border: 0;
-  box-shadow: none;
-  backdrop-filter: none;
-  filter: none;
-}
-.music-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 7px 13px 8px 11px;
+  max-width: 580px;
+  min-width: 300px;
   border-radius: 15px;
   background: rgba(255, 253, 248, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.22);
   box-shadow: 0 6px 20px rgba(20, 30, 28, 0.16);
   backdrop-filter: blur(9px) saturate(1.1);
-  min-width: 268px;
 }
-body[data-weather="night"] .music-panel,
-body[data-night="true"] .music-panel {
-  background: rgba(18, 28, 44, 0.32);
+.music-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  min-width: 240px;
+  flex: 1 1 auto;
+}
+.music-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+.music-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.music-time {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-muted);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+body[data-weather="night"] .music,
+body[data-night="true"] .music {
+  background: rgba(18, 28, 44, 0.42);
   border-color: rgba(226, 232, 240, 0.2);
 }
 
@@ -1208,8 +1233,8 @@ body[data-night="true"] .music-panel {
 .music-disc {
   position: relative;
   flex: 0 0 auto;
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background:
     radial-gradient(circle at 50% 50%, #2b2b30 0 22%, transparent 23%),
@@ -1248,12 +1273,15 @@ body[data-night="true"] .music-panel {
 @keyframes disc-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .music-play { background: var(--coral); color: #3a2318; font-size: 12px; }
 .music-row {
-  /* Three transport buttons now (previous / play / skip) share this row with
-     the scrubber, so the gap gives a little back to keep them all on one line. */
   display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
+}
+.music-seek {
+  flex: 1 1 auto;
+  min-width: 70px;
+  cursor: pointer;
 }
 .music-row-sub { gap: 10px; padding-left: 2px; }
 .music-btn {
