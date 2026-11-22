@@ -82,6 +82,12 @@ if os.name == "nt":
 clear_ffmpeg_report_environment()
 install_hidden_subprocess_defaults()
 
+try:
+    from main import _patch_clipsai_media_file
+    _patch_clipsai_media_file()
+except Exception:
+    pass
+
 import logging
 logger = logging.getLogger("clipify")
 
@@ -4141,14 +4147,32 @@ def updater_apply():
         import tempfile
         import zipfile
 
-        zip_url = f"https://github.com/{GITHUB_REPO}/archive/refs/heads/feature/cross-platform.zip"
+        # Check if a dedicated fast update asset exists in latest release
+        update_url = None
+        try:
+            rel_req = urllib.request.Request(
+                f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest",
+                headers={"User-Agent": "ClipifyAI-Updater", "Accept": "application/vnd.github.v3+json"}
+            )
+            with urllib.request.urlopen(rel_req, timeout=8.0) as rel_resp:
+                if rel_resp.status == 200:
+                    rel_data = json.loads(rel_resp.read().decode("utf-8", errors="replace"))
+                    for asset in rel_data.get("assets", []):
+                        aname = asset.get("name", "").lower()
+                        if "update" in aname and aname.endswith(".zip"):
+                            update_url = asset.get("browser_download_url")
+                            break
+        except Exception:
+            pass
+
+        zip_url = update_url or f"https://github.com/{GITHUB_REPO}/archive/refs/heads/feature/cross-platform.zip"
         req = urllib.request.Request(zip_url, headers={"User-Agent": "ClipifyAI-Updater"})
 
         with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tf:
             tf_path = Path(tf.name)
-            with urllib.request.urlopen(req, timeout=180.0) as resp:
+            with urllib.request.urlopen(req, timeout=120.0) as resp:
                 while True:
-                    chunk = resp.read(65536)
+                    chunk = resp.read(262144)
                     if not chunk:
                         break
                     tf.write(chunk)
@@ -4506,6 +4530,229 @@ def _open_app_window(host: str, port: int, timeout: float = 40.0) -> None:
                     _lf.write(f"[{datetime.now()}] _open_app_window webbrowser.open failed: {_we}\n")
 
     threading.Thread(target=wait_then_open, name="clipify-open-window", daemon=True).start()
+
+
+# ==============================================================================
+# CLIPPY AI - SMART IN-APP CHAT ASSISTANT
+# ==============================================================================
+
+def _get_fastest_ollama_model() -> tuple[str, str | None]:
+    """Finds all available Ollama models and selects the fastest model (smallest parameter size)."""
+    models, err = _discover_ollama_models()
+    if not models:
+        return "", err or "No Ollama models detected"
+
+    def _model_speed_rank(model_name: str) -> float:
+        low = model_name.lower()
+        if "0.5b" in low:
+            return 0.5
+        if "1b" in low or "1.5b" in low:
+            return 1.0
+        if "2b" in low or "3b" in low:
+            return 3.0
+        match = re.search(r"(\d+(?:\.\d+)?)\s*b", low)
+        if match:
+            try:
+                return float(match.group(1))
+            except Exception:
+                pass
+        if "tiny" in low or "mini" in low or "small" in low:
+            return 2.0
+        if "7b" in low or "8b" in low:
+            return 8.0
+        if "14b" in low:
+            return 14.0
+        if "32b" in low:
+            return 32.0
+        if "70b" in low:
+            return 70.0
+        return 7.0
+
+    sorted_models = sorted(models, key=_model_speed_rank)
+    return sorted_models[0], None
+
+
+_CLIPPY_SYSTEM_PROMPT = """You are Clippy AI, the cheerful, smart, and technical in-app assistant for Clipify AI.
+You know everything about the Clipify AI desktop application.
+Key details:
+- Clipify AI is 100% free, private, and local-first. No API keys or subscriptions needed.
+- Pipeline: WhisperX + Silero VAD for transcription and word timestamps; ClipsAI for highlight & hook detection; MTCNN/MediaPipe for face tracking and 9:16 vertical re-framing.
+- Multi-Speaker Framing: Split-Screen Podcasting (vertical stack), Picture-in-Picture, Gaming Mode (facecam on top, gameplay on bottom).
+- Live Studio (/live): Real-time RTMP stream ingestion (rtmp://localhost:1935/live) from OBS/vMix with audio peak detection and instant replay clipping.
+- Narration Studio (/narrate): Kokoro neural TTS voiceovers paired with gameplay/satisfying background video library or custom user video folders.
+- Beta Lab: Timed & draggable text overlay on video with start/end time markers, timeline bar, playhead sync, and non-destructive FFmpeg burn-in.
+- Model Hub: Ollama model management (Qwen 2.5:3b, Llama 3.2, DeepSeek-R1). Fastest model is Qwen 2.5:3b or 1.5b.
+- Cache Management: 'Clear Cache' button safely clears temporary transcripts and downloaded YouTube videos to free disk space without deleting saved Shorts.
+Always be helpful, concise, cheerful, and format answers with clear markdown points.
+"""
+
+
+def _clippy_builtin_fallback(user_query: str) -> str:
+    """Provides high-quality, comprehensive responses when Ollama is offline or uninstalled."""
+    q = user_query.lower()
+
+    if any(k in q for k in ("text", "beta", "draggable", "drag", "timing", "overlay")):
+        return (
+            "### ✍️ How to Add Draggable & Timed Text in Beta Lab\n\n"
+            "You can easily customize your clips with interactive text overlays:\n"
+            "1. Open **Beta Lab** on any generated Short.\n"
+            "2. Under the video player, click **'+ Add Text Overlay'**.\n"
+            "3. **Drag the text** directly on the video player to position it anywhere!\n"
+            "4. **Set Start & End Time**: Use the **'Set to Playhead'** buttons to snap text appearance to your current video playback position.\n"
+            "5. Adjust **Font Size, Text Color**, or enable a **Background Banner** pill.\n"
+            "6. Click **'Burn Text into Video'** to produce a permanent high-definition render!"
+        )
+    if any(k in q for k in ("live", "obs", "rtmp", "stream")):
+        return (
+            "### 🔴 How Live Studio Works\n\n"
+            "**Live Studio** (`/live`) enables real-time clipping directly from your broadcasting software:\n"
+            "1. In **OBS Studio**, open *Settings* -> *Stream*.\n"
+            "2. Set Service to **Custom**, Server to `rtmp://localhost:1935/live`, and Stream Key to `stream`.\n"
+            "3. Start Streaming in OBS. Live Studio will instantly show your live broadcast!\n"
+            "4. Clipify AI monitors the stream for audio hype and action peaks, creating instant highlight clips while you broadcast."
+        )
+    if any(k in q for k in ("narrat", "voice", "tts", "kokoro", "script")):
+        return (
+            "### 🎙️ Narration Studio (`/narrate`)\n\n"
+            "Turn scripts into viral vertical videos with AI voiceover:\n"
+            "1. **Enter or Generate a Script**: Type your text or click 'Generate Script' with Ollama.\n"
+            "2. **Choose a Voice**: Select from Kokoro neural voices (American or British, male or female).\n"
+            "3. **Select Background Video**: Choose from the built-in library (parkour, slime, subway) or click **'Select Custom Folder'** to use your own gameplay footage.\n"
+            "4. Click **'Generate Narrated Short'** to synthesize speech, burn captions, and export a ready-to-post 9:16 video!"
+        )
+    if any(k in q for k in ("cache", "clean", "disk", "space", "delete", "temp", "storage")):
+        return (
+            "### 🧹 How to Clear Cache & Free Up Disk Space\n\n"
+            "1. Go to the sidebar navigation and click **'Settings'** or **'Cache Manager'**.\n"
+            "2. Click **'Clear Cache'**.\n"
+            "3. Clipify AI will clean:\n"
+            "   - Temporary audio extractions\n"
+            "   - Whisper model working cache\n"
+            "   - Downloaded raw YouTube input files\n"
+            "4. *Note:* Your saved finished Shorts and projects are never deleted!"
+        )
+    if any(k in q for k in ("model", "ollama", "fastest", "slow", "gpu", "speed", "qwen", "llama")):
+        return (
+            "### ⚡ Ollama Models & Performance Guide\n\n"
+            "- **Fastest Model**: `qwen2.5:3b` or `qwen2.5:1.5b`. These offer lightning-fast responses (~1 second) with great reasoning.\n"
+            "- **Balanced Quality**: `qwen2.5:7b` or `llama3.2:3b`.\n"
+            "- **How to Install**: Open a terminal and run `ollama pull qwen2.5:3b`.\n"
+            "- **GPU Acceleration**: If you have an NVIDIA GPU with CUDA, Ollama offloads automatically to VRAM for maximum speed."
+        )
+    if any(k in q for k in ("font", "caption", "subtitle", "style", "color")):
+        return (
+            "### 🎨 Subtitles & Styling Options\n\n"
+            "- **Fonts Available**: Montserrat (modern), Komika Axis (viral YouTuber style), Anton (bold punchy), Impact, and Roboto.\n"
+            "- **Karaoke Highlighting**: Word-by-word active highlighting in yellow, cyan, emerald, or custom colors.\n"
+            "- **Formatting**: Choose between 1-line, 2-line, or 3-line word chunks to optimize readability on mobile screens."
+        )
+    if any(k in q for k in ("podcas", "split", "gaming", "face", "crop", "framing")):
+        return (
+            "### 📱 Smart Framing & Face Tracking Modes\n\n"
+            "- **Auto 9:16 Single Speaker**: Keeps the active speaker centered in vertical frame.\n"
+            "- **Split Screen Podcasting**: Stacks host on top and guest on bottom when two people are speaking.\n"
+            "- **Gaming Mode**: Detects the player's facecam box and places it on top while keeping gameplay on bottom.\n"
+            "- **Picture-in-Picture (PiP)**: Insets the speaker in a corner box over background media."
+        )
+    if any(k in q for k in ("10%", "stuck", "error", "problem", "fail", "freeze")):
+        return (
+            "### 🛠️ Troubleshooting & Fixes\n\n"
+            "- **Stuck at 10% during first run**: The first time you run Clipify AI, it downloads the Whisper speech model (~150MB) and Hugging Face weights. Subsequent jobs run in seconds.\n"
+            "- **Ollama not connected**: Run `ollama serve` or open Ollama from your Windows Start Menu.\n"
+            "- **Audio errors**: Ensure your source video has an audible sound track.\n"
+            "- **Update**: Use the in-app **'Update'** button to receive instant zero-reinstall patches!"
+        )
+
+    return (
+        "### 👋 Hello! I'm Clippy AI, your Clipify AI assistant!\n\n"
+        "I can help you with anything in the app:\n"
+        "- 🎬 **Creating Shorts**: How to import videos and customize vertical reframing\n"
+        "- ✍️ **Beta Lab Text Editor**: How to drag, time, and burn custom text onto clips\n"
+        "- 🔴 **Live Studio**: How to connect OBS RTMP for real-time stream clipping\n"
+        "- 🎙️ **Narration Studio**: How to synthesize Kokoro TTS voiceovers over gameplay\n"
+        "- ⚡ **Models & Speed**: Choosing the fastest Ollama model\n"
+        "- 🧹 **Cache Management**: Freeing disk space safely\n\n"
+        "What would you like to know?"
+    )
+
+
+@app.get("/api/clippy/model")
+def clippy_model_info():
+    """Returns the fastest Ollama model detected or fallback information."""
+    fastest_model, err = _get_fastest_ollama_model()
+    if fastest_model:
+        return jsonify({
+            "ok": True,
+            "model": fastest_model,
+            "provider": "ollama",
+            "speed": "Fastest Local AI",
+        })
+    return jsonify({
+        "ok": True,
+        "model": "Clipify Intelligence",
+        "provider": "builtin",
+        "speed": "Instant Fallback",
+        "note": err or "Ollama offline; using comprehensive knowledge engine.",
+    })
+
+
+@app.post("/api/clippy/chat")
+def clippy_chat():
+    """Interactive chat with Clippy AI using the fastest available local Ollama model."""
+    data = request.get_json(silent=True) or {}
+    message = (data.get("message") or "").strip()
+    history = data.get("history") or []
+
+    if not message:
+        return jsonify({"ok": False, "error": "No message provided"}), 400
+
+    fastest_model, err = _get_fastest_ollama_model()
+
+    # Attempt query to local Ollama if model available
+    if fastest_model:
+        try:
+            # Build messages list
+            messages = [{"role": "system", "content": _CLIPPY_SYSTEM_PROMPT}]
+            # Include last 4 history turns for context
+            for h in history[-4:]:
+                if isinstance(h, dict) and "role" in h and "content" in h:
+                    messages.append({"role": h["role"], "content": str(h["content"])[:500]})
+            messages.append({"role": "user", "content": message[:1000]})
+
+            ollama_url = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
+            base = ollama_url.rstrip("/")
+            chat_req = urllib.request.Request(
+                f"{base}/api/chat",
+                data=json.dumps({
+                    "model": fastest_model,
+                    "messages": messages,
+                    "stream": False,
+                    "options": {"temperature": 0.4, "num_predict": 350}
+                }).encode("utf-8"),
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(chat_req, timeout=9.0) as resp:
+                if resp.status == 200:
+                    chat_res = json.loads(resp.read().decode("utf-8", errors="replace"))
+                    msg = chat_res.get("message", {}).get("content", "").strip()
+                    if msg:
+                        return jsonify({
+                            "ok": True,
+                            "reply": msg,
+                            "model": fastest_model,
+                            "provider": "ollama",
+                        })
+        except Exception as exc:
+            print(f"[Clippy] Ollama query failed ({exc}); using built-in knowledge fallback.")
+
+    # Seamless high-accuracy fallback
+    fallback_reply = _clippy_builtin_fallback(message)
+    return jsonify({
+        "ok": True,
+        "reply": fallback_reply,
+        "model": fastest_model or "Clipify Intelligence",
+        "provider": "builtin" if not fastest_model else "builtin_fallback",
+    })
 
 
 def _is_port_in_use(host: str, port: int) -> bool:

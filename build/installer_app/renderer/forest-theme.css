@@ -536,7 +536,8 @@ button { color: inherit; }
   border-radius: 14px;
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.32);
   backdrop-filter: blur(8px);
-  max-width: 580px;
+  max-width: 680px;
+  width: calc(100% - 40px);
   opacity: .95;
 }
 .music-panel {

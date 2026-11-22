@@ -1268,15 +1268,23 @@ class Installer extends EventEmitter {
         }
       } catch (_) {}
 
-      let currentRuntimePercent = 12;
+      let currentRuntimePercent = 15;
       if (installedCount > 0) {
         const pkgRatio = Math.min(1.0, installedCount / 45);
-        currentRuntimePercent = Math.min(95, Math.max(35, Math.round(35 + pkgRatio * 60)));
+        currentRuntimePercent = Math.min(95, Math.max(55, Math.round(55 + pkgRatio * 40)));
       } else if (this.taskStartedAt) {
         const elapsedSec = (Date.now() - this.taskStartedAt) / 1000;
-        currentRuntimePercent = Math.min(35, Math.max(12, Math.round(12 + 23 * (1 - Math.exp(-elapsedSec / 240)))));
+        // Smoothly advance from 15% to 55% during multi-GB package downloads so the bar never appears frozen
+        const timeRatio = 1 - Math.exp(-elapsedSec / 180);
+        currentRuntimePercent = Math.min(55, Math.max(15, Math.round(15 + 40 * timeRatio)));
       }
-      this.updatePhase(id, currentRuntimePercent, `Installing AI libraries (${installedCount > 0 ? `${installedCount} packages installed` : 'downloading packages'})`);
+      this.updatePhase(
+        id,
+        currentRuntimePercent,
+        installedCount > 0
+          ? `Installing AI packages (${installedCount} installed)`
+          : 'Downloading AI runtime (Torch, WhisperX, Mediapipe — speed depends on connection)'
+      );
     };
 
     const pipResult = await this.runProcess(
@@ -1648,6 +1656,10 @@ class Installer extends EventEmitter {
       "expected_site = os.path.normcase(os.path.realpath(os.path.join(expected, 'Lib', 'site-packages'))) ",
       "actual_site = os.path.normcase(os.path.realpath(sysconfig.get_paths().get('purelib', ''))) ",
       "if actual_site != expected_site: failures.append('wrong site-packages: ' + actual_site)",
+      "for _p in [os.path.join(expected, 'Scripts'), os.path.join(expected_site, 'torch', 'lib'), os.path.join(expected_site, 'cv2'), expected]:",
+      "    if hasattr(os, 'add_dll_directory') and os.path.isdir(_p):",
+      "        try: os.add_dll_directory(_p)",
+      "        except Exception: pass",
       "modules = ['torch', 'torchvision', 'torchaudio', 'numpy', 'cv2', 'whisperx', 'mediapipe', 'facenet_pytorch', 'kokoro', 'spacy', 'en_core_web_sm', 'soundfile', 'requests', 'yaml', 'tqdm', 'dotenv', 'yt_dlp']",
       'for name in modules:',
       '    try:',
@@ -1754,8 +1766,17 @@ class Installer extends EventEmitter {
         }
       }
       if (src) {
-        for (const sub of ['', 'Scripts', path.join('Lib', 'site-packages')]) {
-          const destDir = path.join(targetDir, sub);
+        const destDirs = [
+          targetDir,
+          path.join(targetDir, 'Scripts'),
+          path.join(targetDir, 'Lib', 'site-packages'),
+          path.join(targetDir, 'Lib', 'site-packages', 'torch', 'lib'),
+          path.join(targetDir, 'Lib', 'site-packages', 'cv2'),
+        ];
+        if (this.pythonDir && fs.existsSync(this.pythonDir())) {
+          destDirs.push(this.pythonDir());
+        }
+        for (const destDir of destDirs) {
           if (fs.existsSync(destDir)) {
             try { fs.copyFileSync(src, path.join(destDir, dll)); } catch (_) {}
           }
