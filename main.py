@@ -1321,10 +1321,16 @@ def transcribe_with_progress(audio_file_path, transcriber):
                     t_kwargs["progress_callback"] = _on_whisper_progress
                     t_kwargs["print_progress"] = False
                     user_lang = os.getenv("WHISPERX_LANGUAGE")
+                    if user_lang:
+                        user_lang = user_lang.strip().lower()
+                        if user_lang in ("", "none", "null", "auto", "detect"):
+                            user_lang = None
                     if user_lang is None and fast_env:
                         user_lang = "en"
-                    if user_lang and not t_kwargs.get("language"):
+                    if user_lang:
                         t_kwargs["language"] = user_lang
+                    elif t_kwargs.get("language") in ("", "none", "null", "auto", "detect"):
+                        t_kwargs["language"] = None
                     res = orig_model_transcribe(audio_in, *t_args, **t_kwargs)
                     print("  [Align] Speech decoding completed (100%). Aligning word timestamps with audio...", flush=True)
                     return res
@@ -1559,9 +1565,23 @@ def create_transcriber(model_size: str) -> "Transcriber":
         else:
             asr_opts.setdefault("temperatures", [0.0, 0.2, 0.4, 0.6])
         kwargs["asr_options"] = asr_opts
-        user_lang = os.getenv("WHISPERX_LANGUAGE", "en")
-        if "language" not in kwargs or kwargs["language"] is None:
-            kwargs["language"] = user_lang
+        raw_lang = os.getenv("WHISPERX_LANGUAGE")
+        if raw_lang:
+            raw_lang = raw_lang.strip().lower()
+            if raw_lang in ("", "none", "null", "auto", "detect"):
+                raw_lang = None
+        else:
+            raw_lang = "en"
+
+        existing_lang = kwargs.get("language")
+        if existing_lang is not None:
+            if isinstance(existing_lang, str):
+                existing_lang = existing_lang.strip().lower()
+                if existing_lang in ("", "none", "null", "auto", "detect"):
+                    existing_lang = None
+            kwargs["language"] = existing_lang
+        else:
+            kwargs["language"] = raw_lang
 
         # Check local HuggingFace cache to prevent ProtocolError/ConnectionResetError (10054)
         hf_cache = Path.home() / ".cache" / "huggingface" / "hub"

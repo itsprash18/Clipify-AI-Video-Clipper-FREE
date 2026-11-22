@@ -1417,7 +1417,7 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
         "OMP_STACKSIZE": "64M",
         "KMP_STACKSIZE": "64M",
         "WHISPERX_THREADS": os.getenv("WHISPERX_THREADS", str(max(4, os.cpu_count() or 4)) if fast_whisper else "4"),
-        "WHISPERX_LANGUAGE": os.getenv("WHISPERX_LANGUAGE", "en" if fast_whisper else ""),
+        "WHISPERX_LANGUAGE": os.getenv("WHISPERX_LANGUAGE", "en"),
         "OMP_NUM_THREADS": str(max(4, os.cpu_count() or 4)) if fast_whisper else "4",
         "MKL_NUM_THREADS": str(max(4, os.cpu_count() or 4)) if fast_whisper else "4",
         "OPENBLAS_NUM_THREADS": str(max(4, os.cpu_count() or 4)) if fast_whisper else "4",
