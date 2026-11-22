@@ -729,6 +729,7 @@
     svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svgEl.id = 'tourConnectorSvg';
     svgEl.setAttribute('class', 'tour-connector-svg');
+    svgEl.style.display = 'none';
 
     pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     pathEl.id = 'tourConnectorPath';
@@ -798,7 +799,10 @@
     if (!overlayEl) return;
     overlayEl.classList.remove('active');
     overlayEl.style.display = 'none';
-    if (svgEl) svgEl.style.display = 'none';
+    if (svgEl) {
+      svgEl.classList.remove('visible');
+      svgEl.style.display = 'none';
+    }
     localStorage.setItem(TOUR_STORAGE_KEY, 'true');
   }
 
@@ -825,10 +829,18 @@
     const spotRect = spotlightEl.getBoundingClientRect();
 
     if (spotRect.width <= 4 || spotRect.height <= 4 || cardRect.width === 0) {
+      svgEl.classList.remove('visible');
       svgEl.style.display = 'none';
       return;
     }
-    svgEl.style.display = 'block';
+
+    const conn = computeCurvedDottedConnector(cardRect, spotRect);
+    if (!conn || !conn.pathStr || !conn.x1 || !conn.y1 || !conn.x2 || !conn.y2 ||
+        conn.x1 < 10 || conn.y1 < 10 || conn.x2 < 10 || conn.y2 < 10) {
+      svgEl.classList.remove('visible');
+      svgEl.style.display = 'none';
+      return;
+    }
 
     pathEl.setAttribute('stroke', theme.accentLight);
     pathEl.style.filter = `drop-shadow(0 0 7px ${theme.accentGlow})`;
@@ -836,7 +848,6 @@
     anchorPulseEl.setAttribute('stroke', theme.accentLight);
     cardDotEl.setAttribute('fill', theme.accentLight);
 
-    const conn = computeCurvedDottedConnector(cardRect, spotRect);
     pathEl.setAttribute('d', conn.pathStr);
     anchorDotEl.setAttribute('cx', conn.x2);
     anchorDotEl.setAttribute('cy', conn.y2);
@@ -844,6 +855,9 @@
     anchorPulseEl.setAttribute('cy', conn.y2);
     cardDotEl.setAttribute('cx', conn.x1);
     cardDotEl.setAttribute('cy', conn.y1);
+
+    svgEl.style.display = 'block';
+    svgEl.classList.add('visible');
   }
 
   function updateSpotlightAndConnector() {
@@ -873,6 +887,10 @@
   }
 
   function renderCurrentStep() {
+    if (svgEl) {
+      svgEl.classList.remove('visible');
+      svgEl.style.display = 'none';
+    }
     const theme = CONTEXT_THEMES[currentContext] || CONTEXT_THEMES['create'];
     tourSteps = theme.steps;
     const step = tourSteps[currentStepIndex];

@@ -437,6 +437,44 @@ syncRange('editorLogoSize', 'editorLogoSizeOut', editorPreviewUpdate);
 syncRange('editorLogoOpacity', 'editorLogoOpacityOut', editorPreviewUpdate);
 syncRange('textBgOpacity', 'textBgOpacityOut');
 
+function updateUpscaleQualityBadge() {
+  const sel = $('#upscaleQuality');
+  const badge = $('#upscaleQualityBadge');
+  if (!sel || !badge) return;
+  const val = sel.value;
+  if (val === 'ultra') {
+    badge.textContent = 'Ultra HD (Crisp)';
+    badge.style.background = '#a855f7';
+    badge.style.color = '#ffffff';
+  } else if (val === 'high') {
+    badge.textContent = 'High (Recommended)';
+    badge.style.background = '#4ade80';
+    badge.style.color = '#041527';
+  } else if (val === 'balanced') {
+    badge.textContent = 'Balanced (1080p)';
+    badge.style.background = '#38bdf8';
+    badge.style.color = '#041527';
+  } else if (val === 'fast') {
+    badge.textContent = 'Fast (Compact)';
+    badge.style.background = '#fbbf24';
+    badge.style.color = '#041527';
+  }
+  const editorSel = $('#editorUpscaleQuality');
+  if (editorSel && editorSel.value !== val) {
+    editorSel.value = val;
+  }
+}
+$('#upscaleQuality')?.addEventListener('change', updateUpscaleQualityBadge);
+$('#editorUpscaleQuality')?.addEventListener('change', () => {
+  const editorSel = $('#editorUpscaleQuality');
+  const sel = $('#upscaleQuality');
+  if (editorSel && sel) {
+    sel.value = editorSel.value;
+    updateUpscaleQualityBadge();
+  }
+});
+if ($('#upscaleQuality')) updateUpscaleQualityBadge();
+
 [
   'logoEnabled',
   'textEnabled',
@@ -1489,6 +1527,11 @@ async function start() {
   );
 
   form.append(
+    'upscale_quality',
+    $('#upscaleQuality')?.value || 'high'
+  );
+
+  form.append(
     'branding',
     JSON.stringify(selectedBranding())
   );
@@ -2281,7 +2324,8 @@ async function applyEditorBranding() {
       pan_y: +$('#editorPanY')?.value || 0,
       zoom: (+$('#editorZoom')?.value || 100) / 100,
       split_ratio: +$('#editorSplitRatio')?.value || 50
-    }
+    },
+    upscale_quality: $('#editorUpscaleQuality')?.value || $('#upscaleQuality')?.value || 'high'
   };
 
   try {
@@ -2855,11 +2899,12 @@ function initSocialPublishing() {
   function openPublish(jobId, filename, optionalTitle) {
     if (!modal) return;
     const jId = jobId || state.jobId;
-    const fName = filename || state.outputs[state.currentOutputIndex] || 'short_01.mp4';
-    if (!jId || !fName) {
+    const rawName = filename || state.outputs?.[state.currentOutputIndex] || state.reviewFile || 'short_01.mp4';
+    if (!jId || !rawName) {
       alert('Please generate or select a Short first.');
       return;
     }
+    const fName = String(rawName).split('?')[0].split('#')[0].split('/').pop() || 'short_01.mp4';
     $('#publishJobId').value = jId;
     $('#publishFilename').value = fName;
     $('#publishTitle').value = optionalTitle || fName.replace(/\.[^/.]+$/, '').replace(/_/g, ' ');
@@ -2888,9 +2933,12 @@ function initSocialPublishing() {
   window.openPublishModal = openPublish;
   window.closePublishModal = closePublish;
 
-  featuredPublish?.addEventListener('click', () => openPublish());
+  featuredPublish?.addEventListener('click', () => {
+    const cur = state.outputs?.[state.currentOutputIndex] || state.reviewFile || 'short_01.mp4';
+    openPublish(state.jobId, cur);
+  });
   reviewPublish?.addEventListener('click', () => {
-    const curFile = state.reviewFile || state.outputs[state.currentOutputIndex];
+    const curFile = state.reviewFile || state.outputs?.[state.currentOutputIndex] || 'short_01.mp4';
     openPublish(state.jobId, curFile);
   });
   closeBtn?.addEventListener('click', closePublish);

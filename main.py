@@ -671,6 +671,79 @@ ACCENT_COLOR_MAP = {
     "pink_lavender": "&H00FFAAFF&",
 }
 
+# --- Clip Upscale & Render Quality Profiles ---
+UPSCALE_PROFILES = {
+    "ultra": {
+        "scale_flags": "lanczos+accurate_rnd",
+        "unsharp": "unsharp=5:5:0.5:5:5:0.0",
+        "crf": "17",
+        "preset": "fast",
+        "video_bitrate": "10M",
+        "maxrate": "15M",
+        "bufsize": "20M",
+        "label": "Ultra HD (Crisp Lanczos & Anti-Burst)",
+    },
+    "high": {
+        "scale_flags": "lanczos",
+        "unsharp": "unsharp=3:3:0.3:3:3:0.0",
+        "crf": "19",
+        "preset": "fast",
+        "video_bitrate": "8M",
+        "maxrate": "12M",
+        "bufsize": "16M",
+        "label": "High Quality (Recommended · Lanczos)",
+    },
+    "balanced": {
+        "scale_flags": "bicubic",
+        "unsharp": None,
+        "crf": "22",
+        "preset": "fast",
+        "video_bitrate": "5M",
+        "maxrate": "8M",
+        "bufsize": "10M",
+        "label": "Balanced (Standard 1080p)",
+    },
+    "fast": {
+        "scale_flags": "fast_bilinear",
+        "unsharp": None,
+        "crf": "25",
+        "preset": "veryfast",
+        "video_bitrate": "3M",
+        "maxrate": "5M",
+        "bufsize": "6M",
+        "label": "Fast (Compact File)",
+    },
+}
+
+UPSCALE_QUALITY = os.getenv("CLIPPEDAI_UPSCALE_QUALITY", "high").strip().lower()
+
+def get_upscale_profile(quality_override: str | None = None) -> dict[str, Any]:
+    key = str(quality_override or os.getenv("CLIPPEDAI_UPSCALE_QUALITY", UPSCALE_QUALITY)).strip().lower()
+    return UPSCALE_PROFILES.get(key, UPSCALE_PROFILES["high"])
+
+def _scale_filter(w: int | str, h: int | str, force_original_aspect_ratio: str | None = None, include_unsharp: bool = False, quality_override: str | None = None) -> str:
+    prof = get_upscale_profile(quality_override)
+    flags = prof["scale_flags"]
+    parts = [f"scale={w}:{h}"]
+    if force_original_aspect_ratio:
+        parts[0] += f":force_original_aspect_ratio={force_original_aspect_ratio}"
+    parts[0] += f":flags={flags}"
+    if include_unsharp and prof.get("unsharp"):
+        parts.append(prof["unsharp"])
+    return ",".join(parts)
+
+def _video_encode_args(quality_override: str | None = None) -> list[str]:
+    prof = get_upscale_profile(quality_override)
+    return [
+        "-c:v", "libx264",
+        "-preset", prof["preset"],
+        "-crf", prof["crf"],
+        "-b:v", prof["video_bitrate"],
+        "-maxrate", prof["maxrate"],
+        "-bufsize", prof["bufsize"],
+        "-pix_fmt", "yuv420p",
+    ]
+
 # --- Groq API ---
 GROQ_API_KEY = os.getenv(
     "GROQ_API_KEY",
@@ -2245,8 +2318,8 @@ def create_animated_subtitles(video_path, transcription, clip, output_path):
         cmd = [
             FFMPEG_BIN, "-hide_banner", "-y", "-i", video_path,
             "-map", "0:v:0", "-map", "0:a?", "-vf", ffmpeg_ass_filter(ass_file),
-            "-c:v", "libx264", "-preset", "fast", "-crf", "21",
-            "-c:a", "aac", "-b:a", "160k", "-pix_fmt", "yuv420p",
+            *_video_encode_args(),
+            "-c:a", "aac", "-b:a", "160k",
             "-movflags", "+faststart", final_output,
         ]
         print("  [Captions] Burning ASS captions with FFmpeg...")
@@ -5740,8 +5813,7 @@ def _compose_dual_person_split(source_path: str, output_path: str,
 
     cmd = [FFMPEG_BIN, "-i", source_path, "-filter_complex", vf,
            "-map", "[v]", "-map", "0:a?",
-           "-c:v", "libx264", "-preset", "fast", "-crf", "22",
-           "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
+           *_video_encode_args(), "-c:a", "aac", "-b:a", "128k",
            "-movflags", "+faststart", "-y", output_path]
     _run_hidden(cmd, check=True, capture_output=True, text=True)
 
@@ -5791,8 +5863,7 @@ def _compose_solo_split_layout(source_path: str, output_path: str,
         cmd = [
             FFMPEG_BIN, "-i", source_path, "-filter_complex", vf,
             "-map", "[v]", "-map", "0:a?",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "22",
-            "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
+            *_video_encode_args(), "-c:a", "aac", "-b:a", "128k",
             "-movflags", "+faststart", "-y", output_path
         ]
         res = _run_hidden(cmd, capture_output=True, text=True)
@@ -5893,8 +5964,7 @@ def _compose_gaming_split_layout(source_path: str, output_path: str,
         cmd = [
             FFMPEG_BIN, "-i", source_path, "-filter_complex", vf,
             "-map", "[v]", "-map", "0:a?",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "22",
-            "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
+            *_video_encode_args(), "-c:a", "aac", "-b:a", "128k",
             "-movflags", "+faststart", "-y", output_path
         ]
         res = _run_hidden(cmd, capture_output=True, text=True)
@@ -5964,18 +6034,20 @@ def _validate_camera_render(input_path: str, output_path: str,
 def _resize_with_blurred_background(input_path: str, output_path: str,
                                     target_w: int, target_h: int) -> bool:
     """Keep the full source frame visible when no reliable subject can be tracked."""
+    prof = get_upscale_profile()
+    flags = prof["scale_flags"]
+    unsharp_fg = f",{prof['unsharp']}" if prof.get("unsharp") else ""
     filter_complex = (
-        f"[0:v]scale={target_w}:{target_h}:force_original_aspect_ratio=increase,"
+        f"[0:v]scale={target_w}:{target_h}:force_original_aspect_ratio=increase:flags={flags},"
         f"crop={target_w}:{target_h},boxblur=18:2[bg];"
         f"[0:v]scale={target_w}:{target_h}:force_original_aspect_ratio=decrease:"
-        f"force_divisible_by=2,setsar=1[fg];"
+        f"force_divisible_by=2:flags={flags}{unsharp_fg},setsar=1[fg];"
         "[bg][fg]overlay=(W-w)/2:(H-h)/2:shortest=1,format=yuv420p[v]"
     )
     command = [
         FFMPEG_BIN, "-i", input_path, "-filter_complex", filter_complex,
-        "-map", "[v]", "-map", "0:a?", "-c:v", "libx264", "-preset", "fast",
-        "-crf", "23", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
-        "-movflags", "+faststart", "-y", output_path,
+        "-map", "[v]", "-map", "0:a?", *_video_encode_args(),
+        "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-y", output_path,
     ]
     try:
         _run_hidden(command, check=True, capture_output=True, text=True)
@@ -6049,8 +6121,11 @@ def resize_to_vertical_with_zoom(input_path: str, output_path: str, zoom_factor:
             crop_x = f"min(max(0\\,{raw_crop_x})\\,in_w-out_w)"
             crop_y = f"min(max(0\\,{raw_crop_y})\\,in_h-out_h)"
 
-        vf = (f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase,"
-              f"crop@vertical_crop={target_w}:{target_h}:{crop_x}:{crop_y}")
+        prof = get_upscale_profile()
+        flags = prof["scale_flags"]
+        unsharp_str = f",{prof['unsharp']}" if prof.get("unsharp") else ""
+        vf = (f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase:flags={flags},"
+              f"crop@vertical_crop={target_w}:{target_h}:{crop_x}:{crop_y}{unsharp_str}")
         debug_dir = os.getenv("CLIPPEDAI_FRAMING_DEBUG_DIR")
         if debug_dir and points:
             _write_framing_diagnostic(input_path, debug_dir, points, info)
@@ -6058,15 +6133,16 @@ def resize_to_vertical_with_zoom(input_path: str, output_path: str, zoom_factor:
             print(f"  [Framing] Camera path diagnostics: {diagnostic_path}")
         print(f"  [Framing] Tracked person; samples={len(points)}; "
               f"switches={len(info.get('switch_events', []))}; keyframes={len(info.get('keyframes', []))}")
-        cmd = [FFMPEG_BIN, "-i", input_path, "-vf", vf, "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-               "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-y", output_path]
+        enc_args = _video_encode_args()
+        cmd = [FFMPEG_BIN, "-i", input_path, "-vf", vf, *enc_args,
+               "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-y", output_path]
         try:
             _run_hidden(cmd, check=True, capture_output=True, text=True)
         except subprocess.CalledProcessError as sub_err:
             print(f"  [Framing] Complex crop warning ({sub_err}); falling back to clean centered 9:16 vertical crop...")
-            fallback_vf = f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase,crop={target_w}:{target_h}:(in_w-out_w)/2:(in_h-out_h)/2"
-            fb_cmd = [FFMPEG_BIN, "-i", input_path, "-vf", fallback_vf, "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-                      "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-y", output_path]
+            fallback_vf = f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase:flags={flags},crop={target_w}:{target_h}:(in_w-out_w)/2:(in_h-out_h)/2{unsharp_str}"
+            fb_cmd = [FFMPEG_BIN, "-i", input_path, "-vf", fallback_vf, *enc_args,
+                      "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-y", output_path]
             _run_hidden(fb_cmd, check=True, capture_output=True, text=True)
 
         return (os.path.isfile(output_path) and os.path.getsize(output_path) > 1024
@@ -6504,7 +6580,7 @@ def apply_optional_branding(input_video: str, output_video: str) -> str:
         filters.append(f"[{current}]drawtext=textfile='{escaped_text_file}':fontsize={fs}:fontcolor={TEXT_COLOR}:x={x}:y={y}:box={box}:boxcolor={boxcolor}:boxborderw=18:fix_bounds=true[v2]")
         current = "v2"
     fc = ";".join(filters)
-    cmd = [ffmpeg, "-y", *inputs, "-filter_complex", fc, "-map", f"[{current}]", "-map", "0:a?", "-c:v", "libx264", "-preset", "fast", "-crf", "21", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", output_video]
+    cmd = [ffmpeg, "-y", *inputs, "-filter_complex", fc, "-map", f"[{current}]", "-map", "0:a?", *_video_encode_args(), "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", output_video]
     proc = _run_hidden(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
     if text_file:
         try: Path(text_file).unlink()

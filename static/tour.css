@@ -46,6 +46,14 @@
   pointer-events: none;
   z-index: 10001;
   overflow: visible;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+
+.tour-connector-svg.visible {
+  display: block;
+  opacity: 1;
 }
 
 .tour-connector-path {
@@ -68,16 +76,25 @@
 
 .tour-anchor-dot {
   r: 5;
-  transition: cx 0.42s cubic-bezier(0.2, 0.9, 0.3, 1), cy 0.42s cubic-bezier(0.2, 0.9, 0.3, 1), fill 0.3s ease;
+  opacity: 0;
+  transition: cx 0.42s cubic-bezier(0.2, 0.9, 0.3, 1), cy 0.42s cubic-bezier(0.2, 0.9, 0.3, 1), fill 0.3s ease, opacity 0.28s ease;
   filter: drop-shadow(0 0 6px var(--tour-accent-light));
+}
+
+.tour-connector-svg.visible .tour-anchor-dot {
+  opacity: 1;
 }
 
 .tour-anchor-pulse {
   r: 7;
   fill: none;
   stroke-width: 2px;
+  opacity: 0;
+  transition: cx 0.42s cubic-bezier(0.2, 0.9, 0.3, 1), cy 0.42s cubic-bezier(0.2, 0.9, 0.3, 1), stroke 0.3s ease, opacity 0.28s ease;
+}
+
+.tour-connector-svg.visible .tour-anchor-pulse {
   animation: tourAnchorRipples 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-  transition: cx 0.42s cubic-bezier(0.2, 0.9, 0.3, 1), cy 0.42s cubic-bezier(0.2, 0.9, 0.3, 1), stroke 0.3s ease;
 }
 
 @keyframes tourAnchorRipples {
@@ -95,8 +112,13 @@
 
 .tour-card-dot {
   r: 4;
-  transition: cx 0.42s cubic-bezier(0.2, 0.9, 0.3, 1), cy 0.42s cubic-bezier(0.2, 0.9, 0.3, 1), fill 0.3s ease;
+  opacity: 0;
+  transition: cx 0.42s cubic-bezier(0.2, 0.9, 0.3, 1), cy 0.42s cubic-bezier(0.2, 0.9, 0.3, 1), fill 0.3s ease, opacity 0.28s ease;
   filter: drop-shadow(0 0 4px var(--tour-accent-light));
+}
+
+.tour-connector-svg.visible .tour-card-dot {
+  opacity: 1;
 }
 
 /* Tour Card Styling (Obsidian Forest Glassmorphism) */

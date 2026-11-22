@@ -164,6 +164,52 @@ BRANDING_POSITIONS = {
     "bottom-right",
     "custom",
 }
+UPSCALE_PROFILES = {
+    "ultra": {
+        "scale_flags": "lanczos+accurate_rnd",
+        "unsharp": "unsharp=5:5:0.5:5:5:0.0",
+        "crf": "17",
+        "preset": "fast",
+        "video_bitrate": "10M",
+        "maxrate": "15M",
+        "bufsize": "20M",
+        "label": "Ultra HD (Crisp Lanczos & Anti-Burst)",
+    },
+    "high": {
+        "scale_flags": "lanczos",
+        "unsharp": "unsharp=3:3:0.3:3:3:0.0",
+        "crf": "19",
+        "preset": "fast",
+        "video_bitrate": "8M",
+        "maxrate": "12M",
+        "bufsize": "16M",
+        "label": "High Quality (Recommended · Lanczos)",
+    },
+    "balanced": {
+        "scale_flags": "bicubic",
+        "unsharp": None,
+        "crf": "22",
+        "preset": "fast",
+        "video_bitrate": "5M",
+        "maxrate": "8M",
+        "bufsize": "10M",
+        "label": "Balanced (Standard 1080p)",
+    },
+    "fast": {
+        "scale_flags": "fast_bilinear",
+        "unsharp": None,
+        "crf": "25",
+        "preset": "veryfast",
+        "video_bitrate": "3M",
+        "maxrate": "5M",
+        "bufsize": "6M",
+        "label": "Fast (Compact File)",
+    },
+}
+
+def get_upscale_profile(quality_override: str | None = None) -> dict[str, Any]:
+    key = str(quality_override or os.getenv("CLIPPEDAI_UPSCALE_QUALITY", "high")).strip().lower()
+    return UPSCALE_PROFILES.get(key, UPSCALE_PROFILES["high"])
 MODES = {
     "gaming": {"name": "Gaming", "icon": "🎮", "description": "Gameplay + facecam reactions with stable smart framing"},
     "viral": {"name": "Viral", "icon": "✦", "description": "Hooks, curiosity, surprise & payoff"},
@@ -1242,6 +1288,10 @@ def apply_branding_to_file(input_video: str, output_video: str, branding: dict[s
     zoom = max(1.0, min(2.5, float(framing.get("zoom", 1.0))))
     has_framing = (abs(pan_x) > 0.01 or abs(pan_y) > 0.01 or zoom > 1.01)
 
+    prof = get_upscale_profile(str(branding.get("upscale_quality", "high")))
+    scale_flags = prof["scale_flags"]
+    unsharp = f",{prof['unsharp']}" if prof.get("unsharp") else ""
+
     if not logo and not text and not wm_text and not has_framing:
         shutil.copy2(input_video, output_video)
         return
@@ -1262,7 +1312,7 @@ def apply_branding_to_file(input_video: str, output_video: str, branding: dict[s
         offset_y = (pan_y / 50.0) * center_y
         x_pos = max(0, min(1080 - crop_w, int(center_x + offset_x)))
         y_pos = max(0, min(1920 - crop_h, int(center_y + offset_y)))
-        filters.append(f"[{current}]crop={crop_w}:{crop_h}:{x_pos}:{y_pos},scale=1080:1920:flags=lanczos[vframed]")
+        filters.append(f"[{current}]crop={crop_w}:{crop_h}:{x_pos}:{y_pos},scale=1080:1920:flags={scale_flags}{unsharp}[vframed]")
         current = "vframed"
     if logo:
         inputs += ["-i", logo]
@@ -1332,7 +1382,12 @@ def apply_branding_to_file(input_video: str, output_video: str, branding: dict[s
         current = "vtext"
 
     fc = ";".join(filters)
-    cmd = [ffmpeg, "-y", *inputs, "-filter_complex", fc, "-map", f"[{current}]", "-map", "0:a?", "-c:v", "libx264", "-preset", "fast", "-crf", "21", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", output_video]
+    cmd = [
+        ffmpeg, "-y", *inputs, "-filter_complex", fc, "-map", f"[{current}]", "-map", "0:a?",
+        "-c:v", "libx264", "-preset", prof["preset"], "-crf", prof["crf"],
+        "-b:v", prof["video_bitrate"], "-maxrate", prof["maxrate"], "-bufsize", prof["bufsize"],
+        "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", output_video
+    ]
     proc = _run_hidden(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
     if temp_text:
         try: Path(temp_text).unlink()
@@ -1381,7 +1436,7 @@ def _pipeline_command(input_dir: Path) -> list[str]:
 
 
 def run_job(
-job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, max_duration: int, branding: dict[str, Any], split_screen: bool = False, fast_whisper: bool = True, gaming_split: bool = True, split_ratio: int = 50) -> None:
+job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, max_duration: int, branding: dict[str, Any], split_screen: bool = False, fast_whisper: bool = True, gaming_split: bool = True, split_ratio: int = 50, upscale_quality: str = "high") -> None:
     with jobs_lock:
         job = jobs[job_id]
         job["status"] = "running"
@@ -1405,6 +1460,7 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
         "CLIPPEDAI_INPUT_DIR": str(input_dir),
         "CLIPPEDAI_OUTPUT_DIR": str(output_dir),
         "CLIPPEDAI_MODE": mode,
+        "CLIPPEDAI_UPSCALE_QUALITY": str(upscale_quality),
         "OLLAMA_MODEL": model,
         "OLLAMA_URL": str(OLLAMA_RUNTIME_BASE_URL or _ollama_base_url()),
         "CLIPPEDAI_FONT": font,
@@ -3032,18 +3088,23 @@ def start():
         branding["logo_position"] = "top-right"
     if branding["text_position"] not in BRANDING_POSITIONS:
         branding["text_position"] = "bottom-center"
+    branding["upscale_quality"] = str(b.get("upscale_quality", data.get("upscale_quality", "high"))).strip().lower()
     try:
         split_ratio = max(30, min(70, int(data.get("split_ratio", data.get("splitRatio", 50)))))
     except (TypeError, ValueError):
         split_ratio = 50
+    upscale_quality = str(data.get("upscale_quality", data.get("upscaleQuality", "high"))).strip().lower()
+    if upscale_quality not in UPSCALE_PROFILES:
+        upscale_quality = "high"
     with jobs_lock:
         jobs[job_id]["branding"] = branding
         jobs[job_id]["split_screen"] = split_screen
         jobs[job_id]["gaming_split"] = gaming_split
         jobs[job_id]["split_ratio"] = split_ratio
         jobs[job_id]["fast_whisper"] = fast_whisper
-    threading.Thread(target=run_job, args=(job_id, mode, clips, model, font, min_duration, max_duration, branding, split_screen, fast_whisper, gaming_split, split_ratio), daemon=True).start()
-    return jsonify({"ok": True, "job_id": job_id, "model": model, "font": font, "min_duration": min_duration, "max_duration": max_duration, "branding": branding, "split_screen": split_screen, "gaming_split": gaming_split, "split_ratio": split_ratio, "fast_whisper": fast_whisper})
+        jobs[job_id]["upscale_quality"] = upscale_quality
+    threading.Thread(target=run_job, args=(job_id, mode, clips, model, font, min_duration, max_duration, branding, split_screen, fast_whisper, gaming_split, split_ratio, upscale_quality), daemon=True).start()
+    return jsonify({"ok": True, "job_id": job_id, "model": model, "font": font, "min_duration": min_duration, "max_duration": max_duration, "branding": branding, "split_screen": split_screen, "gaming_split": gaming_split, "split_ratio": split_ratio, "fast_whisper": fast_whisper, "upscale_quality": upscale_quality})
 
 
 
@@ -3114,6 +3175,7 @@ def apply_branding(job_id: str):
         branding["logo_position"] = "top-right"
     if branding["text_position"] not in BRANDING_POSITIONS:
         branding["text_position"] = "bottom-center"
+    branding["upscale_quality"] = str(b.get("upscale_quality", data.get("upscale_quality", "high"))).strip().lower()
 
     font = str(data.get("font", "Arial"))
     stem = source.stem
@@ -3264,31 +3326,54 @@ def save_publish_credentials():
     return jsonify({"ok": saved, "platform": platform, "configured": True})
 
 
-def _resolve_publish_video(job_id: str, filename: str) -> tuple[Path | None, Path | None]:
+def _resolve_publish_video(job_id: str, filename: str, title: str = "") -> tuple[Path | None, Path | None]:
     """Resolve video path and sidecar metadata path across job directories, roots, and user data."""
     if not filename:
         return None, None
 
-    direct = Path(filename)
+    clean_filename = str(filename).split("?")[0].split("#")[0].strip()
+    direct = Path(clean_filename)
     if direct.is_file():
         meta = direct.parent / f"{direct.stem}.json"
         return direct.resolve(), (meta.resolve() if meta.is_file() else None)
 
-    clean_name = Path(filename).name
-    stem = Path(clean_name).stem
+    clean_name = direct.name
+    stem = direct.stem
+    base_stem = re.sub(r"(_edited|_clean|_custom|_with_subtitles|_subtitled|_captioned)(?:_\d+)?$", "", stem, flags=re.I)
+
     candidates_names = [
         clean_name,
         f"{stem}.mp4",
-        f"{stem}_clean.mp4",
-        f"{stem}_edited.mp4",
+        f"{base_stem}.mp4",
+        f"{base_stem}_clean.mp4",
+        f"{base_stem}_with_subtitles.mp4",
+        f"{base_stem}_edited.mp4",
+        f"{base_stem}_subtitled.mp4",
+        f"{base_stem}_captioned.mp4",
+        f"{base_stem}_branded.mp4",
         f"{stem}.mov",
         f"{stem}.mkv",
         f"{stem}.webm",
     ]
+    num_match = re.search(r"(\d+)$", base_stem)
+    if num_match:
+        num = int(num_match.group(1))
+        prefix = base_stem[:num_match.start(1)]
+        candidates_names.extend([
+            f"{prefix}{num:02d}.mp4",
+            f"{prefix}{num}.mp4",
+            f"{prefix}{num:02d}_clean.mp4",
+            f"{prefix}{num}_clean.mp4",
+            f"{prefix}{num:02d}_with_subtitles.mp4",
+            f"{prefix}{num}_with_subtitles.mp4",
+            f"{prefix}{num:02d}_edited.mp4",
+            f"{prefix}{num}_edited.mp4",
+        ])
+
     seen = set()
     names = [n for n in candidates_names if not (n in seen or seen.add(n))]
 
-    search_dirs = []
+    search_dirs: list[Path] = []
 
     # Priority 1: Specified job directory
     if job_id:
@@ -3298,8 +3383,10 @@ def _resolve_publish_video(job_id: str, filename: str) -> tuple[Path | None, Pat
 
         local_appdata = os.environ.get("LOCALAPPDATA", "")
         fallback_job_roots = [
+            JOBS,
             USER_DATA_DIR / "jobs",
             ROOT / "jobs",
+            Path.cwd() / "jobs",
         ]
         if local_appdata:
             fallback_job_roots.extend([
@@ -3316,24 +3403,55 @@ def _resolve_publish_video(job_id: str, filename: str) -> tuple[Path | None, Pat
     search_dirs.extend([
         USER_DATA_DIR / "output",
         ROOT / "output",
+        Path.cwd() / "output",
         USER_DATA_DIR / "narrate clips",
         USER_DATA_DIR / "input",
     ])
 
+    def _find_in_dir(d: Path) -> tuple[Path | None, Path | None]:
+        if not d.is_dir():
+            return None, None
+        for name in names:
+            f = d / name
+            if f.is_file() and f.stat().st_size >= 1024:
+                meta = d / f"{base_stem}.json"
+                if not meta.is_file():
+                    meta = d / f"{stem}.json"
+                return f.resolve(), (meta.resolve() if meta.is_file() else None)
+        for pattern in (f"{base_stem}*.mp4", f"*{base_stem}*.mp4"):
+            matches = sorted(d.glob(pattern), key=lambda p: p.stat().st_mtime if p.exists() else 0, reverse=True)
+            for m in matches:
+                if m.is_file() and m.stat().st_size >= 1024:
+                    meta = d / f"{base_stem}.json"
+                    if not meta.is_file():
+                        meta = d / f"{m.stem}.json"
+                    return m.resolve(), (meta.resolve() if meta.is_file() else None)
+        if title:
+            clean_title_search = title.strip().lower()
+            for jf in d.glob("*.json"):
+                try:
+                    meta_content = json.loads(jf.read_text(encoding="utf-8"))
+                    if meta_content.get("title", "").strip().lower() == clean_title_search:
+                        matching_video = d / f"{jf.stem}.mp4"
+                        if matching_video.is_file() and matching_video.stat().st_size >= 1024:
+                            return matching_video.resolve(), jf.resolve()
+                        for v in sorted(d.glob(f"{jf.stem}*.mp4"), key=lambda p: p.stat().st_mtime if p.exists() else 0, reverse=True):
+                            if v.is_file() and v.stat().st_size >= 1024:
+                                return v.resolve(), jf.resolve()
+                except Exception:
+                    pass
+        return None, None
+
     for d in search_dirs:
         try:
-            if not d.is_dir():
-                continue
-            for name in names:
-                f = d / name
-                if f.is_file():
-                    meta = d / f"{stem}.json"
-                    return f.resolve(), (meta.resolve() if meta.is_file() else None)
+            f, m = _find_in_dir(d)
+            if f:
+                return f, m
         except OSError:
             continue
 
     # Priority 3: Scan all job folders under known job roots
-    all_job_roots = [JOBS, USER_DATA_DIR / "jobs", ROOT / "jobs"]
+    all_job_roots = [JOBS, USER_DATA_DIR / "jobs", ROOT / "jobs", Path.cwd() / "jobs"]
     local_appdata = os.environ.get("LOCALAPPDATA", "")
     if local_appdata:
         all_job_roots.extend([
@@ -3346,18 +3464,14 @@ def _resolve_publish_video(job_id: str, filename: str) -> tuple[Path | None, Pat
         try:
             if not jr.is_dir():
                 continue
-            for j in jr.iterdir():
+            for j in sorted(jr.iterdir(), key=lambda p: p.stat().st_mtime if p.exists() else 0, reverse=True):
                 if not j.is_dir():
                     continue
                 for sub in ("output", ""):
                     target_dir = j / sub if sub else j
-                    if not target_dir.is_dir():
-                        continue
-                    for name in names:
-                        f = target_dir / name
-                        if f.is_file():
-                            meta = target_dir / f"{stem}.json"
-                            return f.resolve(), (meta.resolve() if meta.is_file() else None)
+                    f, m = _find_in_dir(target_dir)
+                    if f:
+                        return f, m
         except OSError:
             continue
 
@@ -3383,7 +3497,7 @@ def publish_short():
     if not filename:
         return jsonify({"ok": False, "error": "Missing filename parameter."}), 400
 
-    video_path, metadata_path = _resolve_publish_video(job_id, filename)
+    video_path, metadata_path = _resolve_publish_video(job_id, filename, title)
     if not video_path or not video_path.is_file():
         return jsonify({"ok": False, "error": f"Video file not found: {filename}"}), 404
 
