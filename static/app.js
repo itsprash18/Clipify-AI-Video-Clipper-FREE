@@ -415,14 +415,16 @@ minDuration?.addEventListener('change', syncDuration);
 maxDuration?.addEventListener('change', syncDuration);
 if (minDuration && maxDuration) syncDuration();
 
-function syncRange(id, out) {
+function syncRange(id, out, callback) {
 
   const el = $('#' + id);
   const o = $('#' + out);
+  if (!el || !o) return;
 
   const f = () => {
     o.textContent = el.value + '%';
-    updatePreview();
+    if (callback) callback();
+    else updatePreview();
   };
 
   el.addEventListener('input', f);
@@ -431,6 +433,8 @@ function syncRange(id, out) {
 
 syncRange('logoSize', 'logoSizeOut');
 syncRange('logoOpacity', 'logoOpacityOut');
+syncRange('editorLogoSize', 'editorLogoSizeOut', editorPreviewUpdate);
+syncRange('editorLogoOpacity', 'editorLogoOpacityOut', editorPreviewUpdate);
 syncRange('textBgOpacity', 'textBgOpacityOut');
 
 [
@@ -559,50 +563,67 @@ function updatePreview() {
 
   const logo = $('#previewLogo');
   const txt = $('#previewText');
+  if (!logo || !txt) return;
 
-  const logoImg = $('#previewLogoImg');
-  if (logoImg && state.logoPath) {
-    logoImg.src = state.logoPath;
-    logoImg.style.display = 'block';
+  const isLogoEnabled = $('#logoEnabled')?.checked;
+  logo.style.display = isLogoEnabled ? 'flex' : 'none';
+
+  const logoOpacity = (+($('#logoOpacity')?.value ?? 80));
+  logo.style.opacity = logoOpacity / 100;
+  if ($('#logoOpacityOut')) {
+    $('#logoOpacityOut').textContent = logoOpacity + '%';
   }
 
-  logo.style.display =
-    $('#logoEnabled').checked ? 'block' : 'none';
+  const logoSize = (+($('#logoSize')?.value ?? 8));
+  const logoWidthPx = Math.max(16, Math.round(220 * logoSize / 20));
+  logo.style.width = logoWidthPx + 'px';
+  logo.style.height = 'auto';
 
-  logo.style.opacity =
-    (+$('#logoOpacity').value) / 100;
+  const posVal = $('#logoPosition')?.value || 'top-right';
+  const marginVal = +($('#logoMargin')?.value ?? 40);
 
-  logo.style.width =
-    Math.max(
-      28,
-      Math.round(
-        220 * (+$('#logoSize').value) / 20
-      )
-    ) + 'px';
-
-  logo.style.fontSize =
-    Math.max(
-      14,
-      Math.round(
-        36 * (+$('#logoSize').value) / 12
-      )
-    ) + 'px';
-
-  if ($('#logoPosition').value === 'custom') {
-
+  if (posVal === 'custom') {
     applyCustom(
       logo,
       +logo.dataset.x || 92,
       +logo.dataset.y || 8
     );
-
   } else {
-
     applyPresetPosition(
       logo,
-      $('#logoPosition').value,
-      +$('#logoMargin').value
+      posVal,
+      marginVal
     );
+  }
+
+  const logoImg = $('#previewLogoImg');
+  const placeholder = $('#previewLogoPlaceholder');
+
+  if (state.logoPath) {
+    if (logoImg) {
+      const targetSrc = (state.logoPath.startsWith('data:') || state.logoPath.startsWith('blob:'))
+        ? state.logoPath
+        : state.logoPath + (state.logoPath.includes('?') ? '&' : '?') + 'v=' + Date.now();
+      if (logoImg.getAttribute('src') !== targetSrc) {
+        logoImg.src = targetSrc;
+      }
+      logoImg.style.display = 'block';
+      logoImg.onerror = () => {
+        logoImg.style.display = 'none';
+        if (placeholder) placeholder.style.display = isLogoEnabled ? 'inline-flex' : 'none';
+      };
+      logoImg.onload = () => {
+        logoImg.style.display = 'block';
+        if (placeholder) placeholder.style.display = 'none';
+      };
+    }
+    if (placeholder) placeholder.style.display = 'none';
+  } else {
+    if (logoImg) {
+      logoImg.removeAttribute('src');
+      logoImg.style.display = 'none';
+    }
+    if (placeholder) placeholder.style.display = isLogoEnabled ? 'inline-flex' : 'none';
   }
 
   txt.style.display =
@@ -768,6 +789,9 @@ function dragMove(e) {
     if ($('#logoPosition'))
       $('#logoPosition').value = 'custom';
 
+    if ($('#editorLogoPosition'))
+      $('#editorLogoPosition').value = 'custom';
+
     if ($('#editorLogoEnabled'))
       $('#editorLogoEnabled').checked = true;
 
@@ -825,29 +849,68 @@ function editorPreviewUpdate() {
 
   if (!logo || !txt) return;
 
-  logo.style.display =
-    $('#editorLogoEnabled')?.checked
-      ? 'block'
-      : 'none';
+  const isLogoEnabled = $('#editorLogoEnabled')?.checked;
+  logo.style.display = isLogoEnabled ? 'flex' : 'none';
 
-  logo.style.opacity =
-    (+($('#editorLogoOpacity')?.value || 80)) / 100;
+  const logoOpacity = (+($('#editorLogoOpacity')?.value ?? 80));
+  logo.style.opacity = logoOpacity / 100;
+  if ($('#editorLogoOpacityOut')) {
+    $('#editorLogoOpacityOut').textContent = logoOpacity + '%';
+  }
 
-  logo.style.width =
-    Math.max(
-      28,
-      Math.round(
-        220 * (+($('#editorLogoSize')?.value || 8)) / 20
-      )
-    ) + 'px';
+  const logoSize = (+($('#editorLogoSize')?.value ?? 8));
+  const logoWidthPx = Math.max(16, Math.round(220 * logoSize / 20));
+  logo.style.width = logoWidthPx + 'px';
+  logo.style.height = 'auto';
+  if ($('#editorLogoSizeOut')) {
+    $('#editorLogoSizeOut').textContent = logoSize + '%';
+  }
 
-  if (logo.dataset.x) {
+  const posVal = $('#editorLogoPosition')?.value || 'custom';
+  const marginVal = +($('#editorLogoMargin')?.value ?? 40);
 
+  if (posVal === 'custom') {
     applyCustom(
       logo,
-      +logo.dataset.x,
-      +logo.dataset.y
+      +logo.dataset.x || 92,
+      +logo.dataset.y || 8
     );
+  } else {
+    applyPresetPosition(
+      logo,
+      posVal,
+      marginVal
+    );
+  }
+
+  const img = $('#editorLogoImg');
+  const placeholder = $('#editorLogoPlaceholder');
+
+  if (state.editorLogoPath) {
+    if (img) {
+      const targetSrc = (state.editorLogoPath.startsWith('data:') || state.editorLogoPath.startsWith('blob:'))
+        ? state.editorLogoPath
+        : state.editorLogoPath + (state.editorLogoPath.includes('?') ? '&' : '?') + 'v=' + Date.now();
+      if (img.getAttribute('src') !== targetSrc) {
+        img.src = targetSrc;
+      }
+      img.style.display = 'block';
+      img.onerror = () => {
+        img.style.display = 'none';
+        if (placeholder) placeholder.style.display = isLogoEnabled ? 'inline-flex' : 'none';
+      };
+      img.onload = () => {
+        img.style.display = 'block';
+        if (placeholder) placeholder.style.display = 'none';
+      };
+    }
+    if (placeholder) placeholder.style.display = 'none';
+  } else {
+    if (img) {
+      img.removeAttribute('src');
+      img.style.display = 'none';
+    }
+    if (placeholder) placeholder.style.display = isLogoEnabled ? 'inline-flex' : 'none';
   }
 
   txt.style.display =
@@ -890,22 +953,12 @@ function editorPreviewUpdate() {
       +txt.dataset.y
     );
   }
-
-  const img = $('#editorLogoImg');
-
-  if (
-    img &&
-    state.editorLogoPath
-  ) {
-    img.src =
-      state.editorLogoPath +
-      (state.editorLogoPath.includes('?') ? '&' : '?') +
-      'v=' + Date.now();
-  }
 }
 
 [
   'editorLogoEnabled',
+  'editorLogoPosition',
+  'editorLogoMargin',
   'editorTextEnabled',
   'editorTextValue',
   'editorLogoSize',
@@ -915,34 +968,45 @@ function editorPreviewUpdate() {
   'editorTextBg',
   'editorTextBgColor',
   'editorTextBgOpacity'
-].forEach(id =>
-  $('#' + id)?.addEventListener(
-    'input',
-    editorPreviewUpdate
-  )
-);
+].forEach(id => {
+  $('#' + id)?.addEventListener('input', editorPreviewUpdate);
+  $('#' + id)?.addEventListener('change', editorPreviewUpdate);
+});
 
 $('#editorLogoInput')?.addEventListener(
   'change',
   e => {
     const file = e.target.files[0];
-
     if (!file) return;
 
     state.editorLogoFile = file;
 
-    const url = URL.createObjectURL(file);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      state.editorLogoPath = ev.target.result;
+      $('#editorLogoEnabled').checked = true;
+      editorPreviewUpdate();
+    };
+    reader.readAsDataURL(file);
+  }
+);
 
-    state.editorLogoPath = url;
+$('#editorClearLogo')?.addEventListener(
+  'click',
+  () => {
+    state.editorLogoFile = null;
+    state.editorLogoPath = null;
+
+    if ($('#editorLogoInput'))
+      $('#editorLogoInput').value = '';
+
+    $('#editorLogoEnabled').checked = false;
 
     const img = $('#editorLogoImg');
-
     if (img) {
-      img.src = url;
-      img.style.display = 'block';
+      img.removeAttribute('src');
+      img.style.display = 'none';
     }
-
-    $('#editorLogoEnabled').checked = true;
 
     editorPreviewUpdate();
   }
@@ -952,20 +1016,25 @@ $('#logoInput')?.addEventListener(
   'change',
   e => {
     const file = e.target.files[0];
-
     if (!file) return;
 
     state.logoFile = file;
 
-    const url = URL.createObjectURL(file);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const dataUrl = ev.target.result;
+      state.logoPath = dataUrl;
+      $('#logoPath').value = file.name;
+      $('#logoEnabled').checked = true;
 
-    state.logoPath = url;
+      const thumb = $('#logoPreviewThumb') || $('.logo-preview');
+      if (thumb) {
+        thumb.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:contain;border-radius:14px;">`;
+      }
 
-    $('#logoPath').value = file.name;
-
-    $('#logoEnabled').checked = true;
-
-    updatePreview();
+      updatePreview();
+    };
+    reader.readAsDataURL(file);
   }
 );
 
@@ -974,6 +1043,7 @@ $('#clearLogo')?.addEventListener(
   () => {
     state.logoFile = null;
     state.logoPath = null;
+    state.logoServerPath = null;
 
     if ($('#logoInput'))
       $('#logoInput').value = '';
@@ -982,6 +1052,15 @@ $('#clearLogo')?.addEventListener(
       $('#logoPath').value = '';
 
     $('#logoEnabled').checked = false;
+
+    const thumb = $('#logoPreviewThumb') || $('.logo-preview');
+    if (thumb) thumb.textContent = 'C';
+
+    const img = $('#previewLogoImg');
+    if (img) {
+      img.removeAttribute('src');
+      img.style.display = 'none';
+    }
 
     updatePreview();
   }
@@ -2007,13 +2086,41 @@ async function selectReview(job, file) {
 
   editorApplyButtons().forEach(b => b.disabled = false);
 
-  $('#editorLogoImg').removeAttribute('src');
+  const editorImg = $('#editorLogoImg');
+  if (editorImg) {
+    editorImg.removeAttribute('src');
+    editorImg.style.display = 'none';
+  }
+  const editorPlaceholder = $('#editorLogoPlaceholder');
+  if (editorPlaceholder) editorPlaceholder.style.display = 'none';
 
   state.editorLogoFile = null;
   state.editorLogoPath = null;
 
-  $('#editorLogoEnabled').checked = false;
-  $('#editorTextEnabled').checked = false;
+  if ($('#editorLogoEnabled')) $('#editorLogoEnabled').checked = false;
+  if ($('#editorLogoPosition')) $('#editorLogoPosition').value = 'top-right';
+  if ($('#editorLogoMargin')) $('#editorLogoMargin').value = 40;
+  if ($('#editorLogoSize')) $('#editorLogoSize').value = 8;
+  if ($('#editorLogoSizeOut')) $('#editorLogoSizeOut').textContent = '8%';
+  if ($('#editorLogoOpacity')) $('#editorLogoOpacity').value = 80;
+  if ($('#editorLogoOpacityOut')) $('#editorLogoOpacityOut').textContent = '80%';
+  if ($('#editorLogo')) {
+    $('#editorLogo').dataset.x = '92';
+    $('#editorLogo').dataset.y = '8';
+  }
+
+  // Check if job already has a saved logo on server
+  try {
+    const testImg = new Image();
+    testImg.onload = () => {
+      state.editorLogoPath = `/api/logo/${job}`;
+      if ($('#editorLogoEnabled')) $('#editorLogoEnabled').checked = true;
+      editorPreviewUpdate();
+    };
+    testImg.src = `/api/logo/${job}?t=${Date.now()}`;
+  } catch {}
+
+  if ($('#editorTextEnabled')) $('#editorTextEnabled').checked = false;
   $('#editorTextValue').value = '';
 
   $('#editorLogo').dataset.x = '92';
@@ -2101,22 +2208,22 @@ async function applyEditorBranding() {
   const b = {
 
     logo_enabled:
-      $('#editorLogoEnabled').checked,
+      $('#editorLogoEnabled')?.checked || false,
 
     logo_path:
       state.editorLogoPath || '',
 
     logo_position:
-      'custom',
+      $('#editorLogoPosition')?.value || 'custom',
 
     logo_size:
-      +$('#editorLogoSize').value,
+      +($('#editorLogoSize')?.value || 8),
 
     logo_opacity:
-      +$('#editorLogoOpacity').value,
+      +($('#editorLogoOpacity')?.value || 80),
 
     logo_margin:
-      40,
+      +($('#editorLogoMargin')?.value || 40),
 
     logo_x:
       +$('#editorLogo').dataset.x || 92,
@@ -2212,8 +2319,10 @@ async function applyEditorBranding() {
           'Logo upload failed'
         );
 
-      state.editorLogoPath = ud.path;
       b.logo_path = ud.path;
+      if (!state.editorLogoPath || !state.editorLogoPath.startsWith('data:')) {
+        state.editorLogoPath = ud.url || `/api/logo/${state.jobId}`;
+      }
     }
 
     const r =

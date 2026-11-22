@@ -1768,6 +1768,14 @@ label {
   background: linear-gradient(135deg, #d6b387, #f5d6b0);
   font-size: 28px;
   font-weight: 800;
+  overflow: hidden;
+}
+
+.logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 14px;
 }
 
 .logo-card small {
@@ -1849,16 +1857,37 @@ label {
   display: none;
   width: 88px;
   height: 64px;
-  padding: 8px;
+  padding: 4px;
   transform: translate(-50%, -50%);
-  border-radius: 10px;
+  border-radius: 8px;
   background: rgba(0, 0, 0, 0.18);
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
 }
 
 .preview-logo img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  pointer-events: none;
+}
+
+.preview-logo-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(20, 20, 25, 0.7);
+  border: 1.5px dashed rgba(255, 255, 255, 0.45);
+  border-radius: 6px;
+  padding: 4px 8px;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .preview-text {
@@ -2565,10 +2594,29 @@ label {
   cursor: grab;
 }
 
+.editor-overlay:active {
+  cursor: grabbing;
+}
+
+.editor-logo {
+  display: none;
+  width: 88px;
+  height: 64px;
+  padding: 4px;
+  transform: translate(-50%, -50%);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+}
+
 .editor-logo img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  pointer-events: none;
+}
 }
 
 .editor-text {

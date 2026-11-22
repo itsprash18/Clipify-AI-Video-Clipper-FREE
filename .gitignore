@@ -13,6 +13,7 @@ output/*
 
 # Jobs & user session workspaces
 jobs/
+branding/
 temp/
 tmp/
 logs/

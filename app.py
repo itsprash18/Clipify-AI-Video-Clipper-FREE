@@ -1068,10 +1068,38 @@ def _position_expr(position: str, margin: int, item_w: str = "w", item_h: str = 
     return f"W-{item_w}-{m}", f"H-{item_h}-{m}"
 
 
-def _resolve_logo(path_value: str) -> str | None:
-    p = Path(str(path_value or "").strip().strip('"'))
+def _resolve_logo(path_value: str, job_dir: Path | None = None) -> str | None:
+    val = str(path_value or "").strip().strip('"')
+    if val.startswith("data:image/") and job_dir:
+        try:
+            branding_dir = job_dir / "branding"
+            branding_dir.mkdir(parents=True, exist_ok=True)
+            import base64
+            _, encoded = val.split(",", 1)
+            target = branding_dir / "logo.png"
+            target.write_bytes(base64.b64decode(encoded))
+            return str(target)
+        except Exception:
+            pass
+
+    if job_dir:
+        branding_dir = job_dir / "branding"
+        if branding_dir.is_dir():
+            for ext in ("*.png", "*.webp", "*.jpg", "*.jpeg"):
+                found = sorted(branding_dir.glob(ext))
+                if found:
+                    return str(found[0])
+
+    if not val:
+        return None
+
+    p = Path(val)
     if p.is_file():
         return str(p)
+    if (ROOT / p).is_file():
+        return str(ROOT / p)
+    if (USER_DATA_DIR / p).is_file():
+        return str(USER_DATA_DIR / p)
     if p.is_dir():
         for ext in ("*.png", "*.webp", "*.jpg", "*.jpeg"):
             found = sorted(p.glob(ext))
@@ -1204,7 +1232,8 @@ def _render_transparent_watermark_image(
 def apply_branding_to_file(input_video: str, output_video: str, branding: dict[str, Any], font_name: str = "Arial") -> None:
     """Apply logo/watermark text/custom text branding and camera/framing adjustments to an already-rendered Short without rerunning AI."""
     ffmpeg = _ffmpeg_path()
-    logo = _resolve_logo(str(branding.get("logo_path", ""))) if branding.get("logo_enabled") else None
+    video_parent_job = Path(input_video).parent.parent if Path(input_video).parent.name == "output" else Path(input_video).parent
+    logo = _resolve_logo(str(branding.get("logo_path", "")), video_parent_job) if branding.get("logo_enabled") else None
     text = str(branding.get("text", "")).strip() if branding.get("text_enabled") else ""
     wm_text = str(branding.get("watermark_text", "")).strip() if branding.get("watermark_text_enabled") else ""
     framing = branding.get("framing") if isinstance(branding.get("framing"), dict) else {}
@@ -1237,10 +1266,10 @@ def apply_branding_to_file(input_video: str, output_video: str, branding: dict[s
         current = "vframed"
     if logo:
         inputs += ["-i", logo]
-        size = max(3, min(20, int(branding.get("logo_size", 8))))
-        opacity = max(10, min(100, int(branding.get("logo_opacity", 80))))
+        size = max(1, min(50, int(branding.get("logo_size", 8))))
+        opacity = max(0, min(100, int(branding.get("logo_opacity", 80))))
         pos = str(branding.get("logo_position", "top-right"))
-        margin = max(5, min(500, int(branding.get("logo_margin", 40))))
+        margin = max(0, min(500, int(branding.get("logo_margin", 40))))
         if pos == "custom":
             x = f"(W-w)*{max(0,min(100,float(branding.get('logo_x',92))))/100:.6f}"
             y = f"(H-h)*{max(0,min(100,float(branding.get('logo_y',8))))/100:.6f}"
@@ -2782,7 +2811,68 @@ def upload_logo(job_id: str):
     ext = Path(file.filename).suffix.lower()
     target = branding_dir / f"logo{ext}"
     file.save(target)
-    return jsonify({"ok": True, "path": str(target), "filename": target.name})
+    return jsonify({
+        "ok": True,
+        "path": str(target),
+        "url": f"/api/logo/{job_id}",
+        "filename": target.name
+    })
+
+
+@app.get("/api/logo/<job_id>")
+def get_job_logo(job_id: str):
+    """Serve the logo image file associated with a job."""
+    import mimetypes
+    job_dir = _safe_job_directory(job_id)
+    if job_dir is None or not job_dir.is_dir():
+        return jsonify({"error": "Job not found."}), 404
+    branding_dir = job_dir / "branding"
+    if branding_dir.is_dir():
+        for ext in ("*.png", "*.webp", "*.jpg", "*.jpeg", "*.PNG", "*.WEBP", "*.JPG", "*.JPEG"):
+            found = sorted(branding_dir.glob(ext))
+            if found:
+                mime, _ = mimetypes.guess_type(str(found[0]))
+                return send_file(str(found[0]), mimetype=mime or "image/png")
+    return jsonify({"error": "No logo found."}), 404
+
+
+@app.post("/api/upload-logo")
+def upload_generic_logo():
+    """Upload a logo image into the user's global branding folder."""
+    file = request.files.get("logo")
+    if not file or not file.filename:
+        return jsonify({"error": "Choose a logo image first."}), 400
+    if not is_allowed_logo(file.filename):
+        return jsonify({"error": "Logo must be PNG, JPG, JPEG or WEBP."}), 400
+
+    branding_dir = USER_DATA_DIR / "branding"
+    branding_dir.mkdir(parents=True, exist_ok=True)
+    ext = Path(file.filename).suffix.lower()
+    target = branding_dir / f"logo{ext}"
+    file.save(target)
+    return jsonify({
+        "ok": True,
+        "path": str(target),
+        "url": "/api/global-logo",
+        "filename": target.name
+    })
+
+
+@app.get("/api/global-logo")
+def get_global_logo():
+    """Serve the global uploaded logo image or fallback to app mark."""
+    import mimetypes
+    branding_dir = USER_DATA_DIR / "branding"
+    if branding_dir.is_dir():
+        for ext in ("*.png", "*.webp", "*.jpg", "*.jpeg", "*.PNG", "*.WEBP", "*.JPG", "*.JPEG"):
+            found = sorted(branding_dir.glob(ext))
+            if found:
+                mime, _ = mimetypes.guess_type(str(found[0]))
+                return send_file(str(found[0]), mimetype=mime or "image/png")
+    mark = ROOT / "static" / "clipify-ai-mark.png"
+    if mark.is_file():
+        return send_file(str(mark), mimetype="image/png")
+    return jsonify({"error": "No logo found."}), 404
 
 
 @app.post("/api/start")
@@ -2904,9 +2994,9 @@ def start():
         "logo_enabled": bool(branding_raw.get("logo_enabled", branding_raw.get("watermark_enabled", False))),
         "logo_path": str(branding_raw.get("logo_path", branding_raw.get("watermark_path", str(ROOT / "static" / "clipify-ai-mark.png")))).strip(),
         "logo_position": str(branding_raw.get("logo_position", branding_raw.get("watermark_position", "top-right"))),
-        "logo_size": max(3, min(20, int(branding_raw.get("logo_size", branding_raw.get("watermark_size", 8))))),
-        "logo_opacity": max(10, min(100, int(branding_raw.get("logo_opacity", branding_raw.get("watermark_opacity", 80))))),
-        "logo_margin": max(5, min(200, int(branding_raw.get("logo_margin", branding_raw.get("watermark_margin", 40))))),
+        "logo_size": max(1, min(50, int(branding_raw.get("logo_size", branding_raw.get("watermark_size", 8))))),
+        "logo_opacity": max(0, min(100, int(branding_raw.get("logo_opacity", branding_raw.get("watermark_opacity", 80))))),
+        "logo_margin": max(0, min(500, int(branding_raw.get("logo_margin", branding_raw.get("watermark_margin", 40))))),
         "logo_x": max(0, min(100, float(branding_raw.get("logo_x", branding_raw.get("watermark_x", 92))))),
         "logo_y": max(0, min(100, float(branding_raw.get("logo_y", branding_raw.get("watermark_y", 8))))),
         "logo_bg_remove": bool(branding_raw.get("logo_bg_remove", branding_raw.get("watermark_bg_remove", False))),
@@ -2984,9 +3074,9 @@ def apply_branding(job_id: str):
         "logo_enabled": bool(b.get("logo_enabled")),
         "logo_path": str(b.get("logo_path", "")).strip(),
         "logo_position": str(b.get("logo_position", "top-right")),
-        "logo_size": max(3, min(20, int(b.get("logo_size", 8)))),
-        "logo_opacity": max(10, min(100, int(b.get("logo_opacity", 80)))),
-        "logo_margin": max(5, min(500, int(b.get("logo_margin", 40)))),
+        "logo_size": max(1, min(50, int(b.get("logo_size", 8)))),
+        "logo_opacity": max(0, min(100, int(b.get("logo_opacity", 80)))),
+        "logo_margin": max(0, min(500, int(b.get("logo_margin", 40)))),
         "logo_x": max(0, min(100, float(b.get("logo_x", 92)))),
         "logo_y": max(0, min(100, float(b.get("logo_y", 8)))),
         "logo_bg_remove": bool(b.get("logo_bg_remove")),

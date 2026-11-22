@@ -550,13 +550,13 @@
                     placeholder="Uploaded logo or local folder path"></label>
                 <div class="two"><label>Position<select id="logoPosition">{% for p in
                       ['top-left','top-center','top-right','center-left','center','center-right','bottom-left','bottom-center','bottom-right']
-                      %}<option value="{{p}}">{{p|replace('-',' ')|title}}</option>{% endfor %}<option value="custom">
+                      %}<option value="{{p}}" {% if p=='top-right' %}selected{% endif %}>{{p|replace('-',' ')|title}}</option>{% endfor %}<option value="custom">
                         Custom / Drag in Preview</option></select></label><label>Margin<input id="logoMargin"
-                      type="number" min="5" max="200" value="40"></label></div>
+                      type="number" min="0" max="250" value="40"></label></div>
                 <div class="slider-row"><label>Logo size <output id="logoSizeOut">8%</output></label><input
-                    id="logoSize" type="range" min="3" max="20" value="8"></div>
+                    id="logoSize" type="range" min="2" max="40" value="8"></div>
                 <div class="slider-row"><label>Opacity <output id="logoOpacityOut">80%</output></label><input
-                    id="logoOpacity" type="range" min="10" max="100" value="80"></div>
+                    id="logoOpacity" type="range" min="0" max="100" value="80"></div>
                 <label class="toggle-row compact"><input type="checkbox" id="logoBgRemove"><span
                     class="switch"></span><b>Remove solid logo background</b></label>
                 <div class="two"><label>Background color<input id="logoBgColor" type="color"
@@ -566,7 +566,7 @@
                   removal.</small>
               </div>
               <div class="logo-card">
-                <div class="logo-preview">C</div><small>Small, subtle and positioned over the final 1080×1920
+                <div class="logo-preview" id="logoPreviewThumb">C</div><small>Small, subtle and positioned over the final 1080×1920
                   render.</small>
               </div>
             </div>
@@ -653,7 +653,9 @@
                 hidden></video>
               <div class="preview-placeholder"><span>9:16</span><b>Your Short preview</b><small>Upload a video, then
                   drag the logo/text.</small></div>
-              <div class="preview-logo draggable-overlay" id="previewLogo"><img id="previewLogoImg" alt="Logo preview">
+              <div class="preview-logo draggable-overlay" id="previewLogo">
+                <img id="previewLogoImg" alt="" style="display:none;">
+                <span id="previewLogoPlaceholder" class="preview-logo-placeholder" style="display:none;">Logo</span>
               </div>
               <div class="preview-text draggable-overlay" id="previewText">Your text</div>
               <div class="preview-watermark-overlay" id="previewWatermark"
@@ -761,7 +763,10 @@
             <div id="reviewVideoStatus" class="review-video-status" role="status" aria-live="polite" hidden><span
                 id="reviewVideoSpinner" class="review-video-spinner" aria-hidden="true"></span><span
                 id="reviewVideoStatusText"></span></div>
-            <div id="editorLogo" class="editor-overlay editor-logo"><img id="editorLogoImg" alt="Logo"></div>
+            <div id="editorLogo" class="editor-overlay editor-logo">
+              <img id="editorLogoImg" alt="" style="display:none;">
+              <span id="editorLogoPlaceholder" class="preview-logo-placeholder" style="display:none;">Logo</span>
+            </div>
             <div id="editorText" class="editor-overlay editor-text">Your text</div>
             <div id="editorDragHint">Drag logo/text · changes are applied to the exported edit</div>
           </div>
@@ -798,14 +803,36 @@
                 class="secondary" id="reviewPublish" type="button"
                 style="background:rgba(215,187,148,0.18);border:1px solid rgba(215,187,148,0.4);color:var(--text);border-radius:10px;padding:9px 18px;font-weight:600;cursor:pointer;"><span>🚀
                   Share / Publish</span></button><button class="primary" id="applyEditorBranding"
-                type="button"><span>Apply to Finished Short</span></button></div><label
-              class="upload-logo-button"><input type="file" id="editorLogoInput"
-                accept="image/png,image/jpeg,image/webp" hidden><span>＋ Upload logo</span></label>
-            <div class="two"><label>Logo size<input id="editorLogoSize" type="range" min="3" max="20"
-                  value="8"></label><label>Opacity<input id="editorLogoOpacity" type="range" min="10" max="100"
-                  value="80"></label></div><label class="toggle-row compact"><input type="checkbox"
-                id="editorLogoBgRemove"><span class="switch"></span><b>Remove logo background</b></label><label>BG key
-              color<input id="editorLogoBgColor" type="color" value="#9B5CFF"></label><label class="toggle-row"><input
+                type="button"><span>Apply to Finished Short</span></button></div>            <div class="logo-upload-row">
+              <label class="upload-logo-button"><input type="file" id="editorLogoInput"
+                  accept="image/png,image/jpeg,image/webp" hidden><span>＋ Upload logo</span></label>
+              <button class="ghost" type="button" id="editorClearLogo">Remove</button>
+            </div>
+            <div class="two">
+              <label>Position
+                <select id="editorLogoPosition">
+                  {% for p in ['top-left','top-center','top-right','center-left','center','center-right','bottom-left','bottom-center','bottom-right'] %}
+                  <option value="{{ p }}" {% if p=='top-right' %}selected{% endif %}>{{ p|replace('-', ' ')|title }}</option>
+                  {% endfor %}
+                  <option value="custom">Custom / Drag in Preview</option>
+                </select>
+              </label>
+              <label>Margin<input id="editorLogoMargin" type="number" min="0" max="250" value="40"></label>
+            </div>
+            <div class="slider-row">
+              <label>Logo size <output id="editorLogoSizeOut">8%</output></label>
+              <input id="editorLogoSize" type="range" min="2" max="40" value="8">
+            </div>
+            <div class="slider-row">
+              <label>Opacity <output id="editorLogoOpacityOut">80%</output></label>
+              <input id="editorLogoOpacity" type="range" min="0" max="100" value="80">
+            </div>
+            <label class="toggle-row compact"><input type="checkbox"
+                id="editorLogoBgRemove"><span class="switch"></span><b>Remove logo background</b></label>
+            <div class="two">
+              <label>BG key color<input id="editorLogoBgColor" type="color" value="#9B5CFF"></label>
+              <label>Key tolerance<input id="editorLogoBgSimilarity" type="number" min="0.01" max="0.8" step="0.01" value="0.22"></label>
+            </div><label class="toggle-row"><input
                 type="checkbox" id="editorTextEnabled"><span class="switch"></span><b>Text</b></label><textarea
               id="editorTextValue" maxlength="100" placeholder="Text overlay"></textarea><label>Text size<input
                 id="editorTextSize" type="number" min="3" max="12" value="6"></label><label>Text color<input
