@@ -3949,7 +3949,7 @@ def updater_check():
                 "Accept": "application/vnd.github.v3+json",
             },
         )
-        with urllib.request.urlopen(req, timeout=4.5) as resp:
+        with urllib.request.urlopen(req, timeout=12.0) as resp:
             if resp.status == 200:
                 rel = json.loads(resp.read().decode("utf-8"))
                 latest_tag = (rel.get("tag_name") or "").strip()
@@ -3970,8 +3970,8 @@ def updater_check():
     if result["is_git"]:
         try:
             git_bin = shutil.which("git") or shutil.which("git.exe") or "git"
-            _run_hidden([git_bin, "fetch", "--dry-run"], cwd=str(ROOT), timeout=5, check=False)
-            status = _run_hidden([git_bin, "status", "-uno"], cwd=str(ROOT), timeout=5, check=False)
+            _run_hidden([git_bin, "fetch", "--dry-run"], cwd=str(ROOT), timeout=15, check=False)
+            status = _run_hidden([git_bin, "status", "-uno"], cwd=str(ROOT), timeout=15, check=False)
             if status.returncode == 0:
                 out = (status.stdout or "").lower()
                 if "your branch is behind" in out or "can be fast-forwarded" in out:
@@ -3992,18 +3992,18 @@ def updater_apply():
     if is_git:
         try:
             # Determine current branch
-            branch_cmd = _run_hidden([git_bin, "branch", "--show-current"], cwd=str(ROOT), timeout=5, check=False)
+            branch_cmd = _run_hidden([git_bin, "branch", "--show-current"], cwd=str(ROOT), timeout=10, check=False)
             branch = (branch_cmd.stdout or "").strip() or "feature/cross-platform"
 
             # 1. Fetch latest changes
-            _run_hidden([git_bin, "fetch", "origin", branch], cwd=str(ROOT), timeout=30, check=False)
+            _run_hidden([git_bin, "fetch", "origin", branch], cwd=str(ROOT), timeout=60, check=False)
 
             # 2. Fast-forward pull
-            pull = _run_hidden([git_bin, "pull", "--ff-only", "origin", branch], cwd=str(ROOT), timeout=60, check=False)
+            pull = _run_hidden([git_bin, "pull", "--ff-only", "origin", branch], cwd=str(ROOT), timeout=90, check=False)
             if pull.returncode != 0:
                 # Fallback: stash unstaged scratch edits and pull
-                _run_hidden([git_bin, "stash"], cwd=str(ROOT), timeout=10, check=False)
-                pull = _run_hidden([git_bin, "pull", "origin", branch], cwd=str(ROOT), timeout=60, check=False)
+                _run_hidden([git_bin, "stash"], cwd=str(ROOT), timeout=15, check=False)
+                pull = _run_hidden([git_bin, "pull", "origin", branch], cwd=str(ROOT), timeout=90, check=False)
 
             if pull.returncode == 0:
                 return jsonify({
@@ -4027,14 +4027,21 @@ def updater_apply():
 
         zip_url = f"https://github.com/{GITHUB_REPO}/archive/refs/heads/feature/cross-platform.zip"
         req = urllib.request.Request(zip_url, headers={"User-Agent": "ClipifyAI-Updater"})
-        with urllib.request.urlopen(req, timeout=35.0) as resp:
-            zip_bytes = resp.read()
 
         with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tf:
-            tf.write(zip_bytes)
             tf_path = Path(tf.name)
+            with urllib.request.urlopen(req, timeout=180.0) as resp:
+                while True:
+                    chunk = resp.read(65536)
+                    if not chunk:
+                        break
+                    tf.write(chunk)
 
-        protected_dirs = {"runtime", "input", "output", "jobs", "models", "settings", "installer", ".venv", "tools"}
+        excluded_dirs = {
+            "runtime", "input", "output", "jobs", "models", "settings",
+            "installer", ".venv", "tools", "website", "build", "docs",
+            "scratch", "tests", ".git", ".github",
+        }
         updated_count = 0
         with zipfile.ZipFile(tf_path, "r") as zf:
             for member in zf.infolist():
@@ -4043,7 +4050,7 @@ def updater_apply():
                 rel_parts = member.filename.split("/")[1:]
                 if not rel_parts or not rel_parts[0]:
                     continue
-                if rel_parts[0] in protected_dirs:
+                if rel_parts[0] in excluded_dirs:
                     continue
 
                 dest_file = ROOT / Path(*rel_parts)

@@ -1088,23 +1088,45 @@ class Installer extends EventEmitter {
     // trusting it here meant a new folder silently reused a runtime from
     // somewhere else and the AI libraries never landed where the user asked.
     const finalRuntimeDir = this.runtimeDir();
-    const runtimeHere = runtimeCompleteIn(finalRuntimeDir);
     const finalVenvPython = path.join(finalRuntimeDir, 'Scripts', 'python.exe');
-    if (runtimeHere && fs.existsSync(finalVenvPython)) {
-      const narrationReady = narrationModelCompleteIn(finalRuntimeDir)
-        && await this.narrationModelReady(finalVenvPython, finalRuntimeDir);
-      if (narrationReady) {
-        try {
-          await this.verifyRuntime(finalVenvPython, finalRuntimeDir);
-          this.note('AI runtime already installed in this folder \u2014 skipping', 'ok');
-          this.updatePhase(id, 100, 'AI runtime already installed');
-          this.finishPhase(id, 'done', 'already installed');
-          return;
-        } catch (error) {
-          this.note(`Existing AI runtime failed verification; preparing a staged repair (${error.message})`, 'warn');
-        }
+    const sitePackages = path.join(finalRuntimeDir, 'Lib', 'site-packages');
+    const hasCoreLibs = fs.existsSync(path.join(sitePackages, 'clipsai')) || fs.existsSync(path.join(sitePackages, 'torch'));
+    const runtimeHere = (runtimeCompleteIn(finalRuntimeDir) || hasCoreLibs) && fs.existsSync(finalVenvPython);
+
+    if (runtimeHere) {
+      this.note('Existing AI runtime detected — checking integrity and injecting VC++ runtimes...', 'info');
+      await this.ensureVcRedist();
+      this.injectVcDlls(finalRuntimeDir);
+
+      let runtimeOk = false;
+      try {
+        await this.verifyRuntime(finalVenvPython, finalRuntimeDir);
+        runtimeOk = true;
+      } catch (error) {
+        this.note(`Existing AI runtime failed verification: ${error.message}`, 'warn');
       }
-      this.note('The existing AI runtime is incomplete; building a verified repair copy alongside it', 'info');
+
+      if (runtimeOk) {
+        const narrationReady = narrationModelCompleteIn(finalRuntimeDir)
+          && await this.narrationModelReady(finalVenvPython, finalRuntimeDir);
+        if (!narrationReady) {
+          this.note('Updating narration model in existing runtime...', 'info');
+          try {
+            await this.installNarrationModel(finalVenvPython);
+          } catch (err) {
+            this.note(`Could not update narration model: ${err.message}`, 'warn');
+          }
+        }
+        try {
+          fs.writeFileSync(path.join(finalRuntimeDir, RUNTIME_COMPLETE_MARKER), new Date().toISOString(), 'utf8');
+        } catch (_) {}
+
+        this.note('AI runtime verified and ready \u2014 skipping re-install', 'ok');
+        this.updatePhase(id, 100, 'AI runtime already installed');
+        this.finishPhase(id, 'done', 'already installed');
+        return;
+      }
+      this.note('The existing AI runtime could not be verified; building a verified repair copy alongside it', 'info');
     }
     if (status.complete) {
       this.note(

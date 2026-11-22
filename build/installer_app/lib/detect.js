@@ -588,8 +588,15 @@ const RUNTIME_COMPLETE_MARKER = '.clipify-runtime-complete';
  */
 function runtimeCompleteIn(runtimeDir) {
   if (!runtimeDir) return false;
-  return fs.existsSync(path.join(runtimeDir, 'Lib', 'site-packages', 'clipsai')) &&
-    fs.existsSync(path.join(runtimeDir, RUNTIME_COMPLETE_MARKER));
+  const site = path.join(runtimeDir, 'Lib', 'site-packages');
+  const hasMarker = fs.existsSync(path.join(runtimeDir, RUNTIME_COMPLETE_MARKER));
+  const hasClipsai = fs.existsSync(path.join(site, 'clipsai'));
+  const hasTorch = fs.existsSync(path.join(site, 'torch'));
+  const hasPython = fs.existsSync(path.join(runtimeDir, 'Scripts', 'python.exe'));
+
+  if (hasClipsai && hasMarker) return true;
+  if (hasPython && (hasClipsai || hasTorch)) return true;
+  return false;
 }
 
 function narrationModelCompleteIn(runtimeDir) {
