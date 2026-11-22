@@ -22,8 +22,8 @@
     let updateState = {
       checked: false,
       updateAvailable: false,
-      latestVersion: 'v4.0.8',
-      currentVersion: 'v4.0.8',
+      latestVersion: 'v4.0.11',
+      currentVersion: 'v4.0.11',
       releaseUrl: 'https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases',
       releaseName: '',
       notes: '',
@@ -80,6 +80,12 @@
           }
         } else {
           if (card) card.classList.remove('has-update');
+          if (navVersionTag) {
+            navVersionTag.textContent = data.current_version || 'v4.0.11';
+            navVersionTag.style.background = '';
+            navVersionTag.style.color = '';
+          }
+          if (badge) badge.textContent = data.current_version || 'v4.0.11';
           if (statusMsg) statusMsg.textContent = 'Up to date ✓';
           if (btn) {
             btn.innerHTML = '<span class="btn-update-icon">↻</span> Update';
