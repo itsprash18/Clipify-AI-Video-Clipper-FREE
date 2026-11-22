@@ -293,6 +293,7 @@ class SmartEditor:
             energy_zoom=energy_zoom,
             background_style=background_style,
             background_color=background_color,
+            webcam_position=str(prefs.get("webcam_position", "auto")),
         )
 
         # 6. Execute FFmpeg Rendering with synchronized audio resampling
@@ -360,6 +361,7 @@ class SmartEditor:
         energy_zoom: bool,
         background_style: str = "soft_blur",
         background_color: str = "#000000",
+        webcam_position: str = "auto",
     ) -> str:
         """Assemble the FFmpeg filter graph string."""
         ass_filter = f",{ffmpeg_ass_filter(ass_path)}" if ass_path else ""
@@ -382,16 +384,23 @@ class SmartEditor:
 
         if layout == "gaming_split":
             box = profile.facecam_box
-            if not box:
-                # If primary_face_x is located in an outer lateral zone (cx <= 0.30 or >= 0.70), use it.
-                # If it sits in the central gameplay area (0.30 < fx < 0.70), it is a game character or talking head,
-                # not a streamer overlay; fallback to standard streamer webcam position (bottom-right)
-                # to prevent duplicating central gameplay on both top and bottom.
-                if profile.primary_face_x is not None and (profile.primary_face_x <= 0.30 or profile.primary_face_x >= 0.70):
+            user_webcam_pos = str(webcam_position).lower()
+            cam_presets = {
+                "bottom_right": {"x": 0.76, "y": 0.68, "w": 0.22, "h": 0.26},
+                "bottom_left": {"x": 0.04, "y": 0.68, "w": 0.22, "h": 0.26},
+                "top_right": {"x": 0.76, "y": 0.06, "w": 0.22, "h": 0.26},
+                "top_left": {"x": 0.04, "y": 0.06, "w": 0.22, "h": 0.26},
+            }
+            if user_webcam_pos in cam_presets:
+                box = cam_presets[user_webcam_pos]
+            elif not box:
+                # If primary face is stationary in an outer corner (cx <= 0.25 or >= 0.75), use it.
+                # Never pick an in-game portrait in mid-lateral areas (0.25 < fx < 0.75) to avoid game character duplication.
+                if profile.primary_face_x is not None and (profile.primary_face_x <= 0.25 or profile.primary_face_x >= 0.75):
                     fx = profile.primary_face_x
                     cw, ch = 0.20, 0.26
                     cx = max(0.0, min(1.0 - cw, fx - cw / 2.0))
-                    cy = max(0.0, min(1.0 - ch, 0.65 - ch * 0.45))
+                    cy = max(0.0, min(1.0 - ch, 0.68))
                     box = {"x": cx, "y": cy, "w": cw, "h": ch}
                 else:
                     # Default to standard streamer bottom-right webcam position
@@ -445,14 +454,24 @@ class SmartEditor:
 
         elif layout == "podcast_split":
             if profile.faces_detected >= 2 and profile.primary_face_x is not None:
-                cx1 = max(0.0, min(1.0 - 0.45, profile.primary_face_x - 0.225))
-                cx2 = max(0.0, min(1.0 - 0.45, (profile.secondary_face_x or 0.72) - 0.225))
+                p_x = profile.primary_face_x
+                s_x = profile.secondary_face_x if profile.secondary_face_x is not None else (0.75 if p_x < 0.5 else 0.25)
+                left_x, right_x = min(p_x, s_x), max(p_x, s_x)
+                if (right_x - left_x) < 0.25:
+                    left_x, right_x = 0.20, 0.75
+                cx1 = max(0.0, min(1.0 - 0.45, right_x - 0.225))  # Top panel: right speaker
+                cx2 = max(0.0, min(1.0 - 0.45, left_x - 0.225))   # Bottom panel: left speaker
             elif profile.primary_face_x is not None:
-                cx1 = max(0.0, min(1.0 - 0.45, profile.primary_face_x - 0.225))
-                cx2 = 0.05 if cx1 > 0.40 else 0.55
+                p_x = profile.primary_face_x
+                if p_x < 0.5:
+                    cx1 = 0.55  # Top panel: opposite side
+                    cx2 = max(0.0, min(1.0 - 0.45, p_x - 0.225))  # Bottom panel: detected speaker
+                else:
+                    cx1 = max(0.0, min(1.0 - 0.45, p_x - 0.225))  # Top panel: detected speaker
+                    cx2 = 0.05  # Bottom panel: opposite side
             else:
-                cx1 = 0.05
-                cx2 = 0.55
+                cx1 = 0.55
+                cx2 = 0.05
 
             filters = (
                 f"{bg_stream};"

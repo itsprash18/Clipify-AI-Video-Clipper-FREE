@@ -3329,6 +3329,16 @@ def save_publish_credentials():
     return jsonify({"ok": saved, "platform": platform, "configured": True})
 
 
+def _normalize_search_title(t: str) -> str:
+    """Normalize titles for matching across smart quotes, emojis, and varied punctuation."""
+    if not t:
+        return ""
+    t = re.sub(r"[\u2018\u2019\u201a\u201b]", "'", t)
+    t = re.sub(r"[\u201c\u201d\u201e\u201f]", '"', t)
+    t = re.sub(r"[^\w\s']", " ", t)
+    return " ".join(t.lower().split())
+
+
 def _resolve_publish_video(job_id: str, filename: str, title: str = "") -> tuple[Path | None, Path | None]:
     """Resolve video path and sidecar metadata path across job directories, roots, and user data."""
     if not filename:
@@ -3359,6 +3369,7 @@ def _resolve_publish_video(job_id: str, filename: str, title: str = "") -> tuple
         f"{stem}.webm",
     ]
     num_match = re.search(r"(\d+)$", base_stem)
+    num: int | None = None
     if num_match:
         num = int(num_match.group(1))
         prefix = base_stem[:num_match.start(1)]
@@ -3378,13 +3389,22 @@ def _resolve_publish_video(job_id: str, filename: str, title: str = "") -> tuple
 
     search_dirs: list[Path] = []
 
-    # Priority 1: Specified job directory
+    # Priority 1: Specified job directory (by safe ID or direct path)
     if job_id:
         jd = _safe_job_directory(job_id)
+        if not jd and (Path(job_id).is_dir() or (ROOT / "jobs" / job_id).is_dir()):
+            cand_p = Path(job_id) if Path(job_id).is_dir() else (ROOT / "jobs" / job_id)
+            try:
+                cand_p_res = cand_p.resolve()
+                if cand_p_res.exists():
+                    jd = cand_p_res
+            except Exception:
+                pass
         if jd and jd.is_dir():
             search_dirs.extend([jd / "output", jd, jd / "input"])
 
         local_appdata = os.environ.get("LOCALAPPDATA", "")
+        roaming_appdata = os.environ.get("APPDATA", "")
         fallback_job_roots = [
             JOBS,
             USER_DATA_DIR / "jobs",
@@ -3396,6 +3416,11 @@ def _resolve_publish_video(job_id: str, filename: str, title: str = "") -> tuple
                 Path(local_appdata) / "Programs" / "ClipifyAI" / "jobs",
                 Path(local_appdata) / "ClipifyAI" / "jobs",
                 Path(local_appdata) / "ClippedAI" / "jobs",
+            ])
+        if roaming_appdata:
+            fallback_job_roots.extend([
+                Path(roaming_appdata) / "ClipifyAI" / "jobs",
+                Path(roaming_appdata) / "ClippedAI" / "jobs",
             ])
         for root in fallback_job_roots:
             cand = root / job_id
@@ -3410,6 +3435,8 @@ def _resolve_publish_video(job_id: str, filename: str, title: str = "") -> tuple
         USER_DATA_DIR / "narrate clips",
         USER_DATA_DIR / "input",
     ])
+
+    norm_target_title = _normalize_search_title(title)
 
     def _find_in_dir(d: Path) -> tuple[Path | None, Path | None]:
         if not d.is_dir():
@@ -3429,12 +3456,12 @@ def _resolve_publish_video(job_id: str, filename: str, title: str = "") -> tuple
                     if not meta.is_file():
                         meta = d / f"{m.stem}.json"
                     return m.resolve(), (meta.resolve() if meta.is_file() else None)
-        if title:
-            clean_title_search = title.strip().lower()
+        if norm_target_title:
             for jf in d.glob("*.json"):
                 try:
                     meta_content = json.loads(jf.read_text(encoding="utf-8"))
-                    if meta_content.get("title", "").strip().lower() == clean_title_search:
+                    cand_title = _normalize_search_title(meta_content.get("title", ""))
+                    if cand_title and (cand_title == norm_target_title or norm_target_title in cand_title or cand_title in norm_target_title):
                         matching_video = d / f"{jf.stem}.mp4"
                         if matching_video.is_file() and matching_video.stat().st_size >= 1024:
                             return matching_video.resolve(), jf.resolve()
@@ -3443,6 +3470,14 @@ def _resolve_publish_video(job_id: str, filename: str, title: str = "") -> tuple
                                 return v.resolve(), jf.resolve()
                 except Exception:
                     pass
+        # Extra fallback: if directory has files matching short number
+        if num is not None:
+            num_patterns = (f"*{num:02d}*.mp4", f"*_{num}*.mp4")
+            for pat in num_patterns:
+                for candidate in sorted(d.glob(pat), key=lambda p: p.stat().st_mtime if p.exists() else 0, reverse=True):
+                    if candidate.is_file() and candidate.stat().st_size >= 1024 and not candidate.name.startswith("_tmp_"):
+                        meta = d / f"{candidate.stem}.json"
+                        return candidate.resolve(), (meta.resolve() if meta.is_file() else None)
         return None, None
 
     for d in search_dirs:
@@ -3456,11 +3491,17 @@ def _resolve_publish_video(job_id: str, filename: str, title: str = "") -> tuple
     # Priority 3: Scan all job folders under known job roots
     all_job_roots = [JOBS, USER_DATA_DIR / "jobs", ROOT / "jobs", Path.cwd() / "jobs"]
     local_appdata = os.environ.get("LOCALAPPDATA", "")
+    roaming_appdata = os.environ.get("APPDATA", "")
     if local_appdata:
         all_job_roots.extend([
             Path(local_appdata) / "Programs" / "ClipifyAI" / "jobs",
             Path(local_appdata) / "ClipifyAI" / "jobs",
             Path(local_appdata) / "ClippedAI" / "jobs",
+        ])
+    if roaming_appdata:
+        all_job_roots.extend([
+            Path(roaming_appdata) / "ClipifyAI" / "jobs",
+            Path(roaming_appdata) / "ClippedAI" / "jobs",
         ])
 
     for jr in all_job_roots:
@@ -4349,7 +4390,7 @@ def cache_clear():
         "message": f"Successfully cleared {formatted} of disk space ({yt_deleted} YouTube video(s) and {cache_deleted} cache file(s) removed)."
     })
 
-APP_VERSION = "v4.0.9"
+APP_VERSION = "v4.0.10"
 GITHUB_REPO = "sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE"
 
 

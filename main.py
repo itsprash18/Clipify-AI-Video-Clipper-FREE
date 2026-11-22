@@ -3808,10 +3808,16 @@ def _detect_person_trajectory(input_path: str, target_w: int, target_h: int,
         # Use -1 as "no position yet" sentinel so first acquisition jumps directly to
         # the target face instead of drifting from the video center.
         _NO_POS = -1.0
-        current_x, current_y = _NO_POS, _NO_POS
-        # Last framing that actually had the assigned speaker in it. Retained
-        # across shot changes when hold_on_loss is set.
-        held_x, held_y = None, None
+        if role_centroids is not None and initial_hint is not None:
+            hint_cx, hint_cy = initial_hint
+            current_x = max(0.0, min(max_x, hint_cx * scaled_w - target_w / 2.0))
+            current_y = max(0.0, min(max_y, hint_cy * scaled_h - target_h * 0.31))
+            held_x, held_y = current_x, current_y
+        else:
+            current_x, current_y = _NO_POS, _NO_POS
+            # Last framing that actually had the assigned speaker in it. Retained
+            # across shot changes when hold_on_loss is set.
+            held_x, held_y = None, None
         smooth_dx, smooth_dy = 0.0, 0.0
         current_track_id = None
         current_scene_id = None
@@ -4260,6 +4266,15 @@ def _detect_person_trajectory(input_path: str, target_w: int, target_h: int,
                                           "state": "LOCKED"})
                 keyframes.append({"time": time_sec, "x": current_x, "y": current_y,
                                   "state": action, "reason": reason})
+
+        if keyframes is None:
+            if role_centroids is not None and role_index is not None:
+                c_x = role_centroids[role_index]
+                fallback_x = max(0.0, min(max_x, c_x * scaled_w - target_w / 2.0))
+                fallback_y = max(0.0, min(max_y, (initial_hint[1] if initial_hint else 0.5) * scaled_h - target_h * 0.31))
+                keyframes = [{"time": 0.0, "x": fallback_x, "y": fallback_y}]
+            else:
+                keyframes = [{"time": 0.0, "x": (scaled_w - target_w) / 2.0, "y": max_y / 2.0}]
 
         final_x, final_y = current_x, current_y
         print(f"  [Framing] Visual-only target changes={len(switch_events)}; keyframes={len(keyframes)}; detector={detector_name}")
@@ -5784,12 +5799,14 @@ def _compose_dual_person_split(source_path: str, output_path: str,
                                        sample_fps=5.0, window_s=2.0, hold_px=8.0)
         bottom_kf = bottom_info.get("keyframes", [])
 
+        max_x = max(0.0, scaled_w - target_w)
+        max_y = max(0.0, scaled_h - panel_h)
         if not top_kf:
-            top_kf = [{"time": 0.0, "x": (scaled_w - target_w) / 2.0,
-                       "y": (scaled_h - panel_h) / 2.0}]
+            top_x_val = max(0.0, min(max_x, (centroids[1] * scaled_w - target_w / 2.0))) if centroids else max_x
+            top_kf = [{"time": 0.0, "x": top_x_val, "y": max_y / 2.0}]
         if not bottom_kf:
-            bottom_kf = [{"time": 0.0, "x": (scaled_w - target_w) / 2.0,
-                          "y": (scaled_h - panel_h) / 2.0}]
+            bot_x_val = max(0.0, min(max_x, (centroids[0] * scaled_w - target_w / 2.0))) if centroids else 0.0
+            bottom_kf = [{"time": 0.0, "x": bot_x_val, "y": max_y / 2.0}]
 
         top_x_expr = _camera_expression(top_kf, "x", max_kf=30)
         top_y_expr = _camera_expression(top_kf, "y", max_kf=30)

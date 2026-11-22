@@ -711,7 +711,6 @@
   let svgEl = null;
   let pathEl = null;
   let anchorDotEl = null;
-  let anchorPulseEl = null;
   let cardDotEl = null;
   let supportModalOverlayEl = null;
 
@@ -735,11 +734,6 @@
     pathEl.id = 'tourConnectorPath';
     pathEl.setAttribute('class', 'tour-connector-path');
     svgEl.appendChild(pathEl);
-
-    anchorPulseEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    anchorPulseEl.id = 'tourAnchorPulse';
-    anchorPulseEl.setAttribute('class', 'tour-anchor-pulse');
-    svgEl.appendChild(anchorPulseEl);
 
     anchorDotEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     anchorDotEl.id = 'tourAnchorDot';
@@ -845,14 +839,11 @@
     pathEl.setAttribute('stroke', theme.accentLight);
     pathEl.style.filter = `drop-shadow(0 0 7px ${theme.accentGlow})`;
     anchorDotEl.setAttribute('fill', theme.accentLight);
-    anchorPulseEl.setAttribute('stroke', theme.accentLight);
     cardDotEl.setAttribute('fill', theme.accentLight);
 
     pathEl.setAttribute('d', conn.pathStr);
     anchorDotEl.setAttribute('cx', conn.x2);
     anchorDotEl.setAttribute('cy', conn.y2);
-    anchorPulseEl.setAttribute('cx', conn.x2);
-    anchorPulseEl.setAttribute('cy', conn.y2);
     cardDotEl.setAttribute('cx', conn.x1);
     cardDotEl.setAttribute('cy', conn.y1);
 
