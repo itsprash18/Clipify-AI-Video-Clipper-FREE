@@ -5207,15 +5207,18 @@ def resize_gaming_adaptive(input_path: str, output_path: str, target_w: int = 10
     fx=max(0,min(sw-crop_w,cx-crop_w//2)); fy=max(0,min(sh-crop_h,cy-crop_h//2))
     # Gameplay occupies the upper ~57%; facecam gets a large reaction panel below.
     game_h=1080; face_h=760; gap=28; top_y=28; face_y=top_y+game_h+gap
+    prof = get_upscale_profile()
+    flags = prof["flags"]
+    unsharp_str = f",{prof['unsharp']}" if prof.get("unsharp") else ""
     # A soft blurred background makes the vertical canvas feel intentional rather than boxed.
     filter_complex=(
-        f"[0:v]scale={target_w}:{target_h}:force_original_aspect_ratio=increase,crop={target_w}:{target_h},boxblur=18:2[bg];"
-        f"[0:v]scale={target_w}:{game_h}:force_original_aspect_ratio=increase,crop={target_w}:{game_h}[game];"
-        f"[0:v]crop={crop_w}:{crop_h}:{fx}:{fy},scale={target_w}:{face_h}:force_original_aspect_ratio=increase,crop={target_w}:{face_h}[face];"
+        f"[0:v]scale={target_w}:{target_h}:force_original_aspect_ratio=increase:flags={flags},crop={target_w}:{target_h},boxblur=18:2[bg];"
+        f"[0:v]scale={target_w}:{game_h}:force_original_aspect_ratio=increase:flags={flags},crop={target_w}:{game_h}[game];"
+        f"[0:v]crop={crop_w}:{crop_h}:{fx}:{fy},scale={target_w}:{face_h}:force_original_aspect_ratio=increase:flags={flags}{unsharp_str},crop={target_w}:{face_h}[face];"
         f"[bg][game]overlay=0:{top_y}[g1];"
         f"[g1][face]overlay=0:{face_y}[v]"
     )
-    cmd=[FFMPEG_BIN,"-i",input_path,"-filter_complex",filter_complex,"-map","[v]","-map","0:a?","-c:v","libx264","-preset","fast","-crf","22","-pix_fmt","yuv420p","-c:a","aac","-b:a","128k","-movflags","+faststart","-y",output_path]
+    cmd=[FFMPEG_BIN,"-i",input_path,"-filter_complex",filter_complex,"-map","[v]","-map","0:a?",*_video_encode_args(),"-c:a","aac","-b:a","192k","-movflags","+faststart","-y",output_path]
     try:
         _run_hidden(cmd,check=True,capture_output=True,text=True)
         print(f"  [Gaming] Adaptive gameplay + facecam layout · corner={facecam['corner']} confidence={facecam['confidence']:.2f}")
@@ -5730,10 +5733,14 @@ def _compose_dual_person_split(source_path: str, output_path: str,
             print(f"  [Framing] Dual-person split not applicable (c0={c0_tracks}, c1={c1_tracks}, sep={sep:.2f}); checking solo layout...")
             return False
 
+    prof = get_upscale_profile()
+    flags = prof["flags"]
+    unsharp_str = f",{prof['unsharp']}" if prof.get("unsharp") else ""
+
     if centroids is None:
         print("  [Framing] Dual-person split: framing left speaker (top) and right speaker (bottom).")
         divider = panel_h - 2
-        vf = (f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase,setsar=1,split=2[a][b];"
+        vf = (f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase:flags={flags}{unsharp_str},setsar=1,split=2[a][b];"
               f"[a]crop={target_w}:{panel_h}:0:(in_h-{panel_h})/2,setsar=1[p1];"
               f"[b]crop={target_w}:{panel_h}:(in_w-{target_w}):(in_h-{panel_h})/2,setsar=1[p2];"
               f"[p1][p2]vstack=inputs=2,"
@@ -5745,8 +5752,6 @@ def _compose_dual_person_split(source_path: str, output_path: str,
         # Each panel now runs the full tracking pipeline against its own person,
         # so framing, loss handling and the face clamp behave exactly as they do
         # for a single-panel clip.
-        #
-        # The zoom is shared with the clustering pass above; see panel_zoom.
         panel_zoom = 2.0
         # Aim each panel at its own speaker's typical position, so the opening
         # frames are framed on the right person before anything is detected.
@@ -5792,7 +5797,7 @@ def _compose_dual_person_split(source_path: str, output_path: str,
         bottom_y = _camera_expression(bottom_kf, "y")
 
         divider = panel_h - 2
-        vf = (f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase,setsar=1,split=2[a][b];"
+        vf = (f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase:flags={flags}{unsharp_str},setsar=1,split=2[a][b];"
               f"[a]crop={target_w}:{panel_h}:{top_x_expr}:{top_y_expr},setsar=1[p1];"
               f"[b]crop={target_w}:{panel_h}:{bottom_x}:{bottom_y},setsar=1[p2];"
               f"[p1][p2]vstack=inputs=2,"
@@ -5813,17 +5818,12 @@ def _compose_dual_person_split(source_path: str, output_path: str,
 
     cmd = [FFMPEG_BIN, "-i", source_path, "-filter_complex", vf,
            "-map", "[v]", "-map", "0:a?",
-           *_video_encode_args(), "-c:a", "aac", "-b:a", "128k",
+           *_video_encode_args(), "-c:a", "aac", "-b:a", "192k",
            "-movflags", "+faststart", "-y", output_path]
     _run_hidden(cmd, check=True, capture_output=True, text=True)
 
     ok = os.path.isfile(output_path) and os.path.getsize(output_path) > 1024
     if ok:
-        if centroids is not None:
-            try:
-                _hold_missing_split_people(output_path, panel_h, target_w, target_h)
-            except Exception as hold_err:
-                print(f"  [Framing] Panel hold note: {hold_err}; retaining rendered split output.")
         print(f"  [Framing] Split-screen: {top_note}, panels {target_w}x{panel_h}")
     return ok
 
@@ -5850,12 +5850,16 @@ def _compose_solo_split_layout(source_path: str, output_path: str,
             top_x = _camera_expression(keyframes, "x", max_kf=30)
             top_y = _camera_expression(keyframes, "y", max_kf=30)
 
+        prof = get_upscale_profile()
+        flags = prof["flags"]
+        unsharp_str = f",{prof['unsharp']}" if prof.get("unsharp") else ""
+
         divider = panel_h - 2
         vf = (
             f"split=2[in_top][in_bot];"
-            f"[in_top]scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase,setsar=1,"
+            f"[in_top]scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase:flags={flags}{unsharp_str},setsar=1,"
             f"crop={target_w}:{panel_h}:{top_x}:{top_y},setsar=1[p1];"
-            f"[in_bot]scale={target_w}:{panel_h}:force_original_aspect_ratio=decrease,"
+            f"[in_bot]scale={target_w}:{panel_h}:force_original_aspect_ratio=decrease:flags={flags},"
             f"pad={target_w}:{panel_h}:(ow-iw)/2:(oh-ih)/2:color=black@0.85,setsar=1[p2];"
             f"[p1][p2]vstack=inputs=2,drawbox=x=0:y={divider}:w={target_w}:h=4:color=black@0.6:t=fill[v]"
         )
@@ -5863,7 +5867,7 @@ def _compose_solo_split_layout(source_path: str, output_path: str,
         cmd = [
             FFMPEG_BIN, "-i", source_path, "-filter_complex", vf,
             "-map", "[v]", "-map", "0:a?",
-            *_video_encode_args(), "-c:a", "aac", "-b:a", "128k",
+            *_video_encode_args(), "-c:a", "aac", "-b:a", "192k",
             "-movflags", "+faststart", "-y", output_path
         ]
         res = _run_hidden(cmd, capture_output=True, text=True)
@@ -5942,15 +5946,20 @@ def _compose_gaming_split_layout(source_path: str, output_path: str,
                 raw_cy = _camera_expression(keyframes, "y", max_kf=30)
                 cam_x = f"min(max(0\\,{raw_cx})\\,in_w-out_w)"
                 cam_y = f"min(max(0\\,{raw_cy})\\,in_h-out_h)"
+            prof = get_upscale_profile()
+            flags = prof["flags"]
+            unsharp_str = f",{prof['unsharp']}" if prof.get("unsharp") else ""
             cam_crop = (
-                f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase,setsar=1,"
+                f"scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase:flags={flags}{unsharp_str},setsar=1,"
                 f"crop={target_w}:{cam_h}:{cam_x}:{cam_y},setsar=1"
             )
 
+        prof = get_upscale_profile()
+        flags = prof["flags"]
         divider = game_h - 2
         # Top panel: Whole gameplay (16:9 gameplay center-cropped to 1080x1080 without black sidebars)
         gameplay_crop = (
-            f"scale={target_w}:{game_h}:force_original_aspect_ratio=increase,"
+            f"scale={target_w}:{game_h}:force_original_aspect_ratio=increase:flags={flags},"
             f"crop={target_w}:{game_h}:(in_w-out_w)/2:(in_h-out_h)/2,setsar=1"
         )
 
@@ -5964,7 +5973,7 @@ def _compose_gaming_split_layout(source_path: str, output_path: str,
         cmd = [
             FFMPEG_BIN, "-i", source_path, "-filter_complex", vf,
             "-map", "[v]", "-map", "0:a?",
-            *_video_encode_args(), "-c:a", "aac", "-b:a", "128k",
+            *_video_encode_args(), "-c:a", "aac", "-b:a", "192k",
             "-movflags", "+faststart", "-y", output_path
         ]
         res = _run_hidden(cmd, capture_output=True, text=True)

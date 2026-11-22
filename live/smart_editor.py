@@ -301,9 +301,10 @@ class SmartEditor:
             "-i", str(raw_video_path),
             "-filter_complex", filter_str,
             "-map", "[vout]", "-map", "0:a?",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "21",
+            "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+            "-b:v", "10M", "-maxrate", "14M", "-bufsize", "16M",
             "-af", "aresample=async=1:first_pts=0",
-            "-c:a", "aac", "-b:a", "160k",
+            "-c:a", "aac", "-b:a", "192k",
             "-fps_mode", "cfr",
             "-pix_fmt", "yuv420p",
             "-movflags", "+faststart",
@@ -417,8 +418,8 @@ class SmartEditor:
             # Bottom: Streamer's camera only, scaled to fill 1080x800 without gameplay borders
             filters = (
                 f"{bg_stream};"
-                f"[0:v]crop=w='min(iw,ih)':h='min(iw,ih)':x='(iw-min(iw,ih))/2':y='(ih-min(iw,ih))/2',scale=1080:1080{zoom_expr}[gameplay];"
-                f"[0:v]{cam_crop},scale=1080:800:force_original_aspect_ratio=increase,crop=1080:800[facecam];"
+                f"[0:v]crop=w='min(iw,ih)':h='min(iw,ih)':x='(iw-min(iw,ih))/2':y='(ih-min(iw,ih))/2',scale=1080:1080:flags=lanczos{zoom_expr}[gameplay];"
+                f"[0:v]{cam_crop},scale=1080:800:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:800[facecam];"
                 "[bg][gameplay]overlay=0:20[tmp1];"
                 f"[tmp1][facecam]overlay=0:1120[vcomp];"
                 f"[vcomp]null{ass_filter}[vout]"
@@ -437,7 +438,7 @@ class SmartEditor:
             )
             filters = (
                 f"[0:v]{crop_expr},"
-                f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920{zoom_expr}[vcomp];"
+                f"scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920{zoom_expr}[vcomp];"
                 f"[vcomp]null{ass_filter}[vout]"
             )
             return filters
@@ -455,8 +456,8 @@ class SmartEditor:
 
             filters = (
                 f"{bg_stream};"
-                f"[0:v]crop=w='trunc(iw*0.45/2)*2':h=ih:x='trunc(iw*{cx1:.4f}/2)*2':y=0,scale=1080:920:force_original_aspect_ratio=increase,crop=1080:920[p1];"
-                f"[0:v]crop=w='trunc(iw*0.45/2)*2':h=ih:x='trunc(iw*{cx2:.4f}/2)*2':y=0,scale=1080:920:force_original_aspect_ratio=increase,crop=1080:920[p2];"
+                f"[0:v]crop=w='trunc(iw*0.45/2)*2':h=ih:x='trunc(iw*{cx1:.4f}/2)*2':y=0,scale=1080:920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:920[p1];"
+                f"[0:v]crop=w='trunc(iw*0.45/2)*2':h=ih:x='trunc(iw*{cx2:.4f}/2)*2':y=0,scale=1080:920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:920[p2];"
                 "[bg][p1]overlay=0:20[tmp1];"
                 "[tmp1][p2]overlay=0:980[vcomp];"
                 f"[vcomp]null{ass_filter}[vout]"
@@ -509,9 +510,10 @@ class SmartEditor:
             "-i", str(raw_video_path),
             "-filter_complex", fallback_filter,
             "-map", "[v]", "-map", "0:a?",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "22",
+            "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+            "-b:v", "10M", "-maxrate", "14M", "-bufsize", "16M",
             "-af", "aresample=async=1:first_pts=0",
-            "-c:a", "aac", "-b:a", "160k",
+            "-c:a", "aac", "-b:a", "192k",
             "-fps_mode", "cfr",
             "-movflags", "+faststart",
             str(output_vertical),
