@@ -209,7 +209,7 @@ UPSCALE_PROFILES = {
 }
 
 def get_upscale_profile(quality_override: str | None = None) -> dict[str, Any]:
-    key = str(quality_override or os.getenv("CLIPPEDAI_UPSCALE_QUALITY", "high")).strip().lower()
+    key = (quality_override or os.getenv("CLIPPEDAI_UPSCALE_QUALITY", "high")).strip().lower()
     return UPSCALE_PROFILES.get(key, UPSCALE_PROFILES["high"])
 MODES = {
     "gaming": {"name": "Gaming", "icon": "🎮", "description": "Gameplay + facecam reactions with stable smart framing"},
@@ -564,7 +564,7 @@ def _ollama_candidates() -> list[str]:
     """Return local Ollama server candidates, preferring configured values."""
     candidates: list[str] = []
     for raw in (os.getenv("OLLAMA_URL", ""), os.getenv("OLLAMA_HOST", ""), os.getenv("OLLAMA_API_BASE", "")):
-        raw = str(raw or "").strip()
+        raw = (raw or "").strip()
         if raw:
             try:
                 base = _ollama_base_url() if raw == os.getenv("OLLAMA_URL", "") else raw.rstrip("/")
@@ -802,7 +802,8 @@ def _scan_for_local_ollama_model_stores() -> list[str]:
         if not cand:
             return
         try:
-            clean = os.path.abspath(os.path.expanduser(str(cand).strip()))
+            cand_str = cand.strip()
+            clean = os.path.abspath(os.path.expanduser(cand_str))
         except Exception:
             return
         if clean in found or not os.path.isdir(clean):
@@ -1013,7 +1014,7 @@ def _yt_dlp_command() -> list[str] | None:
     if runtime is not None:
         return [str(runtime), "-m", "yt_dlp"]
     try:
-        import yt_dlp  # noqa: F401
+        import yt_dlp  # type: ignore # noqa: F401
         return [sys.executable, "-m", "yt_dlp"]
     except ImportError:
         pass
@@ -1073,7 +1074,7 @@ def _ensure_video_has_audio(target: Path) -> Path:
 
 def _media_duration_seconds(path_value: str) -> float:
     """Return the duration of a media file in seconds, or 0.0 when unknown."""
-    p = Path(str(path_value or ""))
+    p = Path(path_value or "")
     if not p.name or not p.exists():
         return 0.0
     try:
@@ -1090,19 +1091,19 @@ def _media_duration_seconds(path_value: str) -> float:
 
 
 def _hex6(value: str, default: str = "#FFFFFF") -> str:
-    v = str(value or default).strip().lstrip("#")
+    v = (value or default).strip().lstrip("#")
     if len(v) != 6 or any(c not in "0123456789abcdefABCDEF" for c in v):
         v = default.lstrip("#")
     return v.upper()
 
 
 def _ffmpeg_color(value: str, opacity: int = 100) -> str:
-    alpha = max(0, min(255, round(max(0, min(100, int(opacity))) * 2.55)))
+    alpha = max(0, min(255, round(max(0, min(100, opacity)) * 2.55)))
     return f"0x{_hex6(value)}@{alpha/255:.3f}"
 
 
 def _position_expr(position: str, margin: int, item_w: str = "w", item_h: str = "h") -> tuple[str, str]:
-    m = str(max(0, int(margin)))
+    m = str(max(0, margin))
     if position == "top-left": return m, m
     if position == "top-center": return f"(W-{item_w})/2", m
     if position == "top-right": return f"W-{item_w}-{m}", m
@@ -1115,7 +1116,7 @@ def _position_expr(position: str, margin: int, item_w: str = "w", item_h: str = 
 
 
 def _resolve_logo(path_value: str, job_dir: Path | None = None) -> str | None:
-    val = str(path_value or "").strip().strip('"')
+    val = (path_value or "").strip().strip('"')
     if val.startswith("data:image/") and job_dir:
         try:
             branding_dir = job_dir / "branding"
