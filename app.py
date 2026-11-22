@@ -256,14 +256,14 @@ def is_allowed_logo(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_LOGO_EXTENSIONS
 
 
-def emit(job_id: str, kind: str, message: str, **extra: Any) -> None:
+def emit(job_id: str, kind: str, message: Any, **extra: Any) -> None:
     event = {"kind": kind, "message": message, **extra}
     with jobs_lock:
         job = jobs.get(job_id)
         if not job:
             return
         job["events"].append(event)
-        job["last_message"] = message
+        job["last_message"] = message if isinstance(message, str) else json.dumps(message)
     error = _persist_job_event(job_id, event)
     if error:
         with jobs_lock:
@@ -378,6 +378,9 @@ def _is_pipeline_noise(text: str) -> bool:
     return any(marker in low for marker in _NOISE_MARKERS)
 
 
+_PROGRESS_CLIP_CONTEXT: dict[str, int] = {"cur": 1, "total": 1}
+
+
 def progress_for_line(line: str, current: int, current_stage: str = "") -> tuple[int, str, str]:
     """Translate real pipeline log lines into smooth stage progress.
 
@@ -435,21 +438,21 @@ def progress_for_line(line: str, current: int, current_stage: str = "") -> tuple
         return max(current, 64), "Selecting final moments", text
     if "rejected by qwen" in low or "checking candidate" in low:
         return max(current, 63), "Validating selected moments", text
-    if not hasattr(progress_for_line, "_clip_context"):
-        progress_for_line._clip_context = {"cur": 1, "total": 1}
+
+    global _PROGRESS_CLIP_CONTEXT
     if "[start]" in low or "processing video" in low:
-        progress_for_line._clip_context = {"cur": 1, "total": 1}
+        _PROGRESS_CLIP_CONTEXT = {"cur": 1, "total": 1}
 
     m_clip = re.search(r"\[(\d+)/(\d+)\]\s+rendering short\s+#(\d+)", low)
     if m_clip:
         c_cur = int(m_clip.group(1))
         c_tot = max(1, int(m_clip.group(2)))
-        progress_for_line._clip_context = {"cur": c_cur, "total": c_tot}
+        _PROGRESS_CLIP_CONTEXT = {"cur": c_cur, "total": c_tot}
         base_pct = 65 + int((c_cur - 1) / c_tot * 33)
         return max(current, base_pct), f"Rendering Short {c_cur} of {c_tot}", f"Starting render for Short #{m_clip.group(3)}"
 
-    ctx = progress_for_line._clip_context
-    cur_c, tot_c = ctx["cur"], ctx["total"]
+    ctx = _PROGRESS_CLIP_CONTEXT
+    cur_c, tot_c = ctx.get("cur", 1), ctx.get("total", 1)
     clip_base = 65 + (cur_c - 1) / tot_c * 33.0
     clip_step = 33.0 / tot_c
 
@@ -1178,7 +1181,8 @@ def _render_transparent_watermark_image(
         txt_img = Image.new("RGBA", (int(tw) + pad * 2, int(th) + pad * 2), (0, 0, 0, 0))
         txt_draw = ImageDraw.Draw(txt_img)
         txt_draw.text((pad - bbox[0], pad - bbox[1]), text, font=font, fill=fill_color)
-        rotated_txt = txt_img.rotate(angle, expand=True, resample=Image.BICUBIC)
+        _resample_bicubic = getattr(getattr(Image, "Resampling", None), "BICUBIC", getattr(Image, "BICUBIC", 3))
+        rotated_txt = txt_img.rotate(angle, expand=True, resample=_resample_bicubic)
         rw, rh = rotated_txt.size
         cx = target_pos[0] + tw // 2
         cy = target_pos[1] + th // 2
@@ -1428,10 +1432,12 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
     diagnostic_log = job_dir / "diagnostics" / "qwen-decisions.jsonl"
     diagnostic_log.parent.mkdir(parents=True, exist_ok=True)
     env["CLIPPEDAI_QWEN_DIAGNOSTIC_LOG"] = str(diagnostic_log)
-    input_videos = [
-        p for p in input_dir.iterdir()
-        if p.is_file() and p.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v"}
-    ] if input_dir.is_dir() else []
+    input_videos: list[Path] = []
+    if input_dir.is_dir():
+        input_videos = [
+            p for p in input_dir.iterdir()
+            if p.is_file() and p.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v"}
+        ]
     if input_videos and all(p.stat().st_size < 1024 for p in input_videos):
         msg = (
             "The input video file is incomplete or empty (< 1 KB). "
@@ -2772,9 +2778,8 @@ def upload_logo(job_id: str):
 
 @app.post("/api/start")
 def start():
-    payload = request.get_json(silent=True)
-    if not isinstance(payload, dict):
-        payload = request.form.to_dict()
+    raw_payload = request.get_json(silent=True)
+    payload: dict[str, Any] = raw_payload if isinstance(raw_payload, dict) else dict(request.form)
     if payload and isinstance(payload.get("branding"), str):
         try:
             parsed = json.loads(payload["branding"])
@@ -3986,6 +3991,21 @@ def updater_check():
 @app.route("/api/updater/apply", methods=["POST"])
 def updater_apply():
     """Performs a fast, in-place update from GitHub without requiring a full re-install."""
+    def _delayed_restart():
+        import time
+        time.sleep(2.0)
+        try:
+            creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+            app_exe = ROOT / "Clipify AI.exe"
+            if app_exe.is_file():
+                subprocess.Popen([str(app_exe)], cwd=str(ROOT), creationflags=creationflags)
+            else:
+                py = sys.executable
+                subprocess.Popen([py, "app.py"], cwd=str(ROOT), creationflags=creationflags)
+            os._exit(0)
+        except Exception:
+            pass
+
     is_git = (ROOT / ".git").is_dir()
     git_bin = shutil.which("git") or shutil.which("git.exe") or "git"
 
@@ -4006,6 +4026,7 @@ def updater_apply():
                 pull = _run_hidden([git_bin, "pull", "origin", branch], cwd=str(ROOT), timeout=90, check=False)
 
             if pull.returncode == 0:
+                threading.Thread(target=_delayed_restart, daemon=True).start()
                 return jsonify({
                     "ok": True,
                     "method": "git",
@@ -4060,18 +4081,6 @@ def updater_apply():
                 updated_count += 1
 
         tf_path.unlink(missing_ok=True)
-
-        def _delayed_restart():
-            import time
-            time.sleep(2.0)
-            try:
-                py = sys.executable
-                creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-                subprocess.Popen([py, "app.py"], cwd=str(ROOT), creationflags=creationflags)
-                os._exit(0)
-            except Exception:
-                pass
-
         threading.Thread(target=_delayed_restart, daemon=True).start()
 
         return jsonify({
