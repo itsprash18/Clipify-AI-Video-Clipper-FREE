@@ -13,6 +13,7 @@ import sys
 import threading
 import time
 import traceback
+import urllib.error
 import urllib.request
 import uuid
 import warnings
@@ -732,7 +733,6 @@ def _try_start_ollama(models_dir: str | None = None, force: bool = False) -> boo
 def _discover_ollama_models() -> tuple[list[str], str | None]:
     """Discover Ollama models with localhost/127.0.0.1 fallback, disk inspection fallback, and auto-start."""
     global OLLAMA_RUNTIME_BASE_URL
-    import urllib.request
     last_error = "Ollama is not reachable."
 
     for attempt in range(2):
@@ -1262,7 +1262,7 @@ def _render_transparent_watermark_image(
         txt_draw = ImageDraw.Draw(txt_img)
         txt_draw.text((pad - bbox[0], pad - bbox[1]), text, font=font, fill=fill_color)
         _resample_bicubic = getattr(getattr(Image, "Resampling", None), "BICUBIC", getattr(Image, "BICUBIC", 3))
-        rotated_txt = txt_img.rotate(angle, expand=True, resample=_resample_bicubic)
+        rotated_txt = txt_img.rotate(angle, expand=True, resample=_resample_bicubic)  # type: ignore[arg-type]
         rw, rh = rotated_txt.size
         cx = target_pos[0] + tw // 2
         cy = target_pos[1] + th // 2
@@ -1282,7 +1282,8 @@ def apply_branding_to_file(input_video: str, output_video: str, branding: dict[s
     logo = _resolve_logo(str(branding.get("logo_path", "")), video_parent_job) if branding.get("logo_enabled") else None
     text = str(branding.get("text", "")).strip() if branding.get("text_enabled") else ""
     wm_text = str(branding.get("watermark_text", "")).strip() if branding.get("watermark_text_enabled") else ""
-    framing = branding.get("framing") if isinstance(branding.get("framing"), dict) else {}
+    raw_framing = branding.get("framing")
+    framing: dict[str, Any] = raw_framing if isinstance(raw_framing, dict) else {}
     pan_x = max(-50.0, min(50.0, float(framing.get("pan_x", 0.0))))
     pan_y = max(-50.0, min(50.0, float(framing.get("pan_y", 0.0))))
     zoom = max(1.0, min(2.5, float(framing.get("zoom", 1.0))))
@@ -2285,8 +2286,6 @@ def _script_is_complete(script: str) -> bool:
 
 
 def _call_ollama_script_prompt(system_prompt: str, user_prompt: str, fallback: str, model: str = "") -> str:
-    import urllib.request
-
     preferred_model = model.strip() or os.getenv("OLLAMA_MODEL", "qwen3:8b").strip()
     if not preferred_model:
         return fallback
@@ -3045,8 +3044,9 @@ def start():
             "events": [],
             "outputs": [],
         })
-    branding_raw = data.get("branding") if isinstance(data.get("branding"), dict) else {}
-    branding = {
+    raw_branding = data.get("branding")
+    branding_raw: dict[str, Any] = raw_branding if isinstance(raw_branding, dict) else {}
+    branding: dict[str, Any] = {
         "logo_enabled": bool(branding_raw.get("logo_enabled", branding_raw.get("watermark_enabled", False))),
         "logo_path": str(branding_raw.get("logo_path", branding_raw.get("watermark_path", str(ROOT / "static" / "clipify-ai-mark.png")))).strip(),
         "logo_position": str(branding_raw.get("logo_position", branding_raw.get("watermark_position", "top-right"))),
@@ -3088,7 +3088,7 @@ def start():
         branding["logo_position"] = "top-right"
     if branding["text_position"] not in BRANDING_POSITIONS:
         branding["text_position"] = "bottom-center"
-    branding["upscale_quality"] = str(b.get("upscale_quality", data.get("upscale_quality", "high"))).strip().lower()
+    branding["upscale_quality"] = str(branding_raw.get("upscale_quality", data.get("upscale_quality", "high"))).strip().lower()
     try:
         split_ratio = max(30, min(70, int(data.get("split_ratio", data.get("splitRatio", 50)))))
     except (TypeError, ValueError):
@@ -3130,8 +3130,9 @@ def apply_branding(job_id: str):
     clean = out_dir / clean_name
     base = clean if clean.exists() else source
 
-    b = data.get("branding") if isinstance(data.get("branding"), dict) else {}
-    branding = {
+    raw_b = data.get("branding")
+    b: dict[str, Any] = raw_b if isinstance(raw_b, dict) else {}
+    branding: dict[str, Any] = {
         "logo_enabled": bool(b.get("logo_enabled")),
         "logo_path": str(b.get("logo_path", "")).strip(),
         "logo_position": str(b.get("logo_position", "top-right")),
@@ -3165,7 +3166,8 @@ def apply_branding(job_id: str):
         "watermark_text_x": max(0, min(100, float(b.get("watermark_text_x", 50)))),
         "watermark_text_y": max(0, min(100, float(b.get("watermark_text_y", 50)))),
     }
-    framing_raw = data.get("framing") if isinstance(data.get("framing"), dict) else (b.get("framing") if isinstance(b.get("framing"), dict) else {})
+    raw_framing = data.get("framing") if isinstance(data.get("framing"), dict) else b.get("framing")
+    framing_raw: dict[str, Any] = raw_framing if isinstance(raw_framing, dict) else {}
     branding["framing"] = {
         "pan_x": max(-50.0, min(50.0, float(framing_raw.get("pan_x", 0.0)))),
         "pan_y": max(-50.0, min(50.0, float(framing_raw.get("pan_y", 0.0)))),
@@ -3563,6 +3565,9 @@ def events(job_id: str):
     def stream():
         sent = 0
         while True:
+            new_events: list[Any] = []
+            snapshot: dict[str, Any] = {}
+            done: bool = False
             with jobs_lock:
                 job = jobs.get(job_id)
                 if job:
@@ -3806,17 +3811,18 @@ def download_ollama_model():
                 _ollama_download_state["status"] = "Failed"
                 return
             proc = subprocess.Popen([exe, "pull", model_name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace")
-            for line in proc.stdout:
-                line_str = line.strip()
-                if "%" in line_str:
-                    m = re.search(r"(\d{1,3})%", line_str)
-                    if m:
-                        _ollama_download_state["percent"] = int(m.group(1))
-                        _ollama_download_state["status"] = f"Downloading {model_name} ({m.group(1)}%)"
-                elif "verifying" in line_str.lower():
-                    _ollama_download_state["status"] = "Verifying checksums..."
-                elif "writing manifest" in line_str.lower():
-                    _ollama_download_state["status"] = "Writing manifest..."
+            if proc.stdout is not None:
+                for line in proc.stdout:
+                    line_str = line.strip()
+                    if "%" in line_str:
+                        m = re.search(r"(\d{1,3})%", line_str)
+                        if m:
+                            _ollama_download_state["percent"] = int(m.group(1))
+                            _ollama_download_state["status"] = f"Downloading {model_name} ({m.group(1)}%)"
+                    elif "verifying" in line_str.lower():
+                        _ollama_download_state["status"] = "Verifying checksums..."
+                    elif "writing manifest" in line_str.lower():
+                        _ollama_download_state["status"] = "Writing manifest..."
             proc.wait()
             if proc.returncode == 0:
                 _ollama_download_state["percent"] = 100
@@ -4349,7 +4355,7 @@ GITHUB_REPO = "sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE"
 @app.route("/api/updater/check", methods=["GET"])
 def updater_check():
     """Checks GitHub for the latest release and local Git status."""
-    result = {
+    result: dict[str, Any] = {
         "current_version": APP_VERSION,
         "latest_version": APP_VERSION,
         "update_available": False,
@@ -4656,7 +4662,7 @@ def diagnostic():
                     (props.total_memory - torch.cuda.memory_allocated(0)) / 1e9, 2
                 )
                 gpu_name = props.name
-                cuda_version = torch.version.cuda or ""
+                cuda_version = getattr(getattr(torch, "version", None), "cuda", "") or ""
         except Exception as te:
             gpu_name = str(te)
         report["gpu"] = {
@@ -4778,8 +4784,6 @@ def _open_app_window(host: str, port: int, timeout: float = 40.0) -> None:
     import subprocess
     import threading
     import time
-    import urllib.error
-    import urllib.request
 
     url = f"http://{host}:{port}/"
 
@@ -5087,7 +5091,6 @@ if __name__ == "__main__":
             _lf.write(f"[{datetime.now()}] Port {_port} is in use, checking health\n")
         is_healthy = False
         try:
-            import urllib.request
             with urllib.request.urlopen(f"http://{_host}:{_port}/api/health", timeout=1.2) as r:
                 if r.status == 200:
                     is_healthy = True
@@ -5105,7 +5108,7 @@ if __name__ == "__main__":
                 try:
                     import ctypes
                     if ctypes.windll.user32.OpenInputDesktop(0, False, 0x01FF):
-                        si.lpDesktop = r"WinSta0\Default"
+                        setattr(si, "lpDesktop", r"WinSta0\Default")
                 except Exception:
                     pass
                 try:
