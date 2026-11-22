@@ -382,14 +382,19 @@ class SmartEditor:
         if layout == "gaming_split":
             box = profile.facecam_box
             if not box:
-                if profile.primary_face_x is not None:
+                # If primary_face_x is located in an outer lateral zone (cx <= 0.30 or >= 0.70), use it.
+                # If it sits in the central gameplay area (0.30 < fx < 0.70), it is a game character or talking head,
+                # not a streamer overlay; fallback to standard streamer webcam position (bottom-right)
+                # to prevent duplicating central gameplay on both top and bottom.
+                if profile.primary_face_x is not None and (profile.primary_face_x <= 0.30 or profile.primary_face_x >= 0.70):
                     fx = profile.primary_face_x
-                    cw, ch = 0.20, 0.32
+                    cw, ch = 0.20, 0.26
                     cx = max(0.0, min(1.0 - cw, fx - cw / 2.0))
-                    cy = max(0.0, min(1.0 - ch, 0.54 - ch * 0.45))
+                    cy = max(0.0, min(1.0 - ch, 0.65 - ch * 0.45))
                     box = {"x": cx, "y": cy, "w": cw, "h": ch}
                 else:
-                    box = {"x": 0.01, "y": 0.45, "w": 0.20, "h": 0.32}
+                    # Default to standard streamer bottom-right webcam position
+                    box = {"x": 0.76, "y": 0.68, "w": 0.22, "h": 0.26}
 
             if isinstance(box, dict):
                 cx, cy, cw, ch = float(box["x"]), float(box["y"]), float(box["w"]), float(box["h"])

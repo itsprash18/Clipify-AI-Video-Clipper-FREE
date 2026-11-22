@@ -236,10 +236,13 @@ class ContentAnalyzer:
         for d in frame_detections:
             for f in d:
                 # Streamer facecams typically occupy 1.8% to 30% of frame width
-                # and sit along the outer edges/corners of the gaming footage
+                # and sit strictly along the outer corners/lateral borders (never central gameplay zone)
                 if 0.018 <= f.w <= 0.30:
-                    is_edge = (f.cx <= 0.35 or f.cx >= 0.65 or f.cy <= 0.35 or f.cy >= 0.65)
-                    if is_edge:
+                    # Outer corner / lateral border check:
+                    # Streamers place cameras in outer edges (cx <= 0.30 or cx >= 0.70)
+                    # Central gameplay (0.30 < cx < 0.70) is excluded to avoid detecting moving in-game characters
+                    is_corner = (f.cx <= 0.30 or f.cx >= 0.70) or (f.cy <= 0.22 and (f.cx <= 0.35 or f.cx >= 0.65))
+                    if is_corner:
                         corner_hits.append(f)
 
         if len(corner_hits) < 2:
@@ -270,6 +273,11 @@ class ContentAnalyzer:
         avg_cy = sum(h.cy for h in hits) / len(hits)
         avg_w = sum(h.w for h in hits) / len(hits)
         avg_h = sum(h.h for h in hits) / len(hits)
+
+        # Streamer webcam overlays are fixed in position; reject clusters with high spatial drift
+        max_drift = max(abs(h.cx - avg_cx) + abs(h.cy - avg_cy) for h in hits)
+        if max_drift > 0.14:
+            return None
 
         # Tight crop directly around the streamer's person/webcam (zero gameplay bleed)
         # Facecam overlays in 16:9 streams are ~18-22% wide and ~20-25% high
