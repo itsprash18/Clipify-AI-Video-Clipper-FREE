@@ -398,9 +398,10 @@ class SmartEditor:
                 # Never pick an in-game portrait in mid-lateral areas (0.25 < fx < 0.75) to avoid game character duplication.
                 if profile.primary_face_x is not None and (profile.primary_face_x <= 0.25 or profile.primary_face_x >= 0.75):
                     fx = profile.primary_face_x
+                    fy = profile.primary_face_y if profile.primary_face_y is not None else 0.68
                     cw, ch = 0.20, 0.26
                     cx = max(0.0, min(1.0 - cw, fx - cw / 2.0))
-                    cy = max(0.0, min(1.0 - ch, 0.68))
+                    cy = max(0.0, min(1.0 - ch, fy - ch / 2.0))
                     box = {"x": cx, "y": cy, "w": cw, "h": ch}
                 else:
                     # Default to standard streamer bottom-right webcam position

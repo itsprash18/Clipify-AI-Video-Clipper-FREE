@@ -46,7 +46,9 @@ class ContentProfile:
     facecam_box: Optional[dict[str, Any]] = None
     faces_detected: int = 0
     primary_face_x: float = 0.5
+    primary_face_y: Optional[float] = None
     secondary_face_x: Optional[float] = None
+    secondary_face_y: Optional[float] = None
     tags: list[str] = field(default_factory=list)
 
 
@@ -120,6 +122,8 @@ class ContentAnalyzer:
                 confidence=facecam.get("confidence", 0.85),
                 facecam_box=facecam,
                 faces_detected=1,
+                primary_face_x=facecam.get("x", 0.76) + facecam.get("w", 0.22) / 2.0,
+                primary_face_y=facecam.get("y", 0.68) + facecam.get("h", 0.26) / 2.0,
                 tags=["Gaming Facecam", "Dynamic Split-Screen"],
             )
 
@@ -154,12 +158,14 @@ class ContentAnalyzer:
             # Compute average face position
             all_faces = [f for d in frame_detections for f in d]
             avg_x = sum(f.cx for f in all_faces) / max(1, len(all_faces))
+            avg_y = sum(f.cy for f in all_faces) / max(1, len(all_faces))
             return ContentProfile(
                 mode="talking_head",
                 layout="face_track",
                 confidence=0.88,
                 faces_detected=1,
                 primary_face_x=avg_x,
+                primary_face_y=avg_y,
                 tags=["Subject Face Tracking", "Smart 9:16 Reframe"],
             )
 

@@ -1262,8 +1262,11 @@ def _render_transparent_watermark_image(
         txt_img = Image.new("RGBA", (int(tw) + pad * 2, int(th) + pad * 2), (0, 0, 0, 0))
         txt_draw = ImageDraw.Draw(txt_img)
         txt_draw.text((pad - bbox[0], pad - bbox[1]), text, font=font, fill=fill_color)
-        _resample_bicubic = getattr(getattr(Image, "Resampling", None), "BICUBIC", getattr(Image, "BICUBIC", 3))
-        rotated_txt = txt_img.rotate(angle, expand=True, resample=_resample_bicubic)  # type: ignore[arg-type]
+        try:
+            resample_filter = getattr(Image, "Resampling", Image).BICUBIC
+        except AttributeError:
+            resample_filter = 3
+        rotated_txt = txt_img.rotate(angle, expand=True, resample=resample_filter)  # pyright: ignore[reportArgumentType] # type: ignore[arg-type]
         rw, rh = rotated_txt.size
         cx = target_pos[0] + tw // 2
         cy = target_pos[1] + th // 2
@@ -3131,8 +3134,8 @@ def apply_branding(job_id: str):
     clean = out_dir / clean_name
     base = clean if clean.exists() else source
 
-    raw_b = data.get("branding")
-    b: dict[str, Any] = raw_b if isinstance(raw_b, dict) else {}
+    raw_framing = data.get("framing") if isinstance(data.get("framing"), dict) else b.get("framing")
+    framing_raw: dict[str, Any] = raw_framing if isinstance(raw_framing, dict) else {}
     branding: dict[str, Any] = {
         "logo_enabled": bool(b.get("logo_enabled")),
         "logo_path": str(b.get("logo_path", "")).strip(),
@@ -3166,13 +3169,11 @@ def apply_branding(job_id: str):
         "watermark_text_color": "#" + _hex6(str(b.get("watermark_text_color", "#FFFFFF"))),
         "watermark_text_x": max(0, min(100, float(b.get("watermark_text_x", 50)))),
         "watermark_text_y": max(0, min(100, float(b.get("watermark_text_y", 50)))),
-    }
-    raw_framing = data.get("framing") if isinstance(data.get("framing"), dict) else b.get("framing")
-    framing_raw: dict[str, Any] = raw_framing if isinstance(raw_framing, dict) else {}
-    branding["framing"] = {
-        "pan_x": max(-50.0, min(50.0, float(framing_raw.get("pan_x", 0.0)))),
-        "pan_y": max(-50.0, min(50.0, float(framing_raw.get("pan_y", 0.0)))),
-        "zoom": max(1.0, min(2.5, float(framing_raw.get("zoom", 1.0)))),
+        "framing": {
+            "pan_x": max(-50.0, min(50.0, float(framing_raw.get("pan_x", 0.0)))),
+            "pan_y": max(-50.0, min(50.0, float(framing_raw.get("pan_y", 0.0)))),
+            "zoom": max(1.0, min(2.5, float(framing_raw.get("zoom", 1.0)))),
+        },
     }
     if branding["logo_position"] not in BRANDING_POSITIONS:
         branding["logo_position"] = "top-right"
@@ -3610,17 +3611,18 @@ def events(job_id: str):
             new_events: list[Any] = []
             snapshot: dict[str, Any] = {}
             done: bool = False
+            job: dict[str, Any] | None = None
             with jobs_lock:
                 job = jobs.get(job_id)
                 if job:
-                    new_events = job["events"][sent:]
-                    sent = len(job["events"])
-                    done = job["status"] in {"done", "error"}
+                    new_events = list(job.get("events", [])[sent:])
+                    sent = len(job.get("events", []))
+                    done = bool(job.get("status") in {"done", "error"})
                     snapshot = {
                         "kind": "status",
-                        "status": job["status"],
-                        "progress": job["progress"],
-                        "stage": job["stage"],
+                        "status": job.get("status"),
+                        "progress": job.get("progress"),
+                        "stage": job.get("stage"),
                         "outputs": job.get("outputs", []),
                         "min_duration": job.get("min_duration", 25),
                         "max_duration": job.get("max_duration", 60),
@@ -3698,7 +3700,7 @@ def scan_models():
 
 
 _AI_CONFIG_PATH = USER_DATA_DIR / "settings" / "ai_model_config.json"
-_ollama_download_state = {"active": False, "model": "", "percent": 0, "status": "idle", "error": ""}
+_ollama_download_state: dict[str, Any] = {"active": False, "model": "", "percent": 0, "status": "idle", "error": ""}
 
 def _load_ai_config() -> dict:
     default_cfg = {
@@ -4204,7 +4206,7 @@ def open_output_folder():
     })
 
 
-def _scan_cache_and_media() -> dict:
+def _scan_cache_and_media() -> dict[str, Any]:
     """Scans all storage locations for cached transcriptions, temporary files,
     and imported YouTube media.
     """
@@ -4331,7 +4333,8 @@ def cache_clear():
     cache_deleted = 0
 
     # 1. Delete imported YouTube videos
-    for p in scan["yt_files"]:
+    yt_list: list[Path] = scan.get("yt_files", [])
+    for p in yt_list:
         try:
             if p.is_file():
                 sz = p.stat().st_size
@@ -4342,7 +4345,8 @@ def cache_clear():
             pass
 
     # 2. Delete cache files
-    for p in scan["cache_files"]:
+    cache_list: list[Path] = scan.get("cache_files", [])
+    for p in cache_list:
         try:
             if p.is_file():
                 sz = p.stat().st_size
@@ -4938,17 +4942,24 @@ _CLIPPY_SYSTEM_PROMPT = """You are the official in-app AI assistant for Clipify 
 You talk naturally, concisely, warmly, and helpfully like a knowledgeable human assistant.
 Never dump overwhelming bulleted feature lists for simple greetings (like "hi", "hello") or casual comments (like "im bored"). Reply normally and ask what they'd like to create!
 
-When the user asks how to use any feature (e.g. clipping live streams, adding text overlays in Beta Lab, creating AI voiceovers, or generating vertical shorts):
-1. Give a simple, clear explanation in plain English.
-2. Remind the user to click the "App Guide" button on the left sidebar if they want a guided, step-by-step interactive walkthrough.
-3. Include an action navigation tag on its own line:
-   - For live streaming / OBS: [NAVIGATE:live]
-   - For beta features / draggable text overlays: [NAVIGATE:beta]
-   - For narration / voiceovers: [NAVIGATE:narrate]
-   - For creating shorts / importing videos: [NAVIGATE:create]
-   - For video editing / branding / projects: [NAVIGATE:editor]
+Key User Requests & Links:
+1. If the user asks for help, support, community, Instagram, or the group chat link, ALWAYS provide the official Instagram group chat link:
+   👉 [**Join Official Instagram Creator Community**](https://ig.me/j/AQj1lYCWh_iV_S7J/)
+   and creator contact `@sherlock.fy`.
+2. If the user asks about updates, what's new, or the latest version:
+   Explain that they are running **Clipify AI v4.0.11**! Highlight Live Studio (OBS RTMP stream clipping), Smart Podcast Split (auto 2-speaker with solo fallback), Anti-Burst Lanczos Upscaler, and Beta Lab text overlays. Tell them they can click the "Update" button on the left sidebar to check and install 1-click in-place updates.
+3. When the user asks how to use any feature (e.g. clipping live streams, adding text overlays in Beta Lab, creating AI voiceovers, or generating vertical shorts):
+   - Give a simple, clear explanation in plain English.
+   - Remind the user to click the "App Guide" button on the left sidebar if they want a guided, step-by-step interactive walkthrough.
+   - Include an action navigation tag on its own line:
+     - For live streaming / OBS: [NAVIGATE:live]
+     - For beta features / draggable text overlays: [NAVIGATE:beta]
+     - For narration / voiceovers: [NAVIGATE:narrate]
+     - For creating shorts / importing videos: [NAVIGATE:create]
+     - For video editing / branding / projects: [NAVIGATE:editor]
 
 App facts:
+- Version: v4.0.11
 - Clipify AI is 100% free, private, local-first. No API keys or paid tiers.
 - Live Studio (/live): Ingests OBS RTMP stream at rtmp://localhost:1935/live for instant highlight clipping.
 - Narration Studio (/narrate): Pairs Kokoro neural voices with gameplay backgrounds.
@@ -4961,9 +4972,31 @@ def _clippy_builtin_fallback(user_query: str) -> str:
     """Provides natural, human-like responses when Ollama is offline or uninstalled."""
     q = user_query.lower().strip()
 
+    # Community & Instagram Support
+    if any(k in q for k in ("instagram", "insta", "group", "community", "help", "support", "contact", "chat link", "need help")):
+        return (
+            "Here is the official Clipify AI Creator Community on Instagram! 💬\n\n"
+            "Join our group chat to get direct support, share your viral clips, and request features:\n"
+            "👉 [**Join Instagram Community Group Chat**](https://ig.me/j/AQj1lYCWh_iV_S7J/)\n\n"
+            "You can also reach out to the creator directly on Instagram: `@sherlock.fy`"
+        )
+
+    # Updates and Version Info
+    if any(k in q for k in ("update", "version", "what's new", "whats new", "latest", "upgrade", "changelog", "patch")):
+        return (
+            "You are currently running **Clipify AI v4.0.11**! 🚀\n\n"
+            "**What's new in v4.0.11:**\n"
+            "- 🔴 **Live Studio**: Real-time OBS RTMP stream clipping (`rtmp://localhost:1935/live`).\n"
+            "- 🎙️ **Smart Podcast Split**: 2-speaker tracking with clean solo fallback (never slices solo hosts in half).\n"
+            "- ✨ **Anti-Burst Lanczos Upscaler**: Lossless subclip trim + Lanczos unsharp contrast profiles.\n"
+            "- ✍️ **Beta Lab Text Overlays**: Draggable and timed text on the 9:16 frame.\n"
+            "- 🤖 **Redesigned Clippy AI**: Pinned flush edge toggle, persistent chat history, and deep-link navigation.\n\n"
+            "To check for new updates or apply an in-place patch, click the **Update** button on the left sidebar!"
+        )
+
     # Casual greetings
     if q in ("hi", "hello", "hey", "yo", "sup", "howdy", "good morning", "good evening") or q.startswith(("hi ", "hello ", "hey ")):
-        return "Hey there! How can I help you today with your clips, live streams, or editing?"
+        return "Hey there! 👋 How can I help you today with your clips, live streams, or editing?"
 
     if "bored" in q:
         return "Let's make something cool! You can import a video to create quick viral Shorts, test out voiceovers in Narration Studio, or clip highlights from Live Studio. What are you in the mood to create?"

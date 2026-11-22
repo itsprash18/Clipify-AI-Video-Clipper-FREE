@@ -1,11 +1,13 @@
 /**
- * Clipify AI - Assistant Drawer & Chat
- * Ultra-minimal edge toggle arrow, official app branding, natural conversational AI,
- * dynamic deep-link navigation, and smooth thinking animations.
+ * Clipify AI - Assistant Drawer & Chat (v4.0.11)
+ * Persistent chat history via localStorage, direct Instagram group support,
+ * v4.0.11 update intelligence, modern obsidian pill UI, and smooth animations.
  */
 
 (function () {
   'use strict';
+
+  const STORAGE_KEY = 'clipify_clippy_chat_history_v3';
 
   // State
   const state = {
@@ -15,6 +17,49 @@
     modelSpeed: '',
     isThinking: false,
   };
+
+  // Load persisted history from localStorage
+  function loadPersistedHistory() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          state.history = parsed;
+          return parsed;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  // Save history to localStorage
+  function savePersistedHistory() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.history));
+    } catch (_) {}
+  }
+
+  function renderWelcomeCard(messagesContainer) {
+    const welcomeDiv = document.createElement('div');
+    welcomeDiv.id = 'clippyWelcomeCard';
+    welcomeDiv.className = 'clippy-msg clippy-msg-ai clippy-welcome-msg';
+    welcomeDiv.innerHTML = `
+      <div class="clippy-msg-bubble clippy-welcome-bubble">
+        <p class="clippy-welcome-title"><strong>Hey! I'm your Clipify AI assistant.</strong></p>
+        <p class="clippy-welcome-desc">Ask me anything about clipping live streams, adding draggable text in Beta Lab, creating vertical shorts, or generating AI voiceovers.</p>
+        <div class="clippy-chips">
+          <button class="clippy-chip" data-prompt="How do I clip a live stream?">🔴 Clip Live Stream</button>
+          <button class="clippy-chip" data-prompt="How do I add draggable text in Beta Lab?">✍️ Beta Text Overlay</button>
+          <button class="clippy-chip" data-prompt="How do I create a vertical Short from a video?">🎬 Create Short</button>
+          <button class="clippy-chip" data-prompt="How do I create an AI narration video?">🎙️ Narration Studio</button>
+        </div>
+      </div>
+      <span class="clippy-msg-time">Just now</span>
+    `;
+    const typing = document.getElementById('clippyTyping');
+    messagesContainer.insertBefore(welcomeDiv, typing);
+  }
 
   function initClippy() {
     // Avoid double initialization
@@ -26,7 +71,7 @@
     container.className = 'clippy-container';
     container.innerHTML = `
       <!-- Minimalist Flush Edge Arrow Toggle Button -->
-      <button id="clippyToggleBtn" class="clippy-toggle-btn" title="Clipify AI Assistant" aria-label="Open Clipify AI assistant">
+      <button id="clippyToggleBtn" class="clippy-toggle-btn" title="Open Clipify AI Assistant" aria-label="Open Clipify AI assistant">
         <span class="clippy-toggle-arrow">‹</span>
       </button>
 
@@ -40,35 +85,31 @@
             </div>
             <div class="clippy-title-info">
               <h3 id="clippyTitle" class="clippy-title">Clipify AI</h3>
-              <div class="clippy-model-badge" id="clippyModelBadge" title="Fastest local AI engine">
+              <div class="clippy-model-badge" id="clippyModelBadge" title="Local AI Engine">
                 <span class="clippy-badge-dot"></span>
-                <span id="clippyModelText">Fastest AI · Loading...</span>
+                <span id="clippyModelText">Loading Local AI...</span>
               </div>
             </div>
           </div>
-          <button id="clippyCloseBtn" class="clippy-close-btn" title="Close Assistant" aria-label="Close sidebar">
-            <span class="clippy-close-arrow">›</span>
-          </button>
+          <div class="clippy-header-actions">
+            <button id="clippyClearBtn" class="clippy-icon-btn" title="Clear chat history" aria-label="Clear chat history">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+            <button id="clippyCloseBtn" class="clippy-icon-btn clippy-close-btn" title="Close Assistant" aria-label="Close sidebar">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <!-- Messages Scroll Area -->
         <div class="clippy-messages" id="clippyMessages">
-          <!-- Welcome Message -->
-          <div class="clippy-msg clippy-msg-ai">
-            <div class="clippy-msg-bubble">
-              <p><strong>Hey! I'm your Clipify AI assistant.</strong></p>
-              <p>Ask me anything about clipping live streams, adding draggable text in Beta Lab, creating vertical shorts, or generating AI voiceovers.</p>
-              <div class="clippy-chips">
-                <button class="clippy-chip" data-prompt="How do I clip a live stream?">🔴 Clip Live Stream</button>
-                <button class="clippy-chip" data-prompt="How do I add draggable text in Beta Lab?">✍️ Beta Text Overlay</button>
-                <button class="clippy-chip" data-prompt="How do I create a vertical Short from a video?">🎬 Create a Short</button>
-                <button class="clippy-chip" data-prompt="How do I create an AI narration video?">🎙️ Narration Studio</button>
-              </div>
-            </div>
-            <span class="clippy-msg-time">Just now</span>
-          </div>
-
-          <!-- Typing / Thinking Indicator -->
+          <!-- Typing / Thinking Indicator Row -->
           <div class="clippy-msg clippy-msg-ai clippy-typing-row" id="clippyTyping" style="display: none;">
             <div class="clippy-msg-bubble clippy-typing-bubble">
               <span class="clippy-typing-label">Clippy is thinking</span>
@@ -83,7 +124,7 @@
 
         <!-- Chat Input Footer -->
         <div class="clippy-footer">
-          <form id="clippyForm" class="clippy-input-box" onsubmit="return false;">
+          <form id="clippyForm" class="clippy-input-bar" onsubmit="return false;">
             <textarea
               id="clippyInput"
               class="clippy-input"
@@ -92,7 +133,7 @@
               aria-label="Message input"
             ></textarea>
             <button type="submit" id="clippySendBtn" class="clippy-send-btn" title="Send message" aria-label="Send message">
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13"></line>
                 <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
               </svg>
@@ -108,10 +149,25 @@
     // Bind DOM elements
     const toggleBtn = document.getElementById('clippyToggleBtn');
     const closeBtn = document.getElementById('clippyCloseBtn');
+    const clearBtn = document.getElementById('clippyClearBtn');
     const drawer = document.getElementById('clippyDrawer');
     const input = document.getElementById('clippyInput');
     const form = document.getElementById('clippyForm');
     const messages = document.getElementById('clippyMessages');
+
+    // Restore persistent history
+    const saved = loadPersistedHistory();
+    if (saved && saved.length > 0) {
+      saved.forEach((item) => {
+        if (item.role === 'user') {
+          appendUserMessage(item.content, false);
+        } else if (item.role === 'assistant') {
+          appendAiMessage(item.content, item.model || '', false);
+        }
+      });
+    } else {
+      renderWelcomeCard(messages);
+    }
 
     // Toggle Drawer
     function openDrawer() {
@@ -132,6 +188,21 @@
     toggleBtn.addEventListener('click', openDrawer);
     closeBtn.addEventListener('click', closeDrawer);
 
+    // Clear history handler
+    clearBtn.addEventListener('click', () => {
+      if (confirm('Clear assistant conversation history?')) {
+        state.history = [];
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch (_) {}
+        // Clear rendered messages except typing row
+        const typing = document.getElementById('clippyTyping');
+        messages.innerHTML = '';
+        messages.appendChild(typing);
+        renderWelcomeCard(messages);
+      }
+    });
+
     // Close on Escape key
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && state.open) {
@@ -142,7 +213,7 @@
     // Auto-expand textarea
     input.addEventListener('input', () => {
       input.style.height = 'auto';
-      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+      input.style.height = Math.min(input.scrollHeight, 110) + 'px';
     });
 
     // Enter to submit (Shift+Enter for newline)
@@ -223,17 +294,17 @@
             state.modelSpeed = data.speed || 'Fastest AI';
             badge.textContent = `⚡ ${data.model} (${state.modelSpeed})`;
           } else {
-            badge.textContent = '⚡ Clipify Intelligence';
+            badge.textContent = '⚡ Clipify AI Local';
           }
         }
       }
     } catch (_) {
       const badge = document.getElementById('clippyModelText');
-      if (badge) badge.textContent = '⚡ Clipify Intelligence';
+      if (badge) badge.textContent = '⚡ Clipify AI Local';
     }
   }
 
-  // Format simple markdown into HTML
+  // Format simple markdown into HTML with rich link parsing
   function formatMarkdown(text) {
     if (!text) return '';
     let html = text
@@ -251,6 +322,16 @@
     html = html.replace(/^## (.*$)/gim, '<h3 class="clippy-md-h3">$1</h3>');
     // Bold **text**
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    // Markdown links [text](url)
+    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="clippy-link"><span class="clippy-link-text">$1</span> <span class="clippy-link-icon">↗</span></a>');
+
+    // Bare URLs that weren't wrapped in <a> yet
+    html = html.replace(/(^|[^"'])(https?:\/\/[a-zA-Z0-9_\-\.\/]+(\?[a-zA-Z0-9_\-=&]*)?)/g, function(match, prefix, url) {
+      if (match.includes('href=')) return match;
+      return `${prefix}<a href="${url}" target="_blank" rel="noopener noreferrer" class="clippy-link">${url} <span class="clippy-link-icon">↗</span></a>`;
+    });
+
     // Bullet lists
     html = html.replace(/^\s*-\s+(.*$)/gim, '<li>$1</li>');
     html = html.replace(/(<li>.*<\/li>)/gis, '<ul>$1</ul>');
@@ -261,7 +342,7 @@
     return `<p>${html}</p>`;
   }
 
-  function appendUserMessage(text) {
+  function appendUserMessage(text, shouldSave = true) {
     const messages = document.getElementById('clippyMessages');
     const msgDiv = document.createElement('div');
     msgDiv.className = 'clippy-msg clippy-msg-user';
@@ -269,14 +350,19 @@
       <div class="clippy-msg-bubble">
         <p>${text.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>')}</p>
       </div>
-      <span class="clippy-msg-time">Just now</span>
+      <span class="clippy-msg-time">You</span>
     `;
     const typing = document.getElementById('clippyTyping');
     messages.insertBefore(msgDiv, typing);
     messages.scrollTop = messages.scrollHeight;
+
+    if (shouldSave) {
+      state.history.push({ role: 'user', content: text });
+      savePersistedHistory();
+    }
   }
 
-  function appendAiMessage(rawText, model) {
+  function appendAiMessage(rawText, model, shouldSave = true) {
     const messages = document.getElementById('clippyMessages');
     const msgDiv = document.createElement('div');
     msgDiv.className = 'clippy-msg clippy-msg-ai';
@@ -288,11 +374,16 @@
       <div class="clippy-msg-bubble">
         ${formatted}
       </div>
-      <span class="clippy-msg-time">${model ? `⚡ ${model} · ` : ''}Just now</span>
+      <span class="clippy-msg-time">${model ? `⚡ ${model} · ` : ''}Clipify AI</span>
     `;
     const typing = document.getElementById('clippyTyping');
     messages.insertBefore(msgDiv, typing);
     messages.scrollTop = messages.scrollHeight;
+
+    if (shouldSave) {
+      state.history.push({ role: 'assistant', content: rawText, model: model || '' });
+      savePersistedHistory();
+    }
   }
 
   async function sendMessage() {
@@ -300,13 +391,16 @@
     const text = (input.value || '').trim();
     if (!text || state.isThinking) return;
 
+    // Remove welcome card if this is the first interaction
+    const welcome = document.getElementById('clippyWelcomeCard');
+    if (welcome) welcome.remove();
+
     // Clear input
     input.value = '';
     input.style.height = 'auto';
 
     // Append user message
-    appendUserMessage(text);
-    state.history.push({ role: 'user', content: text });
+    appendUserMessage(text, true);
 
     // Show smooth thinking animation
     state.isThinking = true;
@@ -321,7 +415,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          history: state.history,
+          history: state.history.slice(-10),
         }),
       });
 
@@ -331,12 +425,12 @@
 
       const data = await res.json();
       const reply = data.reply || 'I am sorry, I could not generate a response right now.';
-      state.history.push({ role: 'assistant', content: reply });
-      appendAiMessage(reply, data.model);
+      appendAiMessage(reply, data.model, true);
     } catch (err) {
       appendAiMessage(
         `### ⚠️ Notice\nCould not connect to AI service: ${err.message}.\n\nMake sure Clipify AI is running properly and try again!`,
-        'Error'
+        'Error',
+        true
       );
     } finally {
       state.isThinking = false;
