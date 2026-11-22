@@ -1290,7 +1290,10 @@ def apply_branding_to_file(input_video: str, output_video: str, branding: dict[s
         boxcolor = _ffmpeg_color(str(branding.get("text_bg_color", "#000000")), int(branding.get("text_bg_opacity", 65)))
         color = _hex6(str(branding.get("text_color", "#FFFFFF")))
         tf = _ffmpeg_filter_path(temp_text)
-        filters.append(f"[{current}]drawtext=textfile='{tf}':fontsize={fs}:fontcolor=0x{color}{font_expr}:x={x}:y={y}:box={box}:boxcolor={boxcolor}:boxborderw=18:fix_bounds=true[vtext]")
+        t_start = max(0.0, float(branding.get("text_start_time", 0.0)))
+        t_end = float(branding.get("text_end_time", 0.0))
+        enable_expr = f":enable='between(t,{t_start:.3f},{t_end:.3f})'" if (t_end > t_start) else ""
+        filters.append(f"[{current}]drawtext=textfile='{tf}':fontsize={fs}:fontcolor=0x{color}{font_expr}:x={x}:y={y}:box={box}:boxcolor={boxcolor}:boxborderw=18:fix_bounds=true{enable_expr}[vtext]")
         current = "vtext"
 
     fc = ";".join(filters)
@@ -3027,6 +3030,98 @@ def apply_branding(job_id: str):
         return jsonify({"error": str(exc)}), 500
 
     return jsonify({"ok": True, "filename": target.name, "url": f"/media/{job_id}/{target.name}", "base": base.name})
+
+
+@app.post("/api/beta/apply-text")
+def beta_apply_text():
+    """Burn timed, repositioned text into a beta clip for pixel-perfect modifications."""
+    data = request.get_json(silent=True) or {}
+    job_id = str(data.get("job_id", "")).strip()
+    filename = Path(str(data.get("filename", ""))).name
+    text = str(data.get("text", "")).strip()
+    if not job_id or not filename:
+        return jsonify({"ok": False, "error": "Select a Short first."}), 400
+    if not text:
+        return jsonify({"ok": False, "error": "Text cannot be empty."}), 400
+
+    job_dir = _safe_job_directory(job_id)
+    if job_dir is None or not job_dir.is_dir():
+        return jsonify({"ok": False, "error": "Project not found."}), 404
+
+    out_dir = job_dir / "output"
+    source = out_dir / filename
+    if not source.exists() or source.suffix.lower() != ".mp4":
+        return jsonify({"ok": False, "error": f"Short {filename} not found."}), 404
+
+    # Use clean source base if available to prevent compounding previous text burns
+    clean_name = re.sub(r"_edited(?:_\d+)?\.mp4$", ".mp4", filename, flags=re.I)
+    clean_name = re.sub(r"\.mp4$", "_clean.mp4", clean_name, flags=re.I)
+    clean = out_dir / clean_name
+    base_file = clean if clean.exists() else source
+
+    timestamp = int(time.time() * 1000)
+    stem = re.sub(r"(_edited|_custom|_clean)(?:_\d+)?$", "", source.stem, flags=re.I)
+    out_filename = f"{stem}_edited_{timestamp}.mp4"
+    target = out_dir / out_filename
+
+    start_time = max(0.0, float(data.get("start_time", 0.0)))
+    end_time = float(data.get("end_time", 0.0))
+    x_pct = max(0.0, min(100.0, float(data.get("x", 50.0))))
+    y_pct = max(0.0, min(100.0, float(data.get("y", 25.0))))
+    font_size_pt = max(18, min(120, int(data.get("font_size", 42))))
+    fs_canvas = max(36, min(160, round(font_size_pt * 2.4)))
+    font_name = str(data.get("font_name", "Montserrat Extra Bold"))
+    font_path = _font_path_for_editor(font_name)
+    font_expr = f":fontfile='{_ffmpeg_filter_path(font_path)}'" if font_path else ""
+
+    text_color = _hex6(str(data.get("color", "#facc15")))
+    bg_enabled = bool(data.get("bg_enabled", True))
+    bg_color = str(data.get("bg_color", "#000000"))
+    bg_opacity = max(0, min(100, int(data.get("bg_opacity", 65))))
+    box = 1 if bg_enabled else 0
+    boxcolor = _ffmpeg_color(bg_color, bg_opacity)
+
+    temp_text = str(out_dir / f"_temp_beta_text_{timestamp}.txt")
+    try:
+        Path(temp_text).write_text(text, encoding="utf-8")
+        tf = _ffmpeg_filter_path(temp_text)
+
+        x_expr = f"(w-tw)*{x_pct/100:.6f}"
+        y_expr = f"(h-th)*{y_pct/100:.6f}"
+        enable_expr = f":enable='between(t,{start_time:.3f},{end_time:.3f})'" if (end_time > start_time) else ""
+
+        drawtext_filter = (
+            f"drawtext=textfile='{tf}':fontsize={fs_canvas}:fontcolor=0x{text_color}{font_expr}"
+            f":x={x_expr}:y={y_expr}:box={box}:boxcolor={boxcolor}:boxborderw=18:borderw=4:bordercolor=0x000000"
+            f"{enable_expr}:fix_bounds=true"
+        )
+
+        ffmpeg = _ffmpeg_path()
+        cmd = [
+            ffmpeg, "-y", "-i", str(base_file),
+            "-vf", drawtext_filter,
+            "-c:v", "libx264", "-preset", "fast", "-crf", "20",
+            "-c:a", "copy",
+            "-movflags", "+faststart",
+            str(target)
+        ]
+        proc = _run_hidden(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
+    finally:
+        try:
+            Path(temp_text).unlink()
+        except OSError:
+            pass
+
+    if proc.returncode != 0 or not target.exists() or target.stat().st_size < 1024:
+        err_msg = proc.stderr[-800:] if proc.stderr else "FFmpeg text overlay rendering failed."
+        return jsonify({"ok": False, "error": err_msg}), 500
+
+    return jsonify({
+        "ok": True,
+        "filename": out_filename,
+        "url": f"/media/{job_id}/{out_filename}?t={timestamp}",
+        "clean_filename": clean.name if clean.exists() else filename,
+    })
 
 @app.get("/api/metadata/<job_id>/<path:filename>")
 def metadata(job_id: str, filename: str):

@@ -3628,5 +3628,354 @@ function initBetaTestingSection() {
     openInEditorBtn.onclick = () => {
       window.location.hash = `#editor?video=${encodeURIComponent(url)}&title=${encodeURIComponent(filename)}`;
     };
+
+    // Store original and current clip for text modification workflow
+    betaState.originalClipUrl = url;
+    betaState.originalFilename = filename;
+    betaState.currentClipUrl = url;
+    betaState.currentFilename = filename;
+
+    // Initialize interactive text overlay for this clip
+    if (betaTextDragOverlay) {
+      betaTextDragOverlay.style.display = 'block';
+      syncTextOverlayStyles();
+    }
+  }
+
+  // ==========================================
+  // Interactive Timed & Draggable Text Overlay
+  // ==========================================
+  const betaTextDragOverlay = $('#betaTextDragOverlay');
+  const betaTextDragContent = $('#betaTextDragContent');
+  const betaDragCoordBadge = $('#betaDragCoordBadge');
+  const betaDragTimeBadge = $('#betaDragTimeBadge');
+  const betaTextInput = $('#betaTextInput');
+  const betaTextEnableToggle = $('#betaTextEnableToggle');
+  const betaTextStart = $('#betaTextStart');
+  const betaTextEnd = $('#betaTextEnd');
+  const betaBtnSetStart = $('#betaBtnSetStart');
+  const betaBtnSetEnd = $('#betaBtnSetEnd');
+  const betaBtnFullDuration = $('#betaBtnFullDuration');
+  const betaTimelineSpanBar = $('#betaTimelineSpanBar');
+  const betaTimelineCurrentMarker = $('#betaTimelineCurrentMarker');
+  const betaTimelineActiveLabel = $('#betaTimelineActiveLabel');
+  const betaTimelineEndLabel = $('#betaTimelineEndLabel');
+  const betaTextX = $('#betaTextX');
+  const betaTextY = $('#betaTextY');
+  const betaTextXOut = $('#betaTextXOut');
+  const betaTextYOut = $('#betaTextYOut');
+  const betaPosTop = $('#betaPosTop');
+  const betaPosCenter = $('#betaPosCenter');
+  const betaPosBottom = $('#betaPosBottom');
+  const betaTextSize = $('#betaTextSize');
+  const betaTextSizeOut = $('#betaTextSizeOut');
+  const betaTextColor = $('#betaTextColor');
+  const betaTextFont = $('#betaTextFont');
+  const betaTextBgEnable = $('#betaTextBgEnable');
+  const betaTextBgColor = $('#betaTextBgColor');
+  const betaApplyTextBtn = $('#betaApplyTextBtn');
+  const betaResetTextBtn = $('#betaResetTextBtn');
+  const betaTextStatusMsg = $('#betaTextStatusMsg');
+
+  function syncTextOverlayStyles() {
+    if (!betaTextDragOverlay || !betaTextDragContent) return;
+
+    const text = (betaTextInput && betaTextInput.value) ? betaTextInput.value : 'WAIT FOR IT! 😱';
+    betaTextDragContent.textContent = text;
+
+    const xVal = betaTextX ? +betaTextX.value : 50;
+    const yVal = betaTextY ? +betaTextY.value : 25;
+    if (betaTextXOut) betaTextXOut.textContent = `${xVal}%`;
+    if (betaTextYOut) betaTextYOut.textContent = `${yVal}%`;
+
+    betaTextDragOverlay.style.left = `${xVal}%`;
+    betaTextDragOverlay.style.top = `${yVal}%`;
+
+    if (betaDragCoordBadge) betaDragCoordBadge.textContent = `${xVal}%, ${yVal}%`;
+
+    const sizeVal = betaTextSize ? +betaTextSize.value : 42;
+    if (betaTextSizeOut) betaTextSizeOut.textContent = `${sizeVal}px`;
+    betaTextDragContent.style.fontSize = `${(sizeVal / 32).toFixed(2)}rem`;
+
+    if (betaTextColor) betaTextDragContent.style.color = betaTextColor.value;
+    if (betaTextFont) betaTextDragContent.style.fontFamily = `"${betaTextFont.value}", Impact, sans-serif`;
+
+    const bgOn = betaTextBgEnable ? betaTextBgEnable.checked : true;
+    const bgCol = betaTextBgColor ? betaTextBgColor.value : '#000000';
+    if (bgOn) {
+      betaTextDragContent.style.background = `${bgCol}b3`;
+      betaTextDragContent.style.border = '2px dashed rgba(250, 204, 21, 0.7)';
+    } else {
+      betaTextDragContent.style.background = 'transparent';
+      betaTextDragContent.style.border = '2px dashed rgba(255, 255, 255, 0.4)';
+    }
+
+    const sTime = betaTextStart ? Math.max(0, +betaTextStart.value) : 0;
+    const eTime = betaTextEnd ? Math.max(sTime + 0.1, +betaTextEnd.value) : 5.0;
+    if (betaDragTimeBadge) betaDragTimeBadge.textContent = `${sTime.toFixed(1)}s – ${eTime.toFixed(1)}s`;
+    if (betaTimelineActiveLabel) betaTimelineActiveLabel.textContent = `Active: ${sTime.toFixed(1)}s – ${eTime.toFixed(1)}s`;
+
+    const dur = (resultVideo && resultVideo.duration) ? resultVideo.duration : Math.max(10, eTime);
+    if (betaTimelineEndLabel && resultVideo && resultVideo.duration) {
+      const dm = Math.floor(dur / 60);
+      const ds = String(Math.round(dur % 60)).padStart(2, '0');
+      betaTimelineEndLabel.textContent = `${dm}:${ds}`;
+    }
+
+    if (betaTimelineSpanBar) {
+      const sPct = Math.max(0, Math.min(100, (sTime / dur) * 100));
+      const ePct = Math.max(sPct, Math.min(100, (eTime / dur) * 100));
+      betaTimelineSpanBar.style.left = `${sPct}%`;
+      betaTimelineSpanBar.style.width = `${Math.max(2, ePct - sPct)}%`;
+    }
+
+    const enabled = betaTextEnableToggle ? betaTextEnableToggle.checked : true;
+    if (!enabled) {
+      betaTextDragOverlay.style.display = 'none';
+      return;
+    }
+
+    if (resultVideo && resultVideo.src) {
+      const cur = resultVideo.currentTime || 0;
+      const inRange = (cur >= sTime && cur <= eTime);
+      if (!resultVideo.paused) {
+        betaTextDragOverlay.style.display = inRange ? 'block' : 'none';
+      } else {
+        betaTextDragOverlay.style.display = 'block';
+        if (inRange) {
+          betaTextDragOverlay.classList.remove('inactive-time');
+        } else {
+          betaTextDragOverlay.classList.add('inactive-time');
+        }
+      }
+    }
+  }
+
+  // Draggable logic for text overlay
+  if (betaTextDragOverlay && betaPreviewFrame) {
+    let isDraggingText = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let initialXPct = 50;
+    let initialYPct = 25;
+
+    const onTextDragStart = (clientX, clientY) => {
+      isDraggingText = true;
+      dragStartX = clientX;
+      dragStartY = clientY;
+      initialXPct = betaTextX ? +betaTextX.value : 50;
+      initialYPct = betaTextY ? +betaTextY.value : 25;
+      betaTextDragOverlay.classList.add('dragging');
+      document.body.style.cursor = 'grabbing';
+    };
+
+    const onTextDragMove = (clientX, clientY) => {
+      if (!isDraggingText) return;
+      const rect = betaPreviewFrame.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+
+      const deltaX = clientX - dragStartX;
+      const deltaY = clientY - dragStartY;
+
+      const deltaXPct = (deltaX / rect.width) * 100;
+      const deltaYPct = (deltaY / rect.height) * 100;
+
+      const newX = Math.round(Math.max(5, Math.min(95, initialXPct + deltaXPct)));
+      const newY = Math.round(Math.max(5, Math.min(95, initialYPct + deltaYPct)));
+
+      if (betaTextX) betaTextX.value = newX;
+      if (betaTextY) betaTextY.value = newY;
+
+      syncTextOverlayStyles();
+    };
+
+    const onTextDragEnd = () => {
+      if (isDraggingText) {
+        isDraggingText = false;
+        betaTextDragOverlay.classList.remove('dragging');
+        document.body.style.cursor = '';
+      }
+    };
+
+    betaTextDragOverlay.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      onTextDragStart(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isDraggingText) {
+        e.preventDefault();
+        onTextDragMove(e.clientX, e.clientY);
+      }
+    });
+
+    window.addEventListener('mouseup', onTextDragEnd);
+
+    // Touch support for drag
+    betaTextDragOverlay.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches[0]) {
+        onTextDragStart(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      if (isDraggingText && e.touches && e.touches[0]) {
+        onTextDragMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', onTextDragEnd);
+  }
+
+  // Input event bindings
+  [betaTextInput, betaTextColor, betaTextFont, betaTextBgColor].forEach((el) => {
+    if (el) el.addEventListener('input', syncTextOverlayStyles);
+  });
+
+  [betaTextX, betaTextY, betaTextSize].forEach((el) => {
+    if (el) el.addEventListener('input', syncTextOverlayStyles);
+  });
+
+  [betaTextStart, betaTextEnd, betaTextBgEnable, betaTextEnableToggle].forEach((el) => {
+    if (el) el.addEventListener('change', syncTextOverlayStyles);
+  });
+
+  // Quick alignment pills
+  if (betaPosTop) betaPosTop.addEventListener('click', () => { if (betaTextY) betaTextY.value = 15; syncTextOverlayStyles(); });
+  if (betaPosCenter) betaPosCenter.addEventListener('click', () => { if (betaTextY) betaTextY.value = 50; syncTextOverlayStyles(); });
+  if (betaPosBottom) betaPosBottom.addEventListener('click', () => { if (betaTextY) betaTextY.value = 75; syncTextOverlayStyles(); });
+
+  // Playhead timing buttons
+  if (betaBtnSetStart && resultVideo) {
+    betaBtnSetStart.addEventListener('click', () => {
+      const cur = +(resultVideo.currentTime || 0).toFixed(1);
+      if (betaTextStart) betaTextStart.value = cur;
+      if (betaBtnSetStart) betaBtnSetStart.textContent = `Start: ${cur}s`;
+      syncTextOverlayStyles();
+    });
+  }
+
+  if (betaBtnSetEnd && resultVideo) {
+    betaBtnSetEnd.addEventListener('click', () => {
+      const cur = +(resultVideo.currentTime || 0).toFixed(1);
+      if (betaTextEnd) betaTextEnd.value = Math.max(+(betaTextStart?.value || 0) + 0.1, cur);
+      if (betaBtnSetEnd) betaBtnSetEnd.textContent = `End: ${cur}s`;
+      syncTextOverlayStyles();
+    });
+  }
+
+  if (betaBtnFullDuration && resultVideo) {
+    betaBtnFullDuration.addEventListener('click', () => {
+      const dur = +(resultVideo.duration || 10).toFixed(1);
+      if (betaTextStart) betaTextStart.value = 0.0;
+      if (betaTextEnd) betaTextEnd.value = dur;
+      syncTextOverlayStyles();
+    });
+  }
+
+  // Synchronize playback timeline and active overlay display
+  if (resultVideo) {
+    resultVideo.addEventListener('timeupdate', () => {
+      const dur = resultVideo.duration || 1;
+      const cur = resultVideo.currentTime || 0;
+      if (betaTimelineCurrentMarker) {
+        betaTimelineCurrentMarker.style.left = `${Math.min(100, Math.max(0, (cur / dur) * 100))}%`;
+      }
+      syncTextOverlayStyles();
+    });
+
+    resultVideo.addEventListener('play', () => syncTextOverlayStyles());
+    resultVideo.addEventListener('pause', () => syncTextOverlayStyles());
+  }
+
+  // Burn & Apply Text to Short
+  if (betaApplyTextBtn) {
+    betaApplyTextBtn.addEventListener('click', async () => {
+      if (!betaState.jobId || !betaState.selectedClip) {
+        alert('Please run or select a Short first.');
+        return;
+      }
+      const text = betaTextInput ? betaTextInput.value.trim() : '';
+      if (!text) {
+        alert('Enter some text to burn onto the video.');
+        return;
+      }
+
+      betaApplyTextBtn.disabled = true;
+      betaApplyTextBtn.innerHTML = '<span class="btn-update-icon spinning">↻</span> Rendering Text onto Short…';
+      if (betaTextStatusMsg) {
+        betaTextStatusMsg.style.display = 'block';
+        betaTextStatusMsg.style.color = '#facc15';
+        betaTextStatusMsg.textContent = 'Rendering timed text overlay with FFmpeg…';
+      }
+
+      try {
+        const payload = {
+          job_id: betaState.jobId,
+          filename: betaState.selectedClip,
+          text: text,
+          start_time: betaTextStart ? +betaTextStart.value : 0.0,
+          end_time: betaTextEnd ? +betaTextEnd.value : 5.0,
+          x: betaTextX ? +betaTextX.value : 50,
+          y: betaTextY ? +betaTextY.value : 25,
+          font_size: betaTextSize ? +betaTextSize.value : 42,
+          font_name: betaTextFont ? betaTextFont.value : 'Montserrat Extra Bold',
+          color: betaTextColor ? betaTextColor.value : '#facc15',
+          bg_enabled: betaTextBgEnable ? betaTextBgEnable.checked : true,
+          bg_color: betaTextBgColor ? betaTextBgColor.value : '#000000',
+          bg_opacity: 65,
+        };
+
+        const res = await fetch('/api/beta/apply-text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to burn text');
+
+        // Update video to the newly rendered clip
+        betaState.currentClipUrl = data.url;
+        betaState.currentFilename = data.filename;
+        resultVideo.src = data.url;
+        resultVideo.load();
+        resultVideo.play().catch(() => {});
+
+        // Update download button
+        downloadBtn.href = `${data.url}&download=1`;
+        downloadBtn.download = data.filename;
+
+        if (betaTextStatusMsg) {
+          betaTextStatusMsg.style.color = '#4ade80';
+          betaTextStatusMsg.textContent = `✓ Text overlay successfully burned into video! (${data.filename})`;
+        }
+      } catch (err) {
+        if (betaTextStatusMsg) {
+          betaTextStatusMsg.style.color = '#ef4444';
+          betaTextStatusMsg.textContent = `Error: ${err.message}`;
+        }
+        alert('Could not apply text overlay: ' + err.message);
+      } finally {
+        betaApplyTextBtn.disabled = false;
+        betaApplyTextBtn.innerHTML = '<span>✨ Burn & Apply Text to Short</span>';
+      }
+    });
+  }
+
+  // Reset to original clip
+  if (betaResetTextBtn) {
+    betaResetTextBtn.addEventListener('click', () => {
+      if (betaState.originalClipUrl && resultVideo) {
+        resultVideo.src = betaState.originalClipUrl;
+        resultVideo.load();
+        resultVideo.play().catch(() => {});
+        downloadBtn.href = `${betaState.originalClipUrl}?download=1`;
+        downloadBtn.download = betaState.originalFilename || 'short.mp4';
+        if (betaTextStatusMsg) {
+          betaTextStatusMsg.style.color = '#38bdf8';
+          betaTextStatusMsg.textContent = 'Restored unmodified original Short.';
+        }
+      }
+    });
   }
 }

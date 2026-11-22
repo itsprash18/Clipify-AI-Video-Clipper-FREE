@@ -3,7 +3,7 @@
  * Handles clearing Whisper transcriptions, temporary cache files,
  * and imported YouTube media footage saved on the system.
  */
-(function() {
+(function () {
   let modalEl = null;
   let cacheState = {
     totalBytes: 0,
@@ -35,7 +35,7 @@
       };
 
       updateNavBadge();
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function updateNavBadge() {

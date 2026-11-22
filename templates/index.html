@@ -1068,6 +1068,14 @@
                   <span class="split-panel-label">🎙️ Bottom: Camera / Reaction</span>
                 </div>
               </div>
+
+              <!-- Interactive Draggable Text Layer Overlay on Video Preview -->
+              <div id="betaTextDragOverlay" class="beta-text-drag-overlay" style="display:none;position:absolute;left:50%;top:25%;transform:translate(-50%,-50%);">
+                <div id="betaTextDragContent" class="beta-text-drag-content">WAIT FOR IT! 😱</div>
+                <div class="beta-drag-badge">
+                  <span>✥ Drag to Move</span> · <span id="betaDragCoordBadge">50%, 25%</span> · <span id="betaDragTimeBadge">0.0s – 5.0s</span>
+                </div>
+              </div>
             </div>
 
             <div style="display:flex;gap:10px;margin-top:16px;">
@@ -1076,6 +1084,126 @@
                 Short ↓</a>
               <button type="button" class="ghost" id="betaOpenInEditor" style="flex:1;padding:12px;" disabled>Open in
                 Editor</button>
+            </div>
+
+            <!-- Dynamic Timed & Draggable Text Overlay Editor (Beta Feature) -->
+            <div id="betaTextEditorPanel" class="beta-text-editor-panel">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:1.15rem;">✏️</span>
+                  <strong style="color:#ffffff;font-size:0.95rem;">Interactive Text Overlay & Timing</strong>
+                  <span class="format-pill" style="background:rgba(250,204,21,0.15);color:#facc15;border-color:rgba(250,204,21,0.3);font-size:0.7rem;">Draggable on Preview</span>
+                </div>
+                <label class="toggle-row compact" style="margin:0;">
+                  <input type="checkbox" id="betaTextEnableToggle" checked>
+                  <span style="font-size:0.78rem;color:#cbd5e1;">Live Preview</span>
+                </label>
+              </div>
+
+              <!-- Text Input -->
+              <div style="margin-bottom:12px;">
+                <label style="display:block;font-size:0.75rem;color:var(--muted-2);margin-bottom:4px;font-weight:600;">Text to Overlay (Emojis & Punctuation Supported)</label>
+                <input type="text" id="betaTextInput" class="beta-text-input" value="WAIT FOR IT! 😱" placeholder="e.g. WATCH TILL END! 🔥, EPIC CLUTCH 😂, SUBSCRIBE..." style="width:100%;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:0.9rem;font-weight:600;">
+              </div>
+
+              <!-- Time Range Selector ("From Where to When") -->
+              <div style="margin-bottom:12px;padding:10px 12px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+                  <label style="font-size:0.75rem;color:var(--muted-2);font-weight:600;">⏱️ Timing: From Where to When</label>
+                  <div style="display:flex;gap:4px;">
+                    <button type="button" class="ghost compact" id="betaBtnSetStart" style="padding:2px 8px;font-size:0.72rem;" title="Set start time to current video playback time">Start: Current (0.0s)</button>
+                    <button type="button" class="ghost compact" id="betaBtnSetEnd" style="padding:2px 8px;font-size:0.72rem;" title="Set end time to current video playback time">End: Current (0.0s)</button>
+                    <button type="button" class="ghost compact" id="betaBtnFullDuration" style="padding:2px 8px;font-size:0.72rem;">Entire Clip</button>
+                  </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+                  <div>
+                    <small style="display:block;font-size:0.7rem;color:var(--muted-2);margin-bottom:2px;">Start Time (seconds)</small>
+                    <input type="number" id="betaTextStart" min="0" step="0.1" value="0.0" style="width:100%;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:0.85rem;">
+                  </div>
+                  <div>
+                    <small style="display:block;font-size:0.7rem;color:var(--muted-2);margin-bottom:2px;">End Time (seconds)</small>
+                    <input type="number" id="betaTextEnd" min="0.1" step="0.1" value="5.0" style="width:100%;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:0.85rem;">
+                  </div>
+                </div>
+
+                <!-- Mini Timeline Span Bar -->
+                <div style="position:relative;height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;margin-top:4px;">
+                  <div id="betaTimelineSpanBar" style="position:absolute;left:0%;width:25%;height:100%;background:linear-gradient(90deg, #facc15, #eab308);border-radius:4px;"></div>
+                  <div id="betaTimelineCurrentMarker" style="position:absolute;left:0%;width:3px;height:100%;background:#ffffff;box-shadow:0 0 6px #fff;"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:0.68rem;color:var(--muted-2);">
+                  <span id="betaTimelineStartLabel">0:00</span>
+                  <span id="betaTimelineActiveLabel" style="color:#facc15;font-weight:600;">Active: 0.0s – 5.0s</span>
+                  <span id="betaTimelineEndLabel">Clip End</span>
+                </div>
+              </div>
+
+              <!-- Position X and Y Sliders -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--muted-2);margin-bottom:2px;">
+                    <span>Horizontal X</span>
+                    <output id="betaTextXOut" style="color:#ffffff;font-weight:600;">50%</output>
+                  </div>
+                  <input type="range" id="betaTextX" min="5" max="95" value="50" style="width:100%;cursor:pointer;">
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--muted-2);margin-bottom:2px;">
+                    <span>Vertical Y</span>
+                    <output id="betaTextYOut" style="color:#ffffff;font-weight:600;">25%</output>
+                  </div>
+                  <input type="range" id="betaTextY" min="5" max="95" value="25" style="width:100%;cursor:pointer;">
+                </div>
+              </div>
+
+              <!-- Quick Placement Pills -->
+              <div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+                <span style="font-size:0.72rem;color:var(--muted-2);">Quick Align:</span>
+                <button type="button" class="ghost compact" id="betaPosTop" style="padding:2px 8px;font-size:0.72rem;">Top 15%</button>
+                <button type="button" class="ghost compact" id="betaPosCenter" style="padding:2px 8px;font-size:0.72rem;">Center 50%</button>
+                <button type="button" class="ghost compact" id="betaPosBottom" style="padding:2px 8px;font-size:0.72rem;">Bottom 75%</button>
+              </div>
+
+              <!-- Styling Options -->
+              <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;margin-bottom:14px;">
+                <div>
+                  <small style="display:block;font-size:0.7rem;color:var(--muted-2);margin-bottom:2px;">Font Size (<span id="betaTextSizeOut">42px</span>)</small>
+                  <input type="range" id="betaTextSize" min="20" max="80" value="42" style="width:100%;cursor:pointer;">
+                </div>
+                <div>
+                  <small style="display:block;font-size:0.7rem;color:var(--muted-2);margin-bottom:2px;">Text Color</small>
+                  <input type="color" id="betaTextColor" value="#facc15" style="width:100%;height:32px;border:none;border-radius:6px;cursor:pointer;background:transparent;">
+                </div>
+                <div>
+                  <small style="display:block;font-size:0.7rem;color:var(--muted-2);margin-bottom:2px;">Font Family</small>
+                  <select id="betaTextFont" style="width:100%;padding:6px;font-size:0.78rem;">
+                    <option value="Montserrat Extra Bold">Montserrat Extra Bold</option>
+                    <option value="Impact">Impact</option>
+                    <option value="Segoe UI Black">Segoe UI Black</option>
+                    <option value="Arial Black">Arial Black</option>
+                  </select>
+                </div>
+                <div>
+                  <small style="display:block;font-size:0.7rem;color:var(--muted-2);margin-bottom:2px;">Banner Badge</small>
+                  <div style="display:flex;align-items:center;gap:6px;height:32px;">
+                    <input type="checkbox" id="betaTextBgEnable" checked style="cursor:pointer;" title="Enable background badge box">
+                    <input type="color" id="betaTextBgColor" value="#000000" style="width:40px;height:26px;border:none;border-radius:4px;cursor:pointer;background:transparent;" title="Badge color">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Burn / Apply Actions -->
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="primary" id="betaApplyTextBtn" style="flex:2;padding:11px 16px;font-size:0.85rem;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;">
+                  <span>✨ Burn & Apply Text to Short</span>
+                </button>
+                <button type="button" class="ghost" id="betaResetTextBtn" style="flex:1;padding:11px 14px;font-size:0.85rem;" title="Reset back to unmodified original Short">
+                  <span>↶ Original</span>
+                </button>
+              </div>
+              <div id="betaTextStatusMsg" style="font-size:0.75rem;margin-top:6px;color:var(--muted-2);display:none;"></div>
             </div>
           </div>
         </div>

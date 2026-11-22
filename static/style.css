@@ -2923,3 +2923,77 @@ footer {
 .split-divider-handle.dragging {
   cursor: grabbing;
 }
+
+/* Interactive Draggable Text Layer Overlay in Beta Lab */
+.beta-text-drag-overlay {
+  position: absolute;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  z-index: 25;
+  text-align: center;
+  max-width: 90%;
+  pointer-events: auto;
+  transition: opacity 0.15s ease;
+}
+
+.beta-text-drag-overlay.dragging {
+  cursor: grabbing;
+  z-index: 35;
+}
+
+.beta-text-drag-overlay.inactive-time {
+  opacity: 0.35;
+  filter: grayscale(0.4);
+}
+
+.beta-text-drag-content {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-family: 'Montserrat Extra Bold', Impact, sans-serif;
+  font-weight: 900;
+  color: #facc15;
+  font-size: 1.25rem;
+  line-height: 1.2;
+  word-break: break-word;
+  white-space: pre-wrap;
+  text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 4px 12px rgba(0, 0, 0, 0.8);
+  border: 2px dashed rgba(250, 204, 21, 0.7);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.65);
+  transition: transform 0.1s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.beta-text-drag-overlay:hover .beta-text-drag-content,
+.beta-text-drag-overlay.dragging .beta-text-drag-content {
+  border-color: #ffffff;
+  box-shadow: 0 0 20px rgba(250, 204, 21, 0.8), 0 4px 18px rgba(0, 0, 0, 0.9);
+}
+
+.beta-drag-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #f8fafc;
+  background: rgba(10, 10, 15, 0.88);
+  backdrop-filter: blur(6px);
+  padding: 3px 10px;
+  border-radius: 12px;
+  margin-top: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+}
+
+.beta-text-editor-panel {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-top: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
