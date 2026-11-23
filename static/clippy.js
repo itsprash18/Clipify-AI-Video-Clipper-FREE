@@ -137,6 +137,10 @@
               rows="1"
               placeholder="Ask anything about Clipify AI..."
               aria-label="Message input"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
             ></textarea>
             <button type="submit" id="clippySendBtn" class="clippy-send-btn" title="Send message" aria-label="Send message">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
