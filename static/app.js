@@ -2732,6 +2732,18 @@ if (create) create.onclick = start;
 
 function navigateTo(id) {
   const target = id || 'create';
+  if (target === 'live') {
+    if (!window.location.pathname.includes('/live')) {
+      window.location.href = '/live';
+    }
+    return;
+  }
+  if (target === 'narrate') {
+    if (!window.location.pathname.includes('/narrate')) {
+      window.location.href = '/narrate';
+    }
+    return;
+  }
   if (target === 'models') {
     if (window.openModelHub) window.openModelHub();
     return;
@@ -2854,7 +2866,11 @@ window.addEventListener(
 );
 
 const initialHash = (location.hash.slice(1) || '').split('?')[0];
-if (initialHash && document.getElementById(initialHash)) {
+if (initialHash === 'live') {
+  window.location.href = '/live';
+} else if (initialHash === 'narrate') {
+  window.location.href = '/narrate';
+} else if (initialHash && document.getElementById(initialHash)) {
   try { navigateTo(initialHash); } catch (e) { console.warn(e); }
 } else if (initialHash === 'models') {
   if (window.openModelHub) window.openModelHub();

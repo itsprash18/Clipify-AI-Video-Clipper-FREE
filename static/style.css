@@ -3054,7 +3054,7 @@ footer {
 .clippy-toggle-btn {
   position: fixed;
   right: 0;
-  top: 36%;
+  top: 28%;
   transform: translateY(-50%);
   z-index: 99995;
   display: flex;

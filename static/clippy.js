@@ -21,12 +21,26 @@
   // Load persisted history from localStorage
   function loadPersistedHistory() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          state.history = parsed;
-          return parsed;
+      const keys = [STORAGE_KEY, 'clipify_clippy_chat_history_v3', 'clipify_clippy_history', 'clipify_clippy_chat_history'];
+      for (const k of keys) {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          let parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Strip any legacy [NAVIGATE:...] commands so historical messages never trigger auto-redirects
+            parsed = parsed.map(item => {
+              if (item && item.content && typeof item.content === 'string') {
+                return {
+                  ...item,
+                  content: item.content.replace(/\[NAVIGATE:[a-z0-9_-]+\]\s*/gi, '').trim()
+                };
+              }
+              return item;
+            });
+            state.history = parsed;
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed)); } catch (_) {}
+            return parsed;
+          }
         }
       }
     } catch (_) {}
@@ -287,27 +301,32 @@
       if (!window.location.pathname.includes('/live')) {
         window.location.href = '/live?clippy=open';
       }
-    } else if (s === 'narrate') {
+      return;
+    }
+    if (s === 'narrate') {
       if (!window.location.pathname.includes('/narrate')) {
         window.location.href = '/narrate?clippy=open';
       }
+      return;
+    }
+    // Target is a section on index.html (create, beta, editor, projects)
+    if (window.location.pathname.includes('/live') || window.location.pathname.includes('/narrate')) {
+      window.location.href = '/#' + s + '?clippy=open';
+    } else if (typeof window.navigateTo === 'function') {
+      window.navigateTo(s);
     } else {
-      if (window.location.pathname !== '/' && !window.location.pathname.endsWith('index.html')) {
-        window.location.href = '/#' + s + '?clippy=open';
-      } else if (typeof window.navigateTo === 'function') {
-        window.navigateTo(s);
-      } else {
-        window.location.hash = '#' + s;
-      }
+      window.location.hash = '#' + s;
     }
   }
 
-  function handleActionNavigation(text) {
+  function handleActionNavigation(text, shouldNavigate = false) {
     if (!text) return text;
     const match = text.match(/\[NAVIGATE:([a-z0-9_-]+)\]/i);
     if (match) {
       const target = match[1].toLowerCase();
-      setTimeout(() => navigateApp(target), 250);
+      if (shouldNavigate) {
+        setTimeout(() => navigateApp(target), 250);
+      }
       return text.replace(/\[NAVIGATE:[a-z0-9_-]+\]\s*/gi, '').trim();
     }
     return text;
@@ -399,7 +418,8 @@
     const msgDiv = document.createElement('div');
     msgDiv.className = 'clippy-msg clippy-msg-ai';
 
-    const cleanText = handleActionNavigation(rawText);
+    // Only execute automatic page navigation if this is a live response (shouldSave === true), NEVER when restoring history!
+    const cleanText = handleActionNavigation(rawText, shouldSave === true);
     const formatted = formatMarkdown(cleanText);
 
     msgDiv.innerHTML = `
@@ -413,7 +433,8 @@
     messages.scrollTop = messages.scrollHeight;
 
     if (shouldSave) {
-      state.history.push({ role: 'assistant', content: rawText, model: model || '' });
+      // Store clean text in history so future reloads never contain navigation triggers
+      state.history.push({ role: 'assistant', content: cleanText, model: model || '' });
       savePersistedHistory();
     }
   }
