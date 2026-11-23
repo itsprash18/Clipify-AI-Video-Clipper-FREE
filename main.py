@@ -360,7 +360,45 @@ def _patch_clipsai_media_file() -> None:
         AudioFile.check_exists = safe_media_check_exists
         VideoFile.check_exists = safe_media_check_exists
         AudioVideoFile.check_exists = safe_media_check_exists
+
+        def safe_assert_has_audio_stream(self):
+            err = self.check_has_audio_stream()
+            if err is not None:
+                print(f"  [Transcribe] Notice: {err}. Will proceed with silent/timeline framing.")
+        AudioVideoFile.assert_has_audio_stream = safe_assert_has_audio_stream
         MediaFile._clipify_safe_patched = True
+    except Exception:
+        pass
+
+    try:
+        from clipsai.transcribe.transcription import Transcription
+        if not getattr(Transcription, "_clipify_safe_patched", False):
+            orig_build_word_info = Transcription._build_word_info
+            def safe_build_word_info(self):
+                if not getattr(self, "_char_info", None):
+                    self._char_info = []
+                    self._word_info = []
+                    return
+                try:
+                    orig_build_word_info(self)
+                except (UnboundLocalError, IndexError, TypeError):
+                    self._word_info = []
+            Transcription._build_word_info = safe_build_word_info
+
+            orig_end_time = Transcription.end_time.fget
+            orig_start_time = Transcription.start_time.fget
+
+            def safe_end_time(self):
+                res = orig_end_time(self) if orig_end_time is not None else None
+                return 0.0 if res is None else res
+
+            def safe_start_time(self):
+                res = orig_start_time(self) if orig_start_time is not None else None
+                return 0.0 if res is None else res
+
+            Transcription.end_time = property(safe_end_time)
+            Transcription.start_time = property(safe_start_time)
+            Transcription._clipify_safe_patched = True
     except Exception:
         pass
 
@@ -436,7 +474,22 @@ def _patch_whisper_tokenizer() -> None:
             def safe_transcribe(self, audio_file_path, iso6391_lang_code=None, batch_size=16):
                 if not iso6391_lang_code or not isinstance(iso6391_lang_code, str) or iso6391_lang_code.strip().lower() in ("", "none", "null", "auto", "detect"):
                     iso6391_lang_code = "en"
-                return orig_transcribe(self, audio_file_path, iso6391_lang_code=iso6391_lang_code, batch_size=batch_size)
+                try:
+                    return orig_transcribe(self, audio_file_path, iso6391_lang_code=iso6391_lang_code, batch_size=batch_size)
+                except Exception as t_err:
+                    err_msg = str(t_err).lower()
+                    if "no active speech" in err_msg or "nospeech" in err_msg or "no usable character timestamps" in err_msg or "no segments" in err_msg or "no audio stream" in err_msg:
+                        print(f"  [Transcribe] Notice: Media contains no active speech ({type(t_err).__name__}). Using fallback timeline transcription.")
+                        from clipsai.transcribe.transcription import Transcription
+                        import datetime
+                        return Transcription({
+                            "source_software": "whisperx-fallback",
+                            "time_created": datetime.datetime.now(),
+                            "language": "en",
+                            "num_speakers": 1,
+                            "char_info": [{"char": " ", "start_time": 0.0, "end_time": 60.0, "speaker": None}],
+                        })
+                    raise
             Transcriber.transcribe = safe_transcribe
             Transcriber._clipify_safe_lang_patched = True
     except Exception:
@@ -1457,7 +1510,15 @@ def transcribe_with_progress(audio_file_path, transcriber):
 
             segments = aligned.get("segments")
             if not isinstance(segments, list) or not segments:
-                raise RuntimeError("WhisperX alignment returned no segments.")
+                print("  [Transcribe] Notice: WhisperX alignment returned 0 segments (no active speech detected). Using baseline audio timeline.")
+                aligned["segments"] = [{
+                    "start": 0.0,
+                    "end": max(1.0, float(duration or 60.0)),
+                    "text": "",
+                    "words": [],
+                    "chars": [{"char": " ", "start": 0.0, "end": max(1.0, float(duration or 60.0)), "score": 1.0}],
+                }]
+                return aligned
 
             first_valid_index = None
             for index, segment in enumerate(segments):
@@ -1466,7 +1527,15 @@ def transcribe_with_progress(audio_file_path, transcriber):
                     break
 
             if first_valid_index is None:
-                raise RuntimeError("WhisperX alignment returned no usable character timestamps.")
+                print("  [Transcribe] Notice: WhisperX alignment returned no usable character timestamps. Using baseline audio timeline.")
+                aligned["segments"] = [{
+                    "start": 0.0,
+                    "end": max(1.0, float(duration or 60.0)),
+                    "text": "",
+                    "words": [],
+                    "chars": [{"char": " ", "start": 0.0, "end": max(1.0, float(duration or 60.0)), "score": 1.0}],
+                }]
+                return aligned
 
             # Drop only malformed leading alignment segments. The failed run's repeated-B segment
             # is exactly this case; valid speech segments are retained.
@@ -1540,7 +1609,7 @@ def transcribe_with_progress(audio_file_path, transcriber):
                 iso6391_lang_code="en",
                 batch_size=t_batch_size,
             )
-        except RuntimeError as rt_err:
+        except Exception as rt_err:
             err_low = str(rt_err).lower()
             if "json.exception.type_error.305" in err_low or "cannot use operator[]" in err_low or "vocabulary" in err_low:
                 print("  [Transcribe] Detected corrupted Hugging Face CTranslate2 cache.")
@@ -1554,6 +1623,17 @@ def transcribe_with_progress(audio_file_path, transcriber):
                     iso6391_lang_code="en",
                     batch_size=t_batch_size,
                 )
+            elif "no active speech" in err_low or "nospeech" in err_low or "no usable character timestamps" in err_low or "no segments" in err_low or "no audio stream" in err_low:
+                print(f"  [Transcribe] Notice: Media contains no active speech ({type(rt_err).__name__}). Using fallback timeline transcription.")
+                from clipsai.transcribe.transcription import Transcription
+                import datetime
+                transcription = Transcription({
+                    "source_software": "whisperx-fallback",
+                    "time_created": datetime.datetime.now(),
+                    "language": "en",
+                    "num_speakers": 1,
+                    "char_info": [{"char": " ", "start_time": 0.0, "end_time": max(1.0, float(duration or 60.0)), "speaker": None}],
+                })
             else:
                 raise
     finally:
@@ -6660,7 +6740,26 @@ def process_single_video(
             print("  [HINT] Corrupted Hugging Face Whisper model cache detected.")
             cleaned = _clean_corrupted_hf_cache()
             print(f"  [HINT] Cleaned {cleaned} corrupted cache file(s). Please retry running the pipeline.")
-        return created
+        # Attempt fallback timeline transcription so video framing and clipping still succeed
+        vid_dur = 60.0
+        try:
+            p_cmd = [FFPROBE_BIN, "-v", "quiet", "-show_entries", "format=duration", "-of", "csv=p=0", input_path]
+            vid_dur = float(_check_output_hidden(p_cmd, stderr=subprocess.DEVNULL).decode().strip())
+        except Exception:
+            pass
+        if vid_dur >= MIN_CLIP_DURATION:
+            print(f"  [Transcribe] Falling back to visual timeline reframing for {vname} ({vid_dur:.1f}s)...")
+            from clipsai.transcribe.transcription import Transcription
+            import datetime
+            transcription = Transcription({
+                "source_software": "whisperx-fallback",
+                "time_created": datetime.datetime.now(),
+                "language": "en",
+                "num_speakers": 1,
+                "char_info": [{"char": " ", "start_time": 0.0, "end_time": max(1.0, vid_dur), "speaker": None}],
+            })
+        else:
+            return created
 
     # -----------------------------------------------------
     # 2. FIND CANDIDATE CLIPS via ClipsAI
@@ -7260,8 +7359,9 @@ def main():
         for p in all_created:
             print(f"   • {p}")
     else:
-        print(" No Shorts were created. Check the logs above for errors.")
+        print(" [FATAL] No Shorts were created. Check the logs above for errors.")
         print(" Common fixes: add a video, ensure Ollama is running, check FFmpeg.")
+        sys.exit(1)
     print("=" * 68)
 if __name__ == "__main__":
     main()

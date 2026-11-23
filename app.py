@@ -388,11 +388,15 @@ def _pipeline_failure_detail(return_code: int, outputs: list[str], recent_lines:
         return f"Created {len(outputs)} Short(s)."
     failure_line = next(
         (line for line in reversed(recent_lines)
-         if "[fatal]" in line.lower() or "[error]" in line.lower()),
+         if any(k in line.lower() for k in ("[fatal]", "[error]", "exception:", "traceback", "failed:", "error:"))),
         "",
     )
     if failure_line:
-        return failure_line[:1000]
+        clean = failure_line.strip()
+        for prefix in ("[FATAL]", "[ERROR]", "[fatal]", "[error]"):
+            if clean.startswith(prefix):
+                clean = clean[len(prefix):].strip()
+        return clean[:1000]
     if return_code != 0:
         return f"Pipeline worker exited with code {return_code} without reporting a specific failure."
     return "Pipeline worker exited with code 0 but created no final captioned Shorts."
@@ -1637,7 +1641,7 @@ job_id: str, mode: str, clips: int, model: str, font: str, min_duration: int, ma
             line = raw_line.rstrip()
             if line:
                 recent_lines.append(line)
-                if len(recent_lines) > 12:
+                if len(recent_lines) > 200:
                     recent_lines.pop(0)
             if "video duration:" in line.lower():
                 m_dur = re.search(r"video duration:\s*([\d\.]+)", line.lower())
