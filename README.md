@@ -8,7 +8,7 @@
 **100% Free · 100% Private & Local · Zero Subscriptions · Zero Watermarks · Unlimited Video Length**
 
 <p align="center">
-  <a href="https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.11"><strong>🚀 Download v4.0.11 Release (Windows x64) »</strong></a>
+  <a href="https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v5.0.1"><strong>🚀 Download v5.0.1 Release (Windows x64) »</strong></a>
   <br><br>
   <a href="#-whys-clipify-the-best">🏆 Why's Clipify the Best?</a> ·
   <a href="#-clipify-ai-vs-paid-clippers-battle">🥊 Competitor Battle</a> ·
@@ -18,8 +18,8 @@
   <a href="#-quick-start">⚡ Quick Start</a>
 </p>
 
-[![Release](https://img.shields.io/badge/Release-v4.0.11-10b981?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.11)
-[![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-0078d4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v4.0.11)
+[![Release](https://img.shields.io/badge/Release-v5.0.1-10b981?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v5.0.1)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-0078d4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/tag/v5.0.1)
 [![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-6366f1?style=for-the-badge)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776ab?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Local AI](https://img.shields.io/badge/AI%20Engine-Ollama%20%2F%20Qwen-000000?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.ai)
@@ -38,7 +38,7 @@
 
 ---
 
-## 📥 Download Clipify AI (v4.0.11 Latest)
+## 📥 Download Clipify AI (v5.0.1 Latest)
 
 > [!IMPORTANT]
 > **🛡️ Note on Windows SmartScreen**:
@@ -51,8 +51,8 @@
 
 | Package | Platform | Version | Size | Download Link | SHA-256 Checksum |
 | :--- | :---: | :---: | :---: | :--- | :--- |
-| **`Clipify.AI.Setup.4.0.11.exe`** | Windows 10/11 (64-bit) | `v4.0.11` | **331.8 MB** | [**📥 Download Standalone Windows Installer**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v4.0.11/Clipify.AI.Setup.4.0.11.exe) | `09F767F39486B4517974226597A67A5A5A9763A309AABDF85A7ABCD11F95EB11` |
-| **`update-v4.0.11.zip`** | In-Place Hot Patch | `v4.0.11` | **3.3 MB** | [**⚡ Download Fast Update ZIP**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v4.0.11/update-v4.0.11.zip) | Fast in-place updater asset |
+| **`Clipify.AI.Setup.4.0.11.exe`** | Windows 10/11 (64-bit) | `v5.0.1` | **331.8 MB** | [**📥 Download Standalone Windows Installer**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v5.0.1/Clipify.AI.Setup.4.0.11.exe) | `09F767F39486B4517974226597A67A5A5A9763A309AABDF85A7ABCD11F95EB11` |
+| **`update-v5.0.1.zip`** | In-Place Hot Patch | `v5.0.1` | **3.3 MB** | [**⚡ Download Fast Update ZIP**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v5.0.1/update-v5.0.1.zip) | Fast in-place updater asset |
 | **`Clipify AI (beta).apk`** | Android 8.0+ | `v3.9.0` | **13.8 MB** | [**📱 Download Android APK**](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v3.9.0/Clipify.AI.beta.apk) | Community mobile companion |
 
 #### Verify Installer SHA-256 Integrity:
@@ -138,7 +138,7 @@ Here is why Clipify AI is the most powerful, complete, and creator-friendly vide
 
 Why pay recurring monthly subscriptions for cloud waitlists and video caps? Here is how Clipify AI crushes the commercial competition:
 
-| Feature | OpusClip | Munch | Submagic | Klap | Vizard.ai | 🏆 Clipify AI (v4.0.11) |
+| Feature | OpusClip | Munch | Submagic | Klap | Vizard.ai | 🏆 Clipify AI (v5.0.1) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Monthly Pricing** | $19 – $49/mo | $49 – $119/mo | $20 – $50/mo | $29 – $79/mo | $16 – $32/mo | **100% Free ($0/mo)** |
 | **Annual Cost** | $228 – $588/yr | $588 – $1,428/yr | $240 – $600/yr | $348 – $948/yr | $192 – $384/yr | **$0 (Zero Forever)** |
@@ -245,7 +245,7 @@ flowchart TD
 
 ### Method 1: Windows 1-Click Installer (Recommended)
 
-1. Download **[`Clipify.AI.Setup.4.0.11.exe`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v4.0.11/Clipify.AI.Setup.4.0.11.exe)** (331.8 MB).
+1. Download **[`Clipify.AI.Setup.4.0.11.exe`](https://github.com/sherlock-dev-ai/Clipify-AI-Video-Clipper-FREE/releases/download/v5.0.1/Clipify.AI.Setup.4.0.11.exe)** (331.8 MB).
 2. Run the installer. It will automatically:
    - Configure embedded Python 3.11 runtime.
    - Install required FFmpeg binaries, WhisperX, and PyTorch.
